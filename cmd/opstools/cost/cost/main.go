@@ -48,6 +48,8 @@ var (
 
 	SUMMARYREPORTS = flag.Bool("summary", false, "Include summary level if true")
 
+	OPSREPORTS = flag.Bool("ops", false, "Include summary level if true")
+
 	SERVICEDETAILREPORTS = flag.Bool("servicedetail", false, "Include service level detail if true")
 
 	VERBOSE = flag.Bool("verbose", false, "Enable verbose logging")
@@ -109,6 +111,21 @@ func main() {
 			log.Fatal(err)
 		}
 		reports.Print()
+	}
+
+	if *OPSREPORTS {
+		reports, err := reporter.NewPantherOpsReports(startTime, endTime, *GRANULARITY, accounts[0], pantherDetailedServices)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = reports.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = reports.CSV(accounts[0] + "_" + *START + "_" + *END)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 

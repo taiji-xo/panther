@@ -198,6 +198,8 @@ Resources:
       MemorySize: !FindInMap [Functions, AlertsApi, Memory]
       Runtime: go1.x
       Timeout: !FindInMap [Functions, AlertsApi, Timeout]
+      Tags:
+        PantherResource: panther-alerts-api
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
         - Id: ManageAlerts
@@ -334,6 +336,8 @@ Resources:
       MemorySize: !FindInMap [Functions, AlertsForwarder, Memory]
       Runtime: go1.x
       Timeout: !FindInMap [Functions, AlertsForwarder, Timeout]
+      Tags:
+        PantherResource: panther-log-alert-forwarder
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
         - Id: SQS
@@ -464,6 +468,8 @@ Resources:
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !Ref LogProcessorLambdaMemorySize
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-log-processor
       Timeout: !FindInMap [Functions, LogProcessor, Timeout]
       Environment:
         Variables:
@@ -665,6 +671,8 @@ Resources:
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !FindInMap [Functions, Updater, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-datacatalog-updater
       Timeout: !FindInMap [Functions, Updater, Timeout]
       Environment:
         Variables:
@@ -905,6 +913,8 @@ Resources:
             Queue: !GetAtt RulesEngineQueue.Arn
             BatchSize: 10
       Runtime: python3.7
+      Tags:
+        PantherResource: panther-rules-engine
       Timeout: !FindInMap [Functions, RulesEngine, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -1079,6 +1089,8 @@ Resources:
         Variables:
           DEBUG: !Ref Debug
           STREAM_NAME: !Ref MessageForwarderFirehose
+      Tags:
+        PantherResource: panther-message-forwarder
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
         - Id: ConfirmSnsSubscriptions

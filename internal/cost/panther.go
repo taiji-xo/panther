@@ -26,7 +26,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"github.com/aws/aws-sdk-go/service/costexplorer"
 
@@ -37,7 +36,7 @@ import (
 
 const (
 	PantherCostKey    = "BlendedCost" // no constant for this
-	PantherCostMetric = costexplorer.MetricBlendedCost
+	PantherCostMetric = costexplorer.MetricUnblendedCost
 	PantherUsageKey   = "UsageQuantity" // no constant for this
 
 	// use GetServices() to discover specific names required
@@ -98,8 +97,7 @@ type Reporter struct {
 
 func NewReporter(awsSession *session.Session) *Reporter {
 	return &Reporter{
-		Reporter:         *awscostexplorer.NewReporter(awsSession),
-		cloudwatchClient: cloudwatch.New(awsSession),
+		Reporter: *awscostexplorer.NewReporter(awsSession),
 	}
 }
 

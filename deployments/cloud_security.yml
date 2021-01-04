@@ -209,6 +209,8 @@ Resources:
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !FindInMap [Functions, AlertProcessor, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-alert-processor
       Timeout: !FindInMap [Functions, AlertProcessor, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -326,6 +328,8 @@ Resources:
       MemorySize: !FindInMap [Functions, AlertForwarder, Memory]
       Runtime: go1.x
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
+      Tags:
+        PantherResource: panther-alert-forwarder
       Timeout: !FindInMap [Functions, AlertForwarder, Timeout]
       Policies:
         - Id: ManageAlerts
@@ -492,6 +496,8 @@ Resources:
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !FindInMap [Functions, EventProcessor, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-aws-event-processor
       Timeout: !FindInMap [Functions, EventProcessor, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -563,6 +569,8 @@ Resources:
       MemorySize: !FindInMap [Functions, ComplianceApi, Memory]
       Runtime: go1.x
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
+      Tags:
+        PantherResource: panther-compliance-api
       Timeout: !FindInMap [Functions, ComplianceApi, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -670,6 +678,8 @@ Resources:
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !FindInMap [Functions, RemediationApi, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-remediation-api
       Timeout: !FindInMap [Functions, RemediationApi, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -810,6 +820,8 @@ Resources:
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !FindInMap [Functions, RemediationProcessor, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-remediation-processor
       Timeout: !FindInMap [Functions, RemediationProcessor, Timeout]
       Policies:
         - Id: ReceiveMessagesAndInvokeAPIs
@@ -878,6 +890,8 @@ Resources:
         - [!Ref PythonLayerVersionArn]
       MemorySize: !FindInMap [Functions, Remediation, Memory]
       Runtime: python3.7
+      Tags:
+        PantherResource: panther-aws-remediation
       Timeout: !FindInMap [Functions, Remediation, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -921,6 +935,8 @@ Resources:
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !FindInMap [Functions, ResourcesApi, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-resources-api
       Timeout: !FindInMap [Functions, ResourcesApi, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -1106,6 +1122,8 @@ Resources:
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !FindInMap [Functions, ResourceProcessor, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-resource-processor
       Timeout: !FindInMap [Functions, ResourceProcessor, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -1159,6 +1177,8 @@ Resources:
       Handler: src.main.lambda_handler
       MemorySize: !FindInMap [Functions, PolicyEngine, Memory]
       Runtime: python3.7
+      Tags:
+        PantherResource: panther-policy-engine
       Timeout: !FindInMap [Functions, PolicyEngine, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Layers: !GetAtt PolicyEngineLayers.LayerArns
@@ -1294,6 +1314,8 @@ Resources:
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !FindInMap [Functions, Poller, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-snapshot-pollers
       Timeout: !FindInMap [Functions, Poller, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -1379,6 +1401,8 @@ Resources:
       # * Failure of this lambda will prevent daily infrastructure scans from running.
       # </cfndoc>
       Handler: main
+      Tags:
+        PantherResource: panther-snapshot-scheduler
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !FindInMap [Functions, SnapshotScheduler, Memory]
       Runtime: go1.x
@@ -1536,6 +1560,8 @@ Resources:
       MemorySize: !FindInMap [Functions, DatalakeForwarder, Memory]
       Runtime: go1.x
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref 'AWS::NoValue']
+      Tags:
+        PantherResource: panther-cloudsecurity-datalake-forwarder
       Timeout: !FindInMap [Functions, DatalakeForwarder, Timeout]
       Policies:
         - Id: WriteToFirehose

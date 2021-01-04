@@ -183,6 +183,8 @@ Resources:
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !FindInMap [Functions, UsersAPI, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-users-api
       Timeout: !FindInMap [Functions, UsersAPI, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -277,6 +279,8 @@ Resources:
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !FindInMap [Functions, OrganizationAPI, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-organization-api
       Timeout: !FindInMap [Functions, OrganizationAPI, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -336,6 +340,8 @@ Resources:
       MemorySize: !FindInMap [Functions, AnalysisAPI, Memory]
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-analysis-api
       Timeout: !FindInMap [Functions, AnalysisAPI, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -502,6 +508,8 @@ Resources:
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !FindInMap [Functions, OutputsAPI, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-outputs-api
       Timeout: !FindInMap [Functions, OutputsAPI, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -640,6 +648,8 @@ Resources:
       Handler: main
       MemorySize: !FindInMap [Functions, AlertDelivery, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-alert-delivery-api
       Timeout: !FindInMap [Functions, AlertDelivery, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -764,6 +774,8 @@ Resources:
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !FindInMap [Functions, SourceAPI, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-source-api
       Timeout: !FindInMap [Functions, SourceAPI, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -935,6 +947,8 @@ Resources:
       Handler: main
       MemorySize: !FindInMap [Functions, LayerManager, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-layer-manager
       Timeout: !FindInMap [Functions, LayerManager, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -1107,6 +1121,8 @@ Resources:
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !FindInMap [Functions, MetricsAPI, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-metrics-api
       Timeout: !FindInMap [Functions, MetricsAPI, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
@@ -1215,6 +1231,8 @@ Resources:
       Layers: !If [AttachLayers, !Ref LayerVersionArns, !Ref AWS::NoValue]
       MemorySize: !FindInMap [Functions, LogTypesAPI, Memory]
       Runtime: go1.x
+      Tags:
+        PantherResource: panther-logtypes-api
       Timeout: !FindInMap [Functions, LogTypesAPI, Timeout]
       Tracing: !If [TracingEnabled, !Ref TracingMode, !Ref AWS::NoValue]
       Policies:
