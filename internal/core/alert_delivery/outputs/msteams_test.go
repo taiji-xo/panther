@@ -19,6 +19,7 @@ package outputs
  */
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -39,6 +40,7 @@ func TestMsTeamsAlert(t *testing.T) {
 
 	var createdAtTime, _ = time.Parse(time.RFC3339, "2019-08-03T11:40:13Z")
 	alert := &alertModels.Alert{
+		AlertID:      aws.String("alertId"),
 		AnalysisID:   "policyId",
 		Type:         alertModels.PolicyType,
 		CreatedAt:    createdAtTime,
@@ -61,7 +63,7 @@ func TestMsTeamsAlert(t *testing.T) {
 					map[string]string{"name": "Tags", "value": ""},
 					map[string]string{"name": "AlertContext", "value": `{"key":"value"}`},
 				},
-				"text": "[Click here to view in the Panther UI](https://panther.io/policies/policyId).\n",
+				"text": "[Click here to view in the Panther UI](https://panther.io/alerts/alertId).\n",
 			},
 		},
 		"potentialAction": []interface{}{
@@ -71,7 +73,7 @@ func TestMsTeamsAlert(t *testing.T) {
 				"targets": []interface{}{
 					map[string]string{
 						"os":  "default",
-						"uri": "https://panther.io/policies/policyId",
+						"uri": "https://panther.io/alerts/alertId",
 					},
 				},
 			},
@@ -84,9 +86,9 @@ func TestMsTeamsAlert(t *testing.T) {
 		url:  requestURL,
 		body: msTeamsPayload,
 	}
+	ctx := context.Background()
+	httpWrapper.On("post", ctx, expectedPostInput).Return((*AlertDeliveryResponse)(nil))
 
-	httpWrapper.On("post", expectedPostInput).Return((*AlertDeliveryResponse)(nil))
-
-	assert.Nil(t, client.MsTeams(alert, msTeamConfig))
+	assert.Nil(t, client.MsTeams(ctx, alert, msTeamConfig))
 	httpWrapper.AssertExpectations(t)
 }

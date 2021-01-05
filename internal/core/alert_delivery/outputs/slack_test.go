@@ -19,6 +19,7 @@ package outputs
  */
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -37,6 +38,7 @@ func TestSlackAlert(t *testing.T) {
 
 	createdAtTime := time.Now()
 	alert := &alertModels.Alert{
+		AlertID:      aws.String("alertId"),
 		AnalysisID:   "policyId",
 		Type:         alertModels.PolicyType,
 		CreatedAt:    createdAtTime,
@@ -52,7 +54,7 @@ func TestSlackAlert(t *testing.T) {
 				"fields": []map[string]interface{}{
 					{
 						"short": false,
-						"value": "<https://panther.io/policies/policyId|Click here to view in the Panther UI>",
+						"value": "<https://panther.io/alerts/alertId|Click here to view in the Panther UI>",
 					},
 					{
 						"short": false,
@@ -75,8 +77,9 @@ func TestSlackAlert(t *testing.T) {
 		body: expectedPostPayload,
 	}
 
-	httpWrapper.On("post", expectedPostInput).Return((*AlertDeliveryResponse)(nil))
+	ctx := context.Background()
+	httpWrapper.On("post", ctx, expectedPostInput).Return((*AlertDeliveryResponse)(nil))
 
-	require.Nil(t, client.Slack(alert, slackConfig))
+	require.Nil(t, client.Slack(ctx, alert, slackConfig))
 	httpWrapper.AssertExpectations(t)
 }

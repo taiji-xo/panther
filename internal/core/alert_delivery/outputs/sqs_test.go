@@ -19,6 +19,7 @@ package outputs
  */
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -42,6 +43,7 @@ func TestSendSqs(t *testing.T) {
 		QueueURL: "https://sqs.us-west-2.amazonaws.com/123456789012/test-output",
 	}
 	alert := &alertModels.Alert{
+		AlertID:             aws.String("alertId"),
 		AnalysisName:        aws.String("policyName"),
 		Type:                alertModels.PolicyType,
 		AnalysisID:          "policyId",
@@ -55,12 +57,13 @@ func TestSendSqs(t *testing.T) {
 
 	expectedSqsMessage := &Notification{
 		ID:          alert.AnalysisID,
+		AlertID:     aws.String("alertId"),
 		Type:        alertModels.PolicyType,
 		Name:        alert.AnalysisName,
 		Description: aws.String(alert.AnalysisDescription),
 		Severity:    alert.Severity,
 		Runbook:     aws.String(alert.Runbook),
-		Link:        "https://panther.io/policies/policyId",
+		Link:        "https://panther.io/alerts/alertId",
 		Title:       "Policy Failure: policyName",
 		Tags:        []string{},
 		AlertContext: map[string]interface{}{
@@ -73,13 +76,16 @@ func TestSendSqs(t *testing.T) {
 		QueueUrl:    &sqsOutputConfig.QueueURL,
 		MessageBody: &expectedSerializedSqsMessage,
 	}
-
-	client.On("SendMessage", expectedSqsSendMessageInput).Return(&sqs.SendMessageOutput{MessageId: aws.String("messageId")}, nil)
+	ctx := context.Background()
+	client.On("SendMessageWithContext",
+		ctx,
+		expectedSqsSendMessageInput,
+	).Return(&sqs.SendMessageOutput{MessageId: aws.String("messageId")}, nil)
 	getSqsClient = func(*session.Session, string) sqsiface.SQSAPI {
 		return client
 	}
 
-	result := outputClient.Sqs(alert, sqsOutputConfig)
+	result := outputClient.Sqs(ctx, alert, sqsOutputConfig)
 	assert.NotNil(t, result)
 	assert.Equal(t, &AlertDeliveryResponse{
 		Message:    "messageId",

@@ -19,6 +19,7 @@ package outputs
  */
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -37,6 +38,7 @@ func TestAsanaAlert(t *testing.T) {
 	createdAtTime, err := time.Parse(time.RFC3339, "2019-08-03T11:40:13Z")
 	require.NoError(t, err)
 	alert := &alertModels.Alert{
+		AlertID:             aws.String("alertId"),
 		AnalysisID:          "ruleId",
 		Type:                alertModels.PolicyType,
 		CreatedAt:           createdAtTime,
@@ -53,7 +55,7 @@ func TestAsanaAlert(t *testing.T) {
 		"data": map[string]interface{}{
 			"name": "Policy Failure: policy_name",
 			"notes": "policy_name failed on new resources\n" +
-				"For more details please visit: https://panther.io/policies/ruleId\nSeverity: INFO\nRunbook: \n" +
+				"For more details please visit: https://panther.io/alerts/alertId\nSeverity: INFO\nRunbook: \n" +
 				"Reference: \nDescription: description\nAlertContext: {\"key\":\"value\"}",
 			"projects": []string{"projectGid"},
 		},
@@ -68,9 +70,9 @@ func TestAsanaAlert(t *testing.T) {
 		body:    asanaRequest,
 		headers: requestHeader,
 	}
+	ctx := context.Background()
+	httpWrapper.On("post", ctx, expectedPostInput).Return((*AlertDeliveryResponse)(nil))
 
-	httpWrapper.On("post", expectedPostInput).Return((*AlertDeliveryResponse)(nil))
-
-	assert.Nil(t, client.Asana(alert, asanaConfig))
+	assert.Nil(t, client.Asana(ctx, alert, asanaConfig))
 	httpWrapper.AssertExpectations(t)
 }
