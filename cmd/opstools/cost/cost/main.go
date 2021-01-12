@@ -41,6 +41,7 @@ var (
 		"Time aggregation granularity one of: "+costexplorer.GranularityHourly+","+
 			costexplorer.GranularityDaily+","+costexplorer.GranularityMonthly)
 	ACCOUNTS = flag.String("accounts", "", "Comma separated list of AWS linked account ids (defaults to current account)")
+	//OU = flag.String("ou", "", "Org ID to generate reports for (only supported by for --ops reports)")
 
 	PANTHERREPORTS        = flag.Bool("panther", true, "Include Panther specific reports if true")
 	PANTHERREPORTSDETAILS = flag.String("panther.details", strings.Join(defaultPantherDetailedServices, ","),
@@ -122,7 +123,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = reports.CSV(accounts[0] + "_" + *START + "_" + *END)
+		err = reports.CSV("")
 		if err != nil {
 			log.Fatal(err)
 		}

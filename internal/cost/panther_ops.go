@@ -32,6 +32,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"github.com/aws/aws-sdk-go/service/costexplorer"
+	"github.com/aws/aws-sdk-go/service/costexplorer/costexploreriface"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
@@ -41,15 +42,31 @@ import (
 
 const (
 	DateFormat = "2006-01-02"
+	// The minimum amount of cost to be considered in the cost reports. Reduces noise by eliminating
+	// any costs that accumulated less than one cent in a month
+	secondsPerDay = 86400
+	noAlias       = "NO-ALIAS-SET"
 )
 
 var (
-	// filter all queries by Panther tags to focus
-	pantherComponentFilter = &costexplorer.Expression{
-		Tags: &costexplorer.TagValues{
-			Key:    aws.String("Application"),
-			Values: []*string{aws.String("Panther")},
-		},
+	services = []string{
+		"AWS AppSync",
+		"Amazon Athena",
+		"Amazon Cognito",
+		"AmazonCloudWatch",
+		"Amazon EC2 Container Registry (ECR)",
+		"Amazon Elastic File System",
+		"Amazon Elastic Load Balancing",
+		"Amazon DynamoDB",
+		"Amazon Kinesis Firehose",
+		"AWS Glue",
+		"AWS Key Management Service",
+		"AWS Lambda",
+		"Amazon Simple Storage Service",
+		"AWS Secrets Manager", // nolint:gosec
+		"Amazon Simple Queue Service",
+		"Amazon Simple Notification Service",
+		"AWS Step Functions",
 	}
 )
 
@@ -63,6 +80,7 @@ type PantherOpsReports struct {
 	// Clients
 	cwClient     cloudwatchiface.CloudWatchAPI
 	lambdaClient lambdaiface.LambdaAPI
+	ceClient     costexploreriface.CostExplorerAPI
 
 	// Queried fields
 	AccountName      string
@@ -73,62 +91,19 @@ type PantherOpsReports struct {
 	// Specific reports used for our standardized billing & usage tracking
 	BytesProcessedQuery *cloudwatch.GetMetricDataInput
 	BytesProcessed      []PantherBytesProcessedRow
-	LambdaUsageQuery    *cloudwatch.GetMetricDataInput
-	LambdaUsage         []PantherLambdaUsageRow
-	S3UsageQuery        *cloudwatch.GetMetricDataInput
-	S3Usage             []PantherS3StorageRow
-	ServiceCostQuery    *costexplorer.GetCostAndUsageInput
-	ServiceCost         []PantherServiceCostRow
-}
 
-type PantherBytesProcessedRow struct {
-	AccountId      string
-	AccountName    string
-	LogType        string
-	BytesProcessed float64
-	Year           int
-	Month          int
-	Day            int
-}
+	LambdaUsageQuery *cloudwatch.GetMetricDataInput
+	LambdaUsage      []PantherLambdaUsageRow
 
-type PantherLambdaUsageRow struct {
-	AccountId         string
-	AccountName       string
-	LambdaName        string
-	LambdaDuration    float64
-	LambdaInvocations float64
-	LambdaMemory      int64
-	Component         string
-	Year              int
-	Month             int
-	Day               int
-}
+	S3UsageQuery *cloudwatch.GetMetricDataInput
+	S3Usage      []PantherS3StorageRow
 
-type PantherS3StorageRow struct {
-	AccountId   string
-	AccountName string
-	Bucket      string
-	StorageType string
-	Bytes       float64
-	Year        int
-	Month       int
-	Day         int
-}
+	ServiceCostQueries []*costexplorer.GetCostAndUsageInput
+	ServiceCost        []PantherServiceCostRow
 
-type PantherServiceCostRow struct {
-	AccountId       string
-	AccountName     string
-	Service         string
-	ServiceCategory string
-	Cost            int64
-	Year            int
-	Month           int
-	Day             int
+	ResourceCostQuery *costexplorer.GetCostAndUsageInput
+	ResourceCost      []PantherResourceCostRow
 }
-
-const (
-	secondsPerDay = 86400
-)
 
 func (r *Reporter) NewPantherOpsReports(startTime, endTime time.Time, granularity, accountId string,
 	detailedServices []string) (*PantherOpsReports, error) {
@@ -142,7 +117,7 @@ func (r *Reporter) NewPantherOpsReports(startTime, endTime time.Time, granularit
 	if err != nil {
 		return nil, err
 	}
-	accountName := "NO-ALIAS-SET"
+	accountName := noAlias
 	if len(aliases.AccountAliases) > 0 {
 		accountName = *aliases.AccountAliases[0]
 	}
@@ -156,6 +131,7 @@ func (r *Reporter) NewPantherOpsReports(startTime, endTime time.Time, granularit
 		DetailedServices: detailedServices,
 		cwClient:         cloudwatch.New(awsSession),
 		lambdaClient:     lambda.New(awsSession),
+		ceClient:         costexplorer.New(awsSession),
 		Region:           *awsSession.Config.Region,
 		LambdaComponents: make(map[string]string, 0),
 		LambdaMemories:   make(map[string]int64, 0),
@@ -212,16 +188,54 @@ func (r *Reporter) NewPantherOpsReports(startTime, endTime time.Time, granularit
 		StartTime: &startTime,
 	}
 
-	report.ServiceCostQuery = &costexplorer.GetCostAndUsageInput{
-		Filter:        nil,
-		Granularity:   aws.String("DAILY"),
-		GroupBy:       nil,
-		Metrics:       nil,
-		NextPageToken: nil,
-		TimePeriod: &costexplorer.DateInterval{
-			End:   aws.String(endTime.Format(DateFormat)),
-			Start: aws.String(startTime.Format(DateFormat)),
-		},
+	// We need one query per service because AWS only allows two group by definitions per query
+	for _, service := range services {
+		report.ServiceCostQueries = append(report.ServiceCostQueries, &costexplorer.GetCostAndUsageInput{
+			Filter: &costexplorer.Expression{
+				And: []*costexplorer.Expression{
+					{
+						Dimensions: &costexplorer.DimensionValues{
+							Key:    aws.String(costexplorer.DimensionService),
+							Values: []*string{aws.String(service)},
+						},
+					},
+					{
+						Tags: &costexplorer.TagValues{
+							Key: aws.String("Stack"),
+							Values: []*string{
+								aws.String("panther-bootstrap"),
+								aws.String("panther-bootstrap-gateway"),
+								aws.String("panther-cloud-security"),
+								aws.String("panther-core"),
+								aws.String("panther-log-analysis"),
+								aws.String("panther-onboard"),
+							},
+						},
+					},
+				},
+			},
+			Granularity: aws.String(costexplorer.GranularityDaily),
+			//Granularity: aws.String(costexplorer.GranularityMonthly), // also an option
+			GroupBy: []*costexplorer.GroupDefinition{
+				{
+					Key:  aws.String(costexplorer.DimensionUsageType),
+					Type: aws.String(costexplorer.GroupDefinitionTypeDimension), // TAG or CostCategory are the alternatives
+				},
+				{
+					Key: aws.String("Stack"),
+					// Key:  aws.String("PantherResource"),
+					Type: aws.String(costexplorer.GroupDefinitionTypeTag),
+				},
+			},
+			Metrics: []*string{
+				aws.String(costexplorer.MetricUsageQuantity),
+				aws.String(costexplorer.MetricUnblendedCost),
+			},
+			TimePeriod: &costexplorer.DateInterval{
+				Start: aws.String(startTime.Format(DateFormat)),
+				End:   aws.String(endTime.Format(DateFormat)),
+			},
+		})
 	}
 
 	return report, nil
@@ -320,6 +334,49 @@ func (pr *PantherOpsReports) Run() error {
 			})
 		}
 	}
+
+	for _, query := range pr.ServiceCostQueries {
+		for {
+			reports, err := pr.ceClient.GetCostAndUsage(query)
+			if err != nil {
+				return err
+			}
+			for _, result := range reports.ResultsByTime {
+				for _, group := range result.Groups {
+					cost, err := strconv.ParseFloat(*group.Metrics["UnblendedCost"].Amount, 64)
+					if err != nil {
+						return err
+					}
+					usage, err := strconv.ParseFloat(*group.Metrics["UsageQuantity"].Amount, 64)
+					if err != nil {
+						return err
+					}
+					service := *query.Filter.And[0].Dimensions.Values[0]
+
+					timestamp, err := time.Parse(DateFormat, *result.TimePeriod.Start)
+					if err != nil {
+						return err
+					}
+					pr.ServiceCost = append(pr.ServiceCost, PantherServiceCostRow{
+						AccountId:    pr.AccountId,
+						AccountName:  pr.AccountName,
+						Service:      service,
+						ServiceUsage: usage,
+						CostCategory: *group.Metrics["UsageQuantity"].Unit,
+						Cost:         cost,
+						Year:         timestamp.Year(),
+						Month:        int(timestamp.Month()),
+						Day:          timestamp.Day(),
+					})
+				}
+			}
+			if reports.NextPageToken == nil {
+				break
+			}
+			query.NextPageToken = reports.NextPageToken
+		}
+	}
+
 	return nil
 }
 
@@ -361,6 +418,13 @@ func (pr PantherOpsReports) getLambdaMemory(lambdaName string) (int64, error) {
 }
 
 func (pr PantherOpsReports) CSV(fileName string) error {
+	if fileName == "" {
+		fileName = pr.AccountId
+		if pr.AccountName != noAlias {
+			fileName = pr.AccountName
+		}
+		fileName += "_" + pr.Start.Format(DateFormat) + "_" + pr.End.Format(DateFormat)
+	}
 	bytesProcessedFile, err := os.Create(fileName + "_bytes_processed.csv")
 	if err != nil {
 		return err
@@ -433,5 +497,31 @@ func (pr PantherOpsReports) CSV(fileName string) error {
 			return err
 		}
 	}
+
+	// accountId, accountName, service, serviceChargeType, service usage, USD, year, month, day
+	serviceCostsFile, err := os.Create(fileName + "_service_cost.csv")
+	if err != nil {
+		return err
+	}
+
+	serviceCostsWriter := csv.NewWriter(serviceCostsFile)
+	defer serviceCostsWriter.Flush()
+	for _, metric := range pr.ServiceCost {
+		err = serviceCostsWriter.Write([]string{
+			metric.AccountId,
+			metric.AccountName,
+			metric.Service,
+			metric.CostCategory,
+			fmt.Sprintf("%f", metric.ServiceUsage),
+			fmt.Sprintf("%f", metric.Cost),
+			strconv.Itoa(metric.Year),
+			strconv.Itoa(metric.Month),
+			strconv.Itoa(metric.Day),
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
