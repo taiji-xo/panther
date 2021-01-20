@@ -44,29 +44,41 @@ const (
 	DateFormat = "2006-01-02"
 	// The minimum amount of cost to be considered in the cost reports. Reduces noise by eliminating
 	// any costs that accumulated less than one cent in a month
-	secondsPerDay = 86400
-	noAlias       = "NO-ALIAS-SET"
+	secondsPerDay   = 86400
+	noAlias         = "NO-ALIAS-SET"
+	recordTypeUsage = "Usage"
 )
 
 var (
-	services = []string{
-		"AWS AppSync",
-		"Amazon Athena",
-		"Amazon Cognito",
-		"AmazonCloudWatch",
-		"Amazon EC2 Container Registry (ECR)",
-		"Amazon Elastic File System",
-		"Amazon Elastic Load Balancing",
-		"Amazon DynamoDB",
-		"Amazon Kinesis Firehose",
-		"AWS Glue",
-		"AWS Key Management Service",
-		"AWS Lambda",
-		"Amazon Simple Storage Service",
-		"AWS Secrets Manager", // nolint:gosec
-		"Amazon Simple Queue Service",
-		"Amazon Simple Notification Service",
-		"AWS Step Functions",
+	// query with this to find the values
+	// aws-vault exec some-account -- aws ce get-dimension-values --dimension SERVICE --time-period Start=2020-09-01,End=2020-10-01 | grep Value
+	services = map[string]interface{}{
+		"AWS AppSync":                            nil,
+		"AWS CloudTrail":                         nil,
+		"Amazon API Gateway":                     nil,
+		"Amazon Athena":                          nil,
+		"Amazon Cognito":                         nil,
+		"AWS Cost Explorer":                      nil,
+		"AWS Data Transfer":                      nil,
+		"AmazonCloudWatch":                       nil,
+		"Amazon EC2 Container Registry (ECR)":    nil,
+		"Amazon EC2 Container Service":           nil,
+		"Amazon Elastic File System":             nil,
+		"Amazon Elastic Load Balancing":          nil,
+		"Amazon DynamoDB":                        nil,
+		"Amazon Kinesis Firehose":                nil,
+		"Amazon Elastic Compute Cloud - Compute": nil,
+		"Amazon GuardDuty":                       nil,
+		"AWS Glue":                               nil,
+		"AWS Key Management Service":             nil,
+		"AWS Lambda":                             nil,
+		"Amazon Simple Storage Service":          nil,
+		"AWS Secrets Manager":                    nil, // nolint:gosec
+		"Amazon Simple Queue Service":            nil,
+		"CloudWatch Events":                      nil,
+		"Amazon Simple Notification Service":     nil,
+		"AWS Step Functions":                     nil,
+		"EC2 - Other":                            nil,
 	}
 )
 
@@ -189,7 +201,7 @@ func (r *Reporter) NewPantherOpsReports(startTime, endTime time.Time, granularit
 	}
 
 	// We need one query per service because AWS only allows two group by definitions per query
-	for _, service := range services {
+	for service := range services {
 		report.ServiceCostQueries = append(report.ServiceCostQueries, &costexplorer.GetCostAndUsageInput{
 			Filter: &costexplorer.Expression{
 				And: []*costexplorer.Expression{
@@ -200,18 +212,27 @@ func (r *Reporter) NewPantherOpsReports(startTime, endTime time.Time, granularit
 						},
 					},
 					{
-						Tags: &costexplorer.TagValues{
-							Key: aws.String("Stack"),
-							Values: []*string{
-								aws.String("panther-bootstrap"),
-								aws.String("panther-bootstrap-gateway"),
-								aws.String("panther-cloud-security"),
-								aws.String("panther-core"),
-								aws.String("panther-log-analysis"),
-								aws.String("panther-onboard"),
-							},
+						Dimensions: &costexplorer.DimensionValues{
+							Key:    aws.String(costexplorer.DimensionRecordType),
+							Values: []*string{aws.String(recordTypeUsage)},
 						},
 					},
+					/*
+						{
+							Tags: &costexplorer.TagValues{
+								Key: aws.String("Stack"),
+								Values: []*string{
+									aws.String("panther-bootstrap"),
+									aws.String("panther-bootstrap-gateway"),
+									aws.String("panther-cloud-security"),
+									aws.String("panther-core"),
+									aws.String("panther-log-analysis"),
+									aws.String("panther-onboard"),
+								},
+							},
+						},
+
+					*/
 				},
 			},
 			Granularity: aws.String(costexplorer.GranularityDaily),
@@ -352,6 +373,15 @@ func (pr *PantherOpsReports) Run() error {
 						return err
 					}
 					service := *query.Filter.And[0].Dimensions.Values[0]
+					//service := *query.Filter.Dimensions.Values[0]
+
+					// Stack is the second group by definition, so it is in Keys[1]. It's formatted as
+					// `Stack$StackName`. If no stack tag is specified, then StackName is an empty string
+					stack := "Not Tagged"
+					stackComponents := strings.Split(*group.Keys[1], "$")
+					if stackComponents[1] != "" {
+						stack = stackComponents[1]
+					}
 
 					timestamp, err := time.Parse(DateFormat, *result.TimePeriod.Start)
 					if err != nil {
@@ -360,13 +390,14 @@ func (pr *PantherOpsReports) Run() error {
 					pr.ServiceCost = append(pr.ServiceCost, PantherServiceCostRow{
 						AccountId:    pr.AccountId,
 						AccountName:  pr.AccountName,
-						Service:      service,
-						ServiceUsage: usage,
-						CostCategory: *group.Metrics["UsageQuantity"].Unit,
+						Component:    stack,
+						CostCategory: *group.Keys[0] + ":" + *group.Metrics["UsageQuantity"].Unit,
 						Cost:         cost,
 						Year:         timestamp.Year(),
 						Month:        int(timestamp.Month()),
 						Day:          timestamp.Day(),
+						Service:      service,
+						ServiceUsage: usage,
 					})
 				}
 			}
@@ -510,6 +541,7 @@ func (pr PantherOpsReports) CSV(fileName string) error {
 		err = serviceCostsWriter.Write([]string{
 			metric.AccountId,
 			metric.AccountName,
+			metric.Component,
 			metric.Service,
 			metric.CostCategory,
 			fmt.Sprintf("%f", metric.ServiceUsage),

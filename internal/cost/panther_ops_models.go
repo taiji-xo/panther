@@ -57,6 +57,7 @@ type PantherServiceCostRow struct {
 	AccountName  string
 	Service      string
 	ServiceUsage float64
+	Component    string
 	CostCategory string
 	Cost         float64
 	Year         int
