@@ -27,6 +27,7 @@ import (
 	"go.uber.org/zap"
 
 	deliverymodel "github.com/panther-labs/panther/api/lambda/delivery/models"
+	"github.com/panther-labs/panther/pkg/metrics"
 )
 
 // DispatchAlerts - Sends an alert to sends a specific alert to the specified destinations.
@@ -54,6 +55,10 @@ func (API) DispatchAlerts(ctx context.Context, input []*deliverymodel.DispatchAl
 	success, failed := filterDispatches(dispatchStatuses)
 	zap.L().Debug("Deliveries that failed", zap.Int("num_failed", len(failed)))
 	zap.L().Debug("Deliveries that succeeded", zap.Int("num_success", len(success)))
+
+	// Report metrics
+	alertDeliveryCounter.With(metrics.StatusDimension, metrics.StatusOk).Add(float64(len(success)))
+	alertDeliveryCounter.With(metrics.StatusDimension, metrics.StatusErr).Add(float64(len(failed)))
 
 	// Obtain a list of alerts that should be retried and put back on to the queue
 	alertsToRetry := getAlertsToRetry(failed, env.AlertRetryCount)

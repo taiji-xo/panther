@@ -62,9 +62,7 @@ var (
 	GetObject metrics.Counter
 
 	// Counter for number of events classified
-	ClassifiedEventsSuccess metrics.Counter
-	// Counter for number of events not classified
-	ClassifiedEventsFailure metrics.Counter
+	ClassifiedEvents metrics.Counter
 )
 
 type EnvConfig struct {
@@ -105,19 +103,15 @@ type DataStream struct {
 }
 
 const (
-	SubsystemLogProcessor       = "LogProcessor"
-	MetricGetObject             = "GetObject"
-	MetricClassification = "EventsClassified"
+	SubsystemLogProcessor = "LogProcessor"
+	MetricGetObject       = "GetObject"
+	MetricClassification  = "EventsClassified"
 )
 
 func setupMetrics() {
 	CWMetrics = metrics.NewCWEmbeddedMetrics(os.Stdout)
 	GetObject = CWMetrics.NewCounter(MetricGetObject).
 		With(metrics.SubsystemDimension, SubsystemLogProcessor)
-	ClassifiedEventsSuccess = CWMetrics.NewCounter(MetricGetObject).
-		With(metrics.SubsystemDimension, SubsystemLogProcessor).
-		With(metrics.StatusDimension, metrics.StatusOk)
-	ClassifiedEventsFailure = CWMetrics.NewCounter(MetricGetObject).
-		With(metrics.SubsystemDimension, SubsystemLogProcessor).
-		With(metrics.StatusDimension, metrics.StatusErr)
+	ClassifiedEvents = CWMetrics.NewCounter(MetricGetObject).
+		With(metrics.SubsystemDimension, SubsystemLogProcessor)
 }

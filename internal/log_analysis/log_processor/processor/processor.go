@@ -148,15 +148,25 @@ func processDataStream(
 }
 
 type Processor struct {
-	input      *common.DataStream
-	classifier classification.ClassifierAPI
-	operation  *oplog.Operation
+	input                   *common.DataStream
+	classifier              classification.ClassifierAPI
+	operation               *oplog.Operation
+	classificationSuccesses metrics.Counter
+	classificationFailures  metrics.Counter
 }
 
 type Factory func(r *common.DataStream) (*Processor, error)
 
 func NewFactory(resolver pantherlog.ParserResolver) Factory {
 	return func(input *common.DataStream) (*Processor, error) {
+		classificationSuccesses := common.ClassifiedEvents.
+			With(metrics.SourceIDDimension, input.Source.IntegrationID).
+			With(metrics.StatusDimension, metrics.StatusErr)
+
+		classificationFailures := common.ClassifiedEvents.
+			With(metrics.SourceIDDimension, input.Source.IntegrationID).
+			With(metrics.StatusDimension, metrics.StatusOk)
+
 		switch src := input.Source; src.IntegrationType {
 		case models.IntegrationTypeSqs:
 			return &Processor{
@@ -166,6 +176,8 @@ func NewFactory(resolver pantherlog.ParserResolver) Factory {
 					Resolver:   resolver,
 					LoadSource: sources.LoadSource,
 				},
+				classificationSuccesses: classificationSuccesses,
+				classificationFailures:  classificationFailures,
 			}, nil
 		case models.IntegrationTypeAWS3:
 			var availableLogTypes []string
@@ -178,9 +190,11 @@ func NewFactory(resolver pantherlog.ParserResolver) Factory {
 				return nil, err
 			}
 			return &Processor{
-				operation:  common.OpLogManager.Start(operationName),
-				input:      input,
-				classifier: c,
+				operation:               common.OpLogManager.Start(operationName),
+				input:                   input,
+				classifier:              c,
+				classificationSuccesses: classificationSuccesses,
+				classificationFailures:  classificationFailures,
 			}, nil
 		case models.IntegrationTypeAWSScan:
 			c, err := sources.BuildClassifier(src.RequiredLogTypes(), src, resolver)
@@ -188,9 +202,11 @@ func NewFactory(resolver pantherlog.ParserResolver) Factory {
 				return nil, err
 			}
 			return &Processor{
-				operation:  common.OpLogManager.Start(operationName),
-				input:      input,
-				classifier: c,
+				operation:               common.OpLogManager.Start(operationName),
+				input:                   input,
+				classifier:              c,
+				classificationSuccesses: classificationSuccesses,
+				classificationFailures:  classificationFailures,
 			}, nil
 
 		default:
@@ -233,6 +249,7 @@ func (p *Processor) processLogLine(ctx context.Context, line string, outputChan 
 	result, err := p.classifier.Classify(line)
 	// A classifier returns an error when it cannot classify a non-empty log line
 	if err != nil {
+		p.classificationFailures.Add(1)
 		// make easy to troubleshoot but do not add log line (even partial) to avoid leaking data into CW
 		p.operation.LogWarn(errors.New("failed to classify log line"),
 			zap.Uint64("lineNum", p.classifier.Stats().LogLineCount),
@@ -246,6 +263,7 @@ func (p *Processor) processLogLine(ctx context.Context, line string, outputChan 
 	if result == nil {
 		return
 	}
+	p.classificationSuccesses.Add(1)
 	for _, event := range result.Events {
 		select {
 		case outputChan <- event:

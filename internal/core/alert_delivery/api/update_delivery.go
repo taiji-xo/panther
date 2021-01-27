@@ -42,7 +42,7 @@ func updateAlerts(statuses []DispatchStatus) []*alertModels.AlertSummary {
 	}
 
 	// Init a channel
-	alertSummaryChannel := make(chan alertModels.AlertSummary)
+	alertSummaryChannel := make(chan alertModels.AlertSummary, 1)
 
 	// Make a lambda call for each alert in parallel. We dont make a single API call to reduce the failure impact.
 	zap.L().Debug("Invoking UpdateAlertDelivery in parallel")

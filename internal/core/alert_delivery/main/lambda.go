@@ -21,13 +21,16 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	jsoniter "github.com/json-iterator/go"
+	"go.uber.org/zap"
 
 	"github.com/panther-labs/panther/api/lambda/delivery/models"
 	"github.com/panther-labs/panther/internal/core/alert_delivery/api"
+	"github.com/panther-labs/panther/internal/log_analysis/log_processor/common"
 	"github.com/panther-labs/panther/pkg/genericapi"
 	"github.com/panther-labs/panther/pkg/lambdalogger"
 	"github.com/panther-labs/panther/pkg/oplog"
@@ -35,27 +38,40 @@ import (
 
 var router = genericapi.NewRouter("api", "delivery", nil, api.API{})
 
+func main() {
+	api.Setup()
+	lambda.Start(lambdaHandler)
+}
+
 // lambdaHandler handles two different kinds of requests:
 // 1. SQSMessage trigger that takes data from the queue or can be directly invoked
 // 2. HTTP API for re-sending an alert to the specified outputs
 // 3. HTTP API for sending a test alert
 func lambdaHandler(ctx context.Context, input json.RawMessage) (output interface{}, err error) {
-	lc, _ := lambdalogger.ConfigureGlobal(ctx, nil)
+	lc, log := lambdalogger.ConfigureGlobal(ctx, nil)
 	operation := oplog.NewManager("core", "alert_delivery").Start(lc.InvokedFunctionArn).WithMemUsed(lambdacontext.MemoryLimitInMB)
 	defer func() {
 		operation.Stop().Log(err)
 	}()
 
-	apiRequest := models.LambdaInput{}
-	if err := jsoniter.Unmarshal(input, &apiRequest); err == nil {
-		return router.HandleWithContext(ctx, &apiRequest)
+	var apiRequest models.LambdaInput
+	if err := jsoniter.Unmarshal(input, &apiRequest); err != nil {
+		return nil, err
 	}
 
-	// If neither handler captured the request, return nothing
-	return nil, err
-}
+	///// Configure metrics /////
 
-func main() {
-	api.Setup()
-	lambda.Start(lambdaHandler)
+	cwCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Sync metrics every minute
+	go api.CWMetrics.Run(cwCtx, time.Minute)
+	defer func() {
+		// Force syncing metrics at the end of the invocation
+		if err := common.CWMetrics.Sync(); err != nil {
+			log.Warn("failed to sync metrics", zap.Error(err))
+		}
+	}()
+
+	return router.HandleWithContext(ctx, &apiRequest)
 }

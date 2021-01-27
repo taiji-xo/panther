@@ -19,6 +19,7 @@ package api
  */
 
 import (
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -32,6 +33,7 @@ import (
 	"github.com/panther-labs/panther/internal/core/alert_delivery/outputs"
 	alertTable "github.com/panther-labs/panther/internal/log_analysis/alerts_api/table"
 	"github.com/panther-labs/panther/pkg/gatewayapi"
+	"github.com/panther-labs/panther/pkg/metrics"
 )
 
 // API has all of the handlers as receiver methods.
@@ -50,6 +52,11 @@ type envConfig struct {
 	OutputsAPI             string        `required:"true" split_words:"true"`
 }
 
+const (
+	SubsystemAlertDelivery = "AlertDelivery"
+	MetricAlerts           = "Alerts"
+)
+
 // Globals
 var (
 	env                  envConfig
@@ -61,6 +68,8 @@ var (
 	outputsCache         *alertOutputsCache
 	analysisClient       gatewayapi.API
 	softDeadlineDuration time.Duration
+	alertDeliveryCounter metrics.Counter
+	CWMetrics            metrics.Manager
 )
 
 // Setup - initialize global state
@@ -81,4 +90,8 @@ func Setup() {
 	}
 	analysisClient = gatewayapi.NewClient(lambdaClient, "panther-analysis-api")
 	softDeadlineDuration = 10 * time.Second
+
+	CWMetrics = metrics.NewCWEmbeddedMetrics(os.Stdout)
+	alertDeliveryCounter = CWMetrics.NewCounter(MetricAlerts).
+		With(metrics.SubsystemDimension, SubsystemAlertDelivery)
 }
