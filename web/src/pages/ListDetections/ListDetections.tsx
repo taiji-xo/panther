@@ -30,10 +30,11 @@ import useTrackPageView from 'Hooks/useTrackPageView';
 import { PageViewEnum } from 'Helpers/analytics';
 import Panel from 'Components/Panel';
 import RuleCard from 'Components/cards/RuleCard';
+import PolicyCard from 'Components/cards/PolicyCard';
 import { RuleSummary } from 'Source/graphql/fragments/RuleSummary.generated';
+import { PolicySummary } from 'Source/graphql/fragments/PolicySummary.generated';
 import ListDetectionsPageSkeleton from './Skeleton';
 import ListDetectionsPageEmptyDataFallback from './EmptyDataFallback';
-import ListDetectionsBreadcrumbFilters from './ListDetectionsBreadcrumbFilters';
 import ListDetectionsFilters from './ListDetectionsFilters';
 import { useListDetections } from './graphql/listDetections.generated';
 
@@ -79,34 +80,31 @@ const ListDetections = () => {
 
   //  Check how many active filters exist by checking how many columns keys exist in the URL
   return (
-    <React.Fragment>
-      <ListDetectionsBreadcrumbFilters />
-      <ErrorBoundary>
-        <Panel title="Rules" actions={<ListDetectionsFilters />}>
-          <Card as="section" position="relative">
-            <Box position="relative">
-              <Flex direction="column" spacing={2}>
-                {detectionItems.length ? (
-                  detectionItems.map(detection => {
-                    switch (detection.analysisType) {
-                      case DetectionTypeEnum.Rule:
-                        return <RuleCard rule={detection as RuleSummary} key={detection.id} />;
-                      case DetectionTypeEnum.Policy:
-                        return null;
-                      default:
-                        return null;
-                    }
-                  })
-                ) : (
-                  <Box my={8}>
-                    <NoResultsFound />
-                  </Box>
-                )}
-              </Flex>
-            </Box>
-          </Card>
-        </Panel>
-      </ErrorBoundary>
+    <ErrorBoundary>
+      <Panel title="Rules" actions={<ListDetectionsFilters />}>
+        <Card as="section" position="relative">
+          <Box position="relative">
+            <Flex direction="column" spacing={2}>
+              {detectionItems.length ? (
+                detectionItems.map(detection => {
+                  switch (detection.analysisType) {
+                    case DetectionTypeEnum.Rule:
+                      return <RuleCard rule={detection as RuleSummary} key={detection.id} />;
+                    case DetectionTypeEnum.Policy:
+                      return <PolicyCard policy={detection as PolicySummary} key={detection.id} />;
+                    default:
+                      return null;
+                  }
+                })
+              ) : (
+                <Box my={8}>
+                  <NoResultsFound />
+                </Box>
+              )}
+            </Flex>
+          </Box>
+        </Card>
+      </Panel>
       <Box my={5}>
         <TableControlsPagination
           page={pagingData.thisPage}
@@ -114,7 +112,7 @@ const ListDetections = () => {
           onPageChange={updatePagingParams}
         />
       </Box>
-    </React.Fragment>
+    </ErrorBoundary>
   );
 };
 

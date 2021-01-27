@@ -19,7 +19,12 @@
 import React from 'react';
 import urls from 'Source/urls';
 import { Form, Formik, FastField } from 'formik';
-import { SortDirEnum, ListDetectionsInput, ListDetectionsSortFieldsEnum } from 'Generated/schema';
+import {
+  SortDirEnum,
+  ListDetectionsInput,
+  ListDetectionsSortFieldsEnum,
+  DetectionTypeEnum,
+} from 'Generated/schema';
 import { Box, Flex } from 'pouncejs';
 import pick from 'lodash/pick';
 import useRequestParamsWithPagination from 'Hooks/useRequestParamsWithPagination';
@@ -88,6 +93,9 @@ const sortingOpts: SortingOptions = [
   },
 ];
 
+const sortingItems = sortingOpts.map(sortingOption => sortingOption.opt);
+const detectionTypeItems = Object.values(DetectionTypeEnum);
+
 /**
  * Since sorting is not responding to some ListDetectionsInput key we shall extract
  * this information from `sortBy` and `sortDir` parameters in order to align the
@@ -127,7 +135,7 @@ const ListRuleFilters: React.FC = () => {
     [requestParams]
   );
   return (
-    <Flex justify="flex-end" align="center">
+    <Flex justify="flex-end" align="center" spacing={4}>
       <Formik<ListDetectionsInlineFiltersValues>
         enableReinitialize
         initialValues={initialFilterValues}
@@ -138,7 +146,7 @@ const ListRuleFilters: React.FC = () => {
         <Form>
           <FormikAutosave threshold={200} />
           <Flex spacing={4} align="center" pr={4}>
-            <Box minWidth={425}>
+            <Box minWidth={410}>
               <FastField
                 name="nameContains"
                 icon="search"
@@ -148,21 +156,28 @@ const ListRuleFilters: React.FC = () => {
                 placeholder="Search for a rule..."
               />
             </Box>
-            <Box minWidth={220}>
+            <Box minWidth={150}>
               <FastField
                 name="sorting"
                 as={FormikCombobox}
-                items={sortingOpts.map(sortingOption => sortingOption.opt)}
+                items={sortingItems}
                 label="Sort By"
                 placeholder="Select a sort option"
+              />
+            </Box>
+            <Box minWidth={150}>
+              <FastField
+                name="analysisType"
+                as={FormikCombobox}
+                items={detectionTypeItems}
+                label="Detection Type"
+                placeholder="Select a type"
               />
             </Box>
           </Flex>
         </Form>
       </Formik>
-      <Box pr={4}>
-        <DropdownFilters />
-      </Box>
+      <DropdownFilters />
       <LinkButton to={urls.detections.create()}>Create New Detection</LinkButton>
     </Flex>
   );
