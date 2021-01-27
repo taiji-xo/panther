@@ -58,7 +58,13 @@ var (
 	Config    EnvConfig
 	CWMetrics metrics.Manager
 
+	// Counter for number of objects retrieved from S3
 	GetObject metrics.Counter
+
+	// Counter for number of events classified
+	ClassifiedEventsSuccess metrics.Counter
+	// Counter for number of events not classified
+	ClassifiedEventsFailure metrics.Counter
 )
 
 type EnvConfig struct {
@@ -100,11 +106,18 @@ type DataStream struct {
 
 const (
 	SubsystemLogProcessor       = "LogProcessor"
-	MetricLogProcessorGetObject = "GetObject"
+	MetricGetObject             = "GetObject"
+	MetricClassification = "EventsClassified"
 )
 
 func setupMetrics() {
 	CWMetrics = metrics.NewCWEmbeddedMetrics(os.Stdout)
-	GetObject = CWMetrics.NewCounter(MetricLogProcessorGetObject).
+	GetObject = CWMetrics.NewCounter(MetricGetObject).
 		With(metrics.SubsystemDimension, SubsystemLogProcessor)
+	ClassifiedEventsSuccess = CWMetrics.NewCounter(MetricGetObject).
+		With(metrics.SubsystemDimension, SubsystemLogProcessor).
+		With(metrics.StatusDimension, metrics.StatusOk)
+	ClassifiedEventsFailure = CWMetrics.NewCounter(MetricGetObject).
+		With(metrics.SubsystemDimension, SubsystemLogProcessor).
+		With(metrics.StatusDimension, metrics.StatusErr)
 }
