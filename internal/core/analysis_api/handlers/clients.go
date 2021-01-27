@@ -20,9 +20,7 @@ package handlers
 
 import (
 	"context"
-	"errors"
-	"fmt"
-
+	"github.com/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"

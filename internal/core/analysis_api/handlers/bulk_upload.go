@@ -22,8 +22,8 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/base64"
-	"errors"
-	"fmt"
+	"github.com/pkg/errors"
+
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
@@ -66,7 +66,7 @@ func (API) BulkUpload(input *models.BulkUploadInput) *events.APIGatewayProxyResp
 				if r := recover(); r != nil {
 					zap.L().Error("panicked while processing item",
 						zap.String("id", item.ID), zap.Any("panic", r))
-					results <- writeResult{err: errors.New("panicked goroutine")}
+					results <- writeResult{err: errors.Errorf("panicked goroutine")}
 				}
 			}()
 			changeType, err := writeItem(item, input.UserID, nil)
@@ -83,9 +83,9 @@ func (API) BulkUpload(input *models.BulkUploadInput) *events.APIGatewayProxyResp
 		if result.err != nil {
 			// Set the response with an error code - 4XX first, otherwise 5XX
 			if result.err == errWrongType {
-				msg := fmt.Sprintf("ID %s does not have expected type %s", result.item.ID, result.item.Type)
+				msg := errors.Errorf("ID %s does not have expected type %s", result.item.ID, result.item.Type)
 				response = &events.APIGatewayProxyResponse{
-					Body:       msg,
+					Body:       msg.Error(),
 					StatusCode: http.StatusConflict,
 				}
 			} else if response == nil {
@@ -93,7 +93,6 @@ func (API) BulkUpload(input *models.BulkUploadInput) *events.APIGatewayProxyResp
 				// bulk upload automatically creates or updates depending on whether it already exists
 				response = &events.APIGatewayProxyResponse{StatusCode: http.StatusInternalServerError}
 			}
-
 			continue
 		}
 
@@ -156,13 +155,13 @@ func extractZipFile(input *models.BulkUploadInput) (map[string]*tableItem, error
 	// Base64-decode
 	content, err := base64.StdEncoding.DecodeString(input.Data)
 	if err != nil {
-		return nil, fmt.Errorf("base64 decoding failed: %s", err)
+		return nil, errors.Errorf("base64 decoding failed: %s", err)
 	}
 
 	// Unzip in memory (the max request size is only 6 MB, so this should easily fit)
 	zipReader, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
 	if err != nil {
-		return nil, fmt.Errorf("zipReader failed: %s", err)
+		return nil, errors.Errorf("zipReader failed: %s", err)
 	}
 
 	policyBodies := make(map[string]string) // map base file name to contents
@@ -176,7 +175,7 @@ func extractZipFile(input *models.BulkUploadInput) (map[string]*tableItem, error
 
 		unzippedBytes, err := readZipFile(zipFile)
 		if err != nil {
-			return nil, fmt.Errorf("file extraction failed: %s: %s", zipFile.Name, err)
+			return nil, errors.Errorf("file extraction failed: %s: %s", zipFile.Name, err)
 		}
 
 		if strings.Contains(zipFile.Name, "__pycache__") {
@@ -237,7 +236,7 @@ func extractZipFile(input *models.BulkUploadInput) (map[string]*tableItem, error
 		}
 
 		if _, exists := result[analysisItem.ID]; exists {
-			return nil, fmt.Errorf("multiple analysis specs with ID %s", analysisItem.ID)
+			return nil, errors.Errorf("multiple analysis specs with ID %s", analysisItem.ID)
 		}
 		result[analysisItem.ID] = analysisItem
 	}
@@ -251,7 +250,7 @@ func extractZipFile(input *models.BulkUploadInput) (map[string]*tableItem, error
 			}
 		} else if policy.Type != models.TypeDataModel {
 			// it is ok for DataModels to be missing python body
-			return nil, fmt.Errorf("policy %s is missing a body", policy.ID)
+			return nil, errors.Errorf("policy %s is missing a body", policy.ID)
 		}
 	}
 
@@ -371,13 +370,13 @@ func readZipFile(zf *zip.File) ([]byte, error) {
 
 func validateUploadedDataModel(item *tableItem) error {
 	if len(item.ResourceTypes) > 1 {
-		return errors.New("only one LogType may be specified per DataModel")
+		return errors.Errorf("only one LogType may be specified per DataModel")
 	}
 
 	// We could call the refresh before we traverse the set of new rules. The code you see here
 	// refeshes the log types on each validateLogtypeSet call...
 	if err := validateLogtypeSet(item.ResourceTypes); err != nil {
-		return fmt.Errorf("DataModel contains invalid log type: %s", err.Error())
+		return errors.Errorf("DataModel contains invalid log type: %s", err.Error())
 	}
 
 	isEnabled, err := isSingleDataModelEnabled(item.ID, item.Enabled, item.ResourceTypes)
@@ -395,7 +394,7 @@ func validateUploadedPolicy(item *tableItem) error {
 	switch item.Type {
 	case models.TypeGlobal:
 		if len(item.ResourceTypes) > 1 {
-			return errors.New("only one LogType may be specified per DataModel")
+			return errors.Errorf("only one LogType may be specified per DataModel")
 		}
 		item.Severity = compliancemodels.SeverityInfo
 	case models.TypeDataModel:
@@ -408,15 +407,15 @@ func validateUploadedPolicy(item *tableItem) error {
 		// We could call the refresh before we traverse the set of new rules. The code you see here
 		// refeshes the log types on each validateLogtypeSet call...
 		if err := validateLogtypeSet(item.ResourceTypes); err != nil {
-			return fmt.Errorf("Rule contains invalid log type: %s", err.Error())
+			return errors.Errorf("Rule contains invalid log type: %s", err.Error())
 		}
 	default:
-		return fmt.Errorf("policy ID %s is invalid: unknown analysis type %s", item.ID, item.Type)
+		return errors.Errorf("policy ID %s is invalid: unknown analysis type %s", item.ID, item.Type)
 	}
 
 	policy := item.Policy(compliancemodels.StatusPass) // Convert to the external Policy model for validation
 	if err := validate.New().Struct(policy); err != nil {
-		return fmt.Errorf("policy ID %s is invalid: %s", policy.ID, err)
+		return errors.Errorf("policy ID %s is invalid: %s", policy.ID, err)
 	}
 	return nil
 }
