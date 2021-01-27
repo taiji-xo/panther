@@ -103,6 +103,8 @@ var (
 		awsmodels.Ec2VolumeSchema:           ec2.ServiceName,
 		awsmodels.Ec2VpcSchema:              ec2.ServiceName,
 		awsmodels.EcsClusterSchema:          ecs.ServiceName,
+		// For every other service, the service name aligns with how SSM refers to the service. For
+		// just the elb and elbv2 service, this is not the case. AWS just had to do it to 'em.
 		awsmodels.EksClusterSchema:          eks.ServiceName,
 		awsmodels.Elbv2LoadBalancerSchema:   elbv2.ServiceName,
 		awsmodels.GuardDutySchema:           guardduty.ServiceName,

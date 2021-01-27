@@ -20,6 +20,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -44,7 +45,9 @@ import (
 )
 
 const systemUserID = "00000000-0000-4000-8000-000000000000"
-const maxRetries = 20 // setting Max Retries to a higher number - we'd like to retry VERY hard before failing.
+
+// setting Max Retries to a higher number - we'd like to retry VERY hard before failing.
+const maxRetries = 20
 
 var (
 	env envConfig
@@ -58,8 +61,7 @@ var (
 	policyEngine analysis.PolicyEngine
 	ruleEngine   analysis.RuleEngine
 
-	// logtypesAPI  logtypesapi.LogTypesAPILambdaClient
-	curctx               context.Context
+	//
 	lambdaLogTypesClient *lambda.Lambda
 	logtypesAPI          *logtypesapi.LogTypesAPILambdaClient
 
@@ -84,8 +86,6 @@ type API struct{}
 func Setup() {
 	envconfig.MustProcess("", &env)
 
-	curctx = context.Background()
-
 	awsSession = session.Must(session.NewSession())
 	dynamoClient = dynamodb.New(awsSession)
 	s3Client = s3.New(awsSession)
@@ -108,79 +108,58 @@ func Setup() {
 		LambdaAPI:  lambdaLogTypesClient,
 	}
 
+
 	refreshLogTypes()
 }
 
-/*
-// This is about to get replaced
-var ValidResourceTypes = map[string]struct{}{
-	"AWS.ACM.Certificate":               {},
-	"AWS.CloudFormation.Stack":          {},
-	"AWS.CloudTrail":                    {},
-	"AWS.CloudTrail.Meta":               {},
-	"AWS.CloudWatch.LogGroup":           {},
-	"AWS.Config.Recorder":               {},
-	"AWS.Config.Recorder.Meta":          {},
-	"AWS.DynamoDB.Table":                {},
-	"AWS.EC2.AMI":                       {},
-	"AWS.EC2.Instance":                  {},
-	"AWS.EC2.NetworkACL":                {},
-	"AWS.EC2.SecurityGroup":             {},
-	"AWS.EC2.Volume":                    {},
-	"AWS.EC2.VPC":                       {},
-	"AWS.ECS.Cluster":                   {},
-	"AWS.EKS.Cluster":                   {},
-	"AWS.ELBV2.ApplicationLoadBalancer": {},
-	"AWS.GuardDuty.Detector":            {},
-	"AWS.IAM.Group":                     {},
-	"AWS.IAM.Policy":                    {},
-	"AWS.IAM.Role":                      {},
-	"AWS.IAM.RootUser":                  {},
-	"AWS.IAM.User":                      {},
-	"AWS.KMS.Key":                       {},
-	"AWS.Lambda.Function":               {},
-	"AWS.PasswordPolicy":                {},
-	"AWS.RDS.Instance":                  {},
-	"AWS.Redshift.Cluster":              {},
-	"AWS.S3.Bucket":                     {},
-	"AWS.WAF.Regional.WebACL":           {},
-	"AWS.WAF.WebACL":                    {},
-}
-*/
-
+// Traverse a passed set of resource and return an error if any of them are not found in the current
+// list of valid resource types
+//
+// CAVEAT: This method uses a hardcoded list of existing resource types. If this method is returning
+// unexpected errors the hardcoded list is up to date.
 func ValidResourceTypeSet(checkResourceTypeSet []string) error {
 	for _, writeResourceTypeEntry := range checkResourceTypeSet {
 		if _, exists := resourceTypesProvider.ResourceTypes[writeResourceTypeEntry]; !exists {
 			// Found a resource type that doesnt exist
-			return fmt.Errorf("%s", writeResourceTypeEntry)
+			return errors.Errorf("%s", writeResourceTypeEntry)
 		}
 	}
 	return nil
 }
 
+// Request the logtypes-api for the current set of logtypes and assign the result list to 'logtypeSetMap'
 func refreshLogTypes() {
 	// Temporary get log types for testing
-	logtypes, err := logtypesAPI.ListAvailableLogTypes(curctx)
+	logtypes, err := logtypesAPI.ListAvailableLogTypes(context.Background())
 	if err != nil {
-		fmt.Printf(" Got error: %v\n", err)
-	} else {
-		logtypeSetMap = make(map[string]interface{})
-		for _, logtype := range logtypes.LogTypes {
-			logtypeSetMap[logtype] = nil
-		}
+
+		return
+	}
+
+	logtypeSetMap = make(map[string]interface{})
+	for _, logtype := range logtypes.LogTypes {
+		logtypeSetMap[logtype] = nil
 	}
 }
 
+// Simply return the existance of the passed logtype in the current logtypes.
+// NOTE: Accuret results require an updated logtypeSetMap - currently accomplished using the call to
+// 'refreshLogTypes'. That method makes a call to the log-types api, so use it as infrequently as possible
+// The refresh method can be called a single time for multiple individual log type validation checks.
 func logtypeIsValid(logtype string) (found bool) {
 	_, found = logtypeSetMap[logtype]
 	return
 }
 
+// Traverse a passed set of resource and return an error if any of them are not found in the current
+// list of valid resource types
+//
+// CAVEAT: This method will trigger a request to the log-types api EVERY time it is called.
 func validateLogtypeSet(logtypes []string) (err error) {
 	refreshLogTypes()
 	for _, logtype := range logtypes {
 		if !logtypeIsValid(logtype) {
-			return fmt.Errorf("%s", logtype)
+			return errors.Errorf("%s", logtype)
 		}
 	}
 	return
