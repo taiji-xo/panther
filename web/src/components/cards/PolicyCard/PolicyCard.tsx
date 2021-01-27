@@ -18,7 +18,7 @@
 
 import React from 'react';
 import GenericItemCard from 'Components/GenericItemCard';
-import { Flex, Link, SimpleGrid } from 'pouncejs';
+import { Flex, Link, SimpleGrid, Text } from 'pouncejs';
 import { Link as RRLink } from 'react-router-dom';
 import SeverityBadge from 'Components/badges/SeverityBadge';
 import StatusBadge from 'Components/badges/StatusBadge';
@@ -55,7 +55,9 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ policy }) => {
           <GenericItemCard.Date date={formatDatetime(policy.lastModified)} />
           <PolicyCardOptions policy={policy} />
         </GenericItemCard.Header>
-
+        <Text fontSize="small" as="span" color="indigo-300">
+          Policy
+        </Text>
         <SimpleGrid gap={2} columns={2}>
           <GenericItemCard.ValuesGroup>
             <GenericItemCard.Value
