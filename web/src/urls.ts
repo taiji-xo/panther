@@ -36,6 +36,7 @@ const urlEncode = (str: string) => encodeURIComponent(str).replace(/%3A/g, unesc
 const urls = {
   detections: {
     home: () => '/detections/',
+    list: () => urls.detections.home(),
     create: () => `${urls.detections.home()}new/`,
   },
   compliance: {
