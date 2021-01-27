@@ -20,7 +20,7 @@ package handlers
 
 import (
 	"context"
-	"github.com/pkg/errors"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -32,6 +32,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/pkg/errors"
 
 	"github.com/panther-labs/panther/internal/core/analysis_api/analysis"
 	"github.com/panther-labs/panther/internal/core/logtypesapi"
@@ -105,7 +106,6 @@ func Setup() {
 		LambdaName: logtypesapi.LambdaName,
 		LambdaAPI:  lambdaLogTypesClient,
 	}
-
 
 	refreshLogTypes()
 }

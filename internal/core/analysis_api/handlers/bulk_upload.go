@@ -22,8 +22,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/base64"
-	"github.com/pkg/errors"
-
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
@@ -31,6 +29,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	validate "gopkg.in/go-playground/validator.v9"
 	"gopkg.in/yaml.v2"
