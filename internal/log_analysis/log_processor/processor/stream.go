@@ -34,6 +34,7 @@ import (
 
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/common"
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/destinations"
+	logmetrics "github.com/panther-labs/panther/internal/log_analysis/log_processor/metrics"
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/pantherlog"
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/sources"
 	"github.com/panther-labs/panther/pkg/awsbatch/sqsbatch"
@@ -208,7 +209,7 @@ func kickOffReaders(ctx context.Context, streams []*common.DataStream) error {
 		}
 		grp.Go(func() error {
 			err := readZero(r)
-			common.GetObject.With(
+			logmetrics.GetObject.With(
 				metrics.SourceIDDimension, s.Source.IntegrationID,
 				metrics.StatusDimension, statusFromErr(err),
 			).Add(1)

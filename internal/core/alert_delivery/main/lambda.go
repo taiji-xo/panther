@@ -30,7 +30,7 @@ import (
 
 	"github.com/panther-labs/panther/api/lambda/delivery/models"
 	"github.com/panther-labs/panther/internal/core/alert_delivery/api"
-	"github.com/panther-labs/panther/internal/log_analysis/log_processor/common"
+	"github.com/panther-labs/panther/internal/core/alert_delivery/metrics"
 	"github.com/panther-labs/panther/pkg/genericapi"
 	"github.com/panther-labs/panther/pkg/lambdalogger"
 	"github.com/panther-labs/panther/pkg/oplog"
@@ -65,10 +65,10 @@ func lambdaHandler(ctx context.Context, input json.RawMessage) (output interface
 	defer cancel()
 
 	// Sync metrics every minute
-	go api.CWMetrics.Run(cwCtx, time.Minute)
+	go metrics.CWMetrics.Run(cwCtx, time.Minute)
 	defer func() {
 		// Force syncing metrics at the end of the invocation
-		if err := common.CWMetrics.Sync(); err != nil {
+		if err := metrics.CWMetrics.Sync(); err != nil {
 			log.Warn("failed to sync metrics", zap.Error(err))
 		}
 	}()

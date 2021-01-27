@@ -39,6 +39,7 @@ import (
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/common"
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/destinations"
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/logtypes"
+	logmetrics "github.com/panther-labs/panther/internal/log_analysis/log_processor/metrics"
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/pantherlog"
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/parsers"
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/parsers/testutil"
@@ -46,6 +47,7 @@ import (
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/processor/logstream"
 	"github.com/panther-labs/panther/pkg/metrics"
 	"github.com/panther-labs/panther/pkg/oplog"
+	"github.com/panther-labs/panther/pkg/testutils"
 )
 
 var (
@@ -92,6 +94,11 @@ func newTestLog() *parsers.Result {
 func TestProcess(t *testing.T) {
 	destination := (&testDestination{}).standardMock()
 
+	getObjectMock := &testutils.CounterMock{}
+	getObjectMock.On("With", mock.Anything).Return(getObjectMock)
+	getObjectMock.On("Add", mock.Anything)
+	logmetrics.ClassifiedEvents = getObjectMock
+
 	dataStream := makeDataStream()
 	f := NewFactory(testResolver)
 	p, err := f(dataStream)
@@ -129,6 +136,7 @@ func TestProcess(t *testing.T) {
 
 	// ensure the closer was called
 	assert.True(t, dataStream.Closer.(*dummyCloser).closed)
+	getObjectMock.AssertExpectations(t)
 }
 
 func TestProcessDataStreamError(t *testing.T) {

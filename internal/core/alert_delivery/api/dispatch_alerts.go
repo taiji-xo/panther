@@ -27,11 +27,12 @@ import (
 	"go.uber.org/zap"
 
 	deliverymodel "github.com/panther-labs/panther/api/lambda/delivery/models"
+	alertmetrics "github.com/panther-labs/panther/internal/core/alert_delivery/metrics"
 	"github.com/panther-labs/panther/pkg/metrics"
 )
 
 // DispatchAlerts - Sends an alert to sends a specific alert to the specified destinations.
-func (API) DispatchAlerts(ctx context.Context, input []*deliverymodel.DispatchAlertsInput) (interface{}, error) {
+func (API) DispatchAlerts(ctx context.Context, input []*deliverymodel.DispatchAlertsInput) error {
 	zap.L().Debug("Dispatching alerts", zap.Int("num_alerts", len(input)))
 
 	// Extract alerts from the input payload
@@ -42,7 +43,7 @@ func (API) DispatchAlerts(ctx context.Context, input []*deliverymodel.DispatchAl
 	// Get our Alert -> Output mappings. We determine which destinations an alert should be sent.
 	alertOutputMap, err := getAlertOutputMap(alerts)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Send alerts to the specified destination(s) and obtain each response status
@@ -57,8 +58,8 @@ func (API) DispatchAlerts(ctx context.Context, input []*deliverymodel.DispatchAl
 	zap.L().Debug("Deliveries that succeeded", zap.Int("num_success", len(success)))
 
 	// Report metrics
-	alertDeliveryCounter.With(metrics.StatusDimension, metrics.StatusOk).Add(float64(len(success)))
-	alertDeliveryCounter.With(metrics.StatusDimension, metrics.StatusErr).Add(float64(len(failed)))
+	alertmetrics.AlertDeliveryCounter.With(metrics.StatusDimension, metrics.StatusOk).Add(float64(len(success)))
+	alertmetrics.AlertDeliveryCounter.With(metrics.StatusDimension, metrics.StatusErr).Add(float64(len(failed)))
 
 	// Obtain a list of alerts that should be retried and put back on to the queue
 	alertsToRetry := getAlertsToRetry(failed, env.AlertRetryCount)
@@ -66,7 +67,7 @@ func (API) DispatchAlerts(ctx context.Context, input []*deliverymodel.DispatchAl
 	// Put any alerts that need to be retried back into the queue
 	retry(alertsToRetry, env.AlertQueueURL, env.MinRetryDelaySecs, env.MaxRetryDelaySecs)
 
-	return nil, err
+	return err
 }
 
 // getAlerts - extracts the alerts from an DispatchAlertsInput (SQSMessage)

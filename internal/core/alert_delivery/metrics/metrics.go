@@ -1,4 +1,10 @@
-package system_alarms
+package metrics
+
+import (
+	"os"
+
+	"github.com/panther-labs/panther/pkg/metrics"
+)
 
 /**
  * Panther is a Cloud-Native SIEM for the Modern Security Team.
@@ -18,7 +24,18 @@ package system_alarms
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-func SetupClassification() error {
+const (
+	SubsystemAlerting   = "Alerting"
+	MetricAlertDelivery = "AlertDelivery"
+)
 
-	return nil
+var (
+	AlertDeliveryCounter metrics.Counter
+	CWMetrics            metrics.Manager
+)
+
+func Setup() {
+	CWMetrics = metrics.NewCWEmbeddedMetrics(os.Stdout)
+	AlertDeliveryCounter = CWMetrics.NewCounter(MetricAlertDelivery).
+		With(metrics.SubsystemDimension, SubsystemAlerting)
 }

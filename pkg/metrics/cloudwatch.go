@@ -153,12 +153,11 @@ func (c *CWEmbeddedMetricsManager) sync() ([]byte, error) {
 		return nil, nil
 	}
 
-	const namespace = "Panther"
 	embeddedMetric := EmbeddedMetric{
 		Timestamp: c.timeFunc(),
 		CloudWatchMetrics: []MetricDirectiveObject{
 			{
-				Namespace:  namespace,
+				Namespace:  Namespace,
 				Dimensions: c.dimensionsBuf,
 				Metrics:    c.metricsBuf,
 			},
