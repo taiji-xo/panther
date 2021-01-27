@@ -130,7 +130,6 @@ func refreshLogTypes() {
 	// Temporary get log types for testing
 	logtypes, err := logtypesAPI.ListAvailableLogTypes(context.Background())
 	if err != nil {
-
 		return
 	}
 
@@ -140,7 +139,7 @@ func refreshLogTypes() {
 	}
 }
 
-// Simply return the existance of the passed logtype in the current logtypes.
+// Return the existence of the passed logtype in the current logtypes.
 // NOTE: Accuret results require an updated logtypeSetMap - currently accomplished using the call to
 // 'refreshLogTypes'. That method makes a call to the log-types api, so use it as infrequently as possible
 // The refresh method can be called a single time for multiple individual log type validation checks.
