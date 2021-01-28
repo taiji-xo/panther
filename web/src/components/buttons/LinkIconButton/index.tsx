@@ -15,19 +15,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import React from 'react';
-import { ButtonProps, Button } from 'pouncejs';
-import LinkButtonWrapper, { LinkButtonWrapperProps } from '../utils/LinkButtonWrapper';
 
-type LinkButtonProps = LinkButtonWrapperProps & Omit<ButtonProps, 'as'>;
-
-const LinkButton: React.FC<LinkButtonProps> = ({ disabled, external, to, children, ...rest }) => {
-  return (
-    <LinkButtonWrapper disabled={disabled} external={external} to={to}>
-      <Button as="span" aria-disabled={disabled} {...rest}>
-        {children}
-      </Button>
-    </LinkButtonWrapper>
-  );
-};
-export default LinkButton;
+export {default} from './LinkIconButton';
+export * from './LinkIconButton';

@@ -16,18 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 import React from 'react';
-import { ButtonProps, Button } from 'pouncejs';
+import { IconButtonProps, IconButton } from 'pouncejs';
 import LinkButtonWrapper, { LinkButtonWrapperProps } from '../utils/LinkButtonWrapper';
 
-type LinkButtonProps = LinkButtonWrapperProps & Omit<ButtonProps, 'as'>;
+type LinkIconButtonProps = LinkButtonWrapperProps & Omit<IconButtonProps, 'as'>;
 
-const LinkButton: React.FC<LinkButtonProps> = ({ disabled, external, to, children, ...rest }) => {
+const LinkIconButton: React.FC<LinkIconButtonProps> = ({ disabled, external, to, ...rest }) => {
   return (
     <LinkButtonWrapper disabled={disabled} external={external} to={to}>
-      <Button as="span" aria-disabled={disabled} {...rest}>
-        {children}
-      </Button>
+      <IconButton as="span" aria-disabled={disabled} {...rest} />
     </LinkButtonWrapper>
   );
 };
-export default LinkButton;
+export default LinkIconButton;
