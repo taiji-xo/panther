@@ -19,8 +19,8 @@ package handlers
  */
 
 import (
-	"errors"
 	"net/http"
+	"github.com/pkg/errors"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
@@ -46,7 +46,6 @@ func (API) UpdateDataModel(input *models.UpdateDataModelInput) *events.APIGatewa
 }
 
 func writeDataModel(input *models.UpdateDataModelInput, create bool) *events.APIGatewayProxyResponse {
-
 	if err := validateUpdateDataModel(input); err != nil {
 		return &events.APIGatewayProxyResponse{
 			Body:       err.Error(),
@@ -110,7 +109,6 @@ func writeDataModel(input *models.UpdateDataModelInput, create bool) *events.API
 
 // Some extra validation which is not implemented in the input struct tags
 func validateUpdateDataModel(input *models.UpdateDataModelInput) error {
-
 	// verify that field and method are mutually exclusive in the input
 	for _, mapping := range input.Mappings {
 		if mapping.Path != "" && mapping.Method != "" {
@@ -119,7 +117,7 @@ func validateUpdateDataModel(input *models.UpdateDataModelInput) error {
 	}
 
 	if err := validateLogtypeSet(input.LogTypes); err != nil {
-		return errors.Errorf("DataModel contains invalid log type: %s", err.Error()),
+		return errors.Errorf("DataModel contains invalid log type: %s", err.Error())
 	}
 
 	return nil

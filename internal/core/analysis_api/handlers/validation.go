@@ -1,10 +1,12 @@
 package handlers
 
 import (
-  "github.com/panther-labs/panther/internal/core/analysis_api/analysis"
+  "fmt"
+  "context"
+  "github.com/pkg/errors"
+  "github.com/aws/aws-sdk-go/service/lambda"
   "github.com/panther-labs/panther/internal/core/logtypesapi"
-  "github.com/panther-labs/panther/pkg/awsretry"
-  "github.com/panther-labs/panther/pkg/gatewayapi"
+	resourceTypesProvider "github.com/panther-labs/panther/internal/compliance/snapshot_poller/models/aws"
 )
 
 var (
@@ -13,7 +15,6 @@ var (
 
   logtypeSetMap map[string]struct{}
 )
-
 
 // Traverse a passed set of resource and return an error if any of them are not found in the current
 // list of valid resource types
@@ -31,17 +32,20 @@ func ValidResourceTypeSet(checkResourceTypeSet []string) error {
 }
 
 // Request the logtypes-api for the current set of logtypes and assign the result list to 'logtypeSetMap'
-func refreshLogTypes() {
-	// Temporary get log types for testing
+func refreshLogTypes() error {
+  // Temporary get log types for testing
 	logtypes, err := logtypesAPI.ListAvailableLogTypes(context.Background())
 	if err != nil {
-		return
+    fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>> ERROR!!! ListAvailableLogTypes: %v\n", err.Error())
+		return err
 	}
 
-	logtypeSetMap = make(map[string]interface{})
+	logtypeSetMap = make(map[string]struct{})
 	for _, logtype := range logtypes.LogTypes {
-		logtypeSetMap[logtype] = nil
-	}
+		logtypeSetMap[logtype] = struct{}{}
+  }
+
+  return nil
 }
 
 // Return the existence of the passed logtype in the current logtypes.
@@ -57,12 +61,16 @@ func logtypeIsValid(logtype string) (found bool) {
 // list of valid resource types
 //
 // CAVEAT: This method will trigger a request to the log-types api EVERY time it is called.
-func validateLogtypeSet(logtypes []string) (err error) {
-	refreshLogTypes()
+func validateLogtypeSet(logtypes []string) error {
+	if err := refreshLogTypes(); err != nil {
+    fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>> ERROR!!! validateLogtypeSet: %v\n", err.Error())
+    return err
+  }
+
 	for _, logtype := range logtypes {
 		if !logtypeIsValid(logtype) {
 			return errors.Errorf("%s", logtype)
 		}
 	}
-	return
+	return nil
 }

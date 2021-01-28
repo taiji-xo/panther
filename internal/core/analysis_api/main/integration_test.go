@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
@@ -269,9 +270,6 @@ func TestIntegrationAPI(t *testing.T) {
 		t.Run("BulkUploadInvalid", bulkUploadInvalid)
 		t.Run("BulkUploadSuccess", bulkUploadSuccess)
 	})
-	if t.Failed() {
-		return
-	}
 
 	t.Run("BulkUploadInvalid", func(t *testing.T) {
 		t.Run("BulkUploadInvalidPolicyResourceTypesFail", bulkUploadInvalidPolicyResourceTypesFail)
@@ -2629,7 +2627,6 @@ func batchDeleteRules(t *testing.T, ruleID ...string) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, statusCode)
 }
-
 
 // Validate a bulk upload failure where policies in bulk data contain invalid Resource Types
 func bulkUploadInvalidPolicyResourceTypesFail(t *testing.T) {

@@ -20,6 +20,7 @@ package handlers
 
 import (
 	"net/http"
+	"github.com/pkg/errors"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
@@ -46,10 +47,9 @@ func (API) UpdateRule(input *models.UpdateRuleInput) *events.APIGatewayProxyResp
 
 // Shared by CreateRule and UpdateRule
 func writeRule(input *models.CreateRuleInput, create bool) *events.APIGatewayProxyResponse {
-
-	if err := validateLogtypeSet(input.LogTypes); err != nil {
+	if err := validateUpdateRule(input); err != nil {
 		return &events.APIGatewayProxyResponse{
-			Body:       fmt.Sprintf("Rule contains invalid log type: %s", err.Error()),
+			Body:       err.Error(),
 			StatusCode: http.StatusBadRequest,
 		}
 	}
@@ -120,6 +120,14 @@ func writeRule(input *models.CreateRuleInput, create bool) *events.APIGatewayPro
 	}
 
 	return gatewayapi.MarshalResponse(item.Rule(), statusCode)
+}
+
+// Some extra validation which is not implemented in the input struct tags
+func validateUpdateRule(input *models.CreateRuleInput) error {
+	if err := validateLogtypeSet(input.LogTypes); err != nil {
+		return errors.Errorf("Rule contains invalid log type: %s", err.Error())
+	}
+	return nil
 }
 
 // enabledRuleTestsPass returns false if the rule is enabled and its tests fail.

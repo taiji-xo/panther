@@ -20,6 +20,7 @@ package handlers
 
 import (
 	"net/http"
+	"github.com/pkg/errors"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
@@ -41,10 +42,9 @@ func (API) UpdatePolicy(input *models.UpdatePolicyInput) *events.APIGatewayProxy
 
 // Shared by CreatePolicy and UpdatePolicy
 func writePolicy(input *models.CreatePolicyInput, create bool) *events.APIGatewayProxyResponse {
-
-	if err := ValidResourceTypeSet(input.ResourceTypes); err != nil {
+	if err := validateUpdatePolicy(input); err != nil {
 		return &events.APIGatewayProxyResponse{
-			Body:       fmt.Sprintf("Policy contains invalid resource type: %s", err.Error()),
+			Body:       err.Error(),
 			StatusCode: http.StatusBadRequest,
 		}
 	}
@@ -124,6 +124,14 @@ func writePolicy(input *models.CreatePolicyInput, create bool) *events.APIGatewa
 	}
 
 	return gatewayapi.MarshalResponse(item.Policy(status), statusCode)
+}
+
+// Some extra validation which is not implemented in the input struct tags
+func validateUpdatePolicy(input *models.CreatePolicyInput) error {
+	if err := ValidResourceTypeSet(input.ResourceTypes); err != nil {
+		return errors.Errorf("Policy contains invalid resource type: %s", err.Error())
+	}
+	return nil
 }
 
 // enabledPolicyTestsPass returns false if the policy is enabled and its tests fail.
