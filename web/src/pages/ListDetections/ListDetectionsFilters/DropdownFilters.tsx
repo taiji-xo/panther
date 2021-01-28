@@ -19,7 +19,16 @@
 import React from 'react';
 import { Field, Form, Formik } from 'formik';
 import mapValues from 'lodash/mapValues';
-import { Box, Button, Card, Flex, Popover, PopoverContent, PopoverTrigger } from 'pouncejs';
+import {
+  Box,
+  Button,
+  Card,
+  Flex,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  SimpleGrid,
+} from 'pouncejs';
 import {
   ComplianceStatusEnum,
   DetectionTypeEnum,
@@ -41,7 +50,7 @@ export type ListDetectionsDropdownFilterValues = Pick<
   | 'enabled'
   | 'hasRemediation'
   | 'analysisTypes'
-  // | 'complianceStatus'
+  | 'complianceStatus'
   | 'initialSet'
   | 'logTypes'
   | 'resourceTypes'
@@ -143,7 +152,7 @@ const DropdownFilters: React.FC = () => {
               p={6}
               pb={4}
               backgroundColor="navyblue-400"
-              minWidth={425}
+              minWidth={900}
               data-testid="dropdown-detections-listing-filters"
             >
               <Formik<ListDetectionsDropdownFilterValues>
@@ -154,70 +163,76 @@ const DropdownFilters: React.FC = () => {
                 {({ setValues }) => (
                   <Form>
                     <Flex direction="column" spacing={4}>
-                      <Field
-                        name="severity"
-                        as={FormikMultiCombobox}
-                        items={severityFieldItems}
-                        itemToString={severityFieldItemToString}
-                        label="Severities"
-                        placeholder="Select severities to filter..."
-                      />
-                      <Field
-                        as={FormikCombobox}
-                        name="complianceStatus"
-                        items={complianceStatusFieldItems}
-                        itemToString={complianceStatusFieldItemToString}
-                        label="Policy Status"
-                        placeholder="Filter by policy status..."
-                      />
-                      <Field
-                        as={FormikCombobox}
-                        name="enabled"
-                        items={enabledFieldItems}
-                        itemToString={enabledFieldItemToString}
-                        label="Enabled"
-                        placeholder="Which detections should we show?"
-                      />
-                      <Field
-                        as={FormikCombobox}
-                        name="hasRemediation"
-                        items={remediationFieldItems}
-                        itemToString={remediationFieldItemToString}
-                        label="Remediation Status"
-                        placeholder="Choose a remediation status...'"
-                      />
-                      <Field
-                        as={FormikCombobox}
-                        name="initialSet"
-                        items={creatorFieldItems}
-                        itemToString={creatorFieldItemToString}
-                        label="Created by"
-                        placeholder="Filter by detection creator..."
-                      />
-                      <Field
-                        as={FormikMultiCombobox}
-                        label="Detection Types"
-                        name="analysisTypes"
-                        placeholder="Select detection types"
-                        items={detectionTypeFieldItems}
-                        itemToString={detectionFieldTypeItemToString}
-                      />
-                      <Field
-                        as={FormikMultiCombobox}
-                        searchable
-                        label="Log Types"
-                        name="logTypes"
-                        items={logTypeData?.listAvailableLogTypes?.logTypes ?? []}
-                        placeholder="Select log types to filter by..."
-                      />
-                      <Field
-                        as={FormikMultiCombobox}
-                        searchable
-                        label="Resource Types"
-                        name="resourceTypes"
-                        items={RESOURCE_TYPES}
-                        placeholder="Select resource types to filter by..."
-                      />
+                      <SimpleGrid columns={2} spacingX={4} spacingY={5}>
+                        <Field
+                          as={FormikMultiCombobox}
+                          label="Detection Types"
+                          name="analysisTypes"
+                          placeholder="Select detection types"
+                          items={detectionTypeFieldItems}
+                          itemToString={detectionFieldTypeItemToString}
+                        />
+                        <Field
+                          name="severity"
+                          as={FormikMultiCombobox}
+                          items={severityFieldItems}
+                          itemToString={severityFieldItemToString}
+                          label="Severities"
+                          placeholder="Select severities to filter..."
+                        />
+                        <Field
+                          as={FormikMultiCombobox}
+                          searchable
+                          label="Log Types"
+                          name="logTypes"
+                          items={logTypeData?.listAvailableLogTypes?.logTypes ?? []}
+                          placeholder="Select log types to filter by..."
+                        />
+                        <Field
+                          as={FormikMultiCombobox}
+                          searchable
+                          label="Resource Types"
+                          name="resourceTypes"
+                          items={RESOURCE_TYPES}
+                          placeholder="Select resource types to filter by..."
+                        />
+                        <SimpleGrid columns={2} spacingX={5}>
+                          <Field
+                            as={FormikCombobox}
+                            name="initialSet"
+                            items={creatorFieldItems}
+                            itemToString={creatorFieldItemToString}
+                            label="Created by"
+                            placeholder="Filter by detection creator..."
+                          />
+                          <Field
+                            as={FormikCombobox}
+                            name="complianceStatus"
+                            items={complianceStatusFieldItems}
+                            itemToString={complianceStatusFieldItemToString}
+                            label="Policy Status"
+                            placeholder="Filter by policy status..."
+                          />
+                        </SimpleGrid>
+                        <SimpleGrid columns={2} spacingX={5}>
+                          <Field
+                            as={FormikCombobox}
+                            name="hasRemediation"
+                            items={remediationFieldItems}
+                            itemToString={remediationFieldItemToString}
+                            label="Remediation Status"
+                            placeholder="Choose a remediation status...'"
+                          />
+                          <Field
+                            as={FormikCombobox}
+                            name="enabled"
+                            items={enabledFieldItems}
+                            itemToString={enabledFieldItemToString}
+                            label="State"
+                            placeholder="Which detections should we show?"
+                          />
+                        </SimpleGrid>
+                      </SimpleGrid>
                       <Field
                         as={FormikMultiCombobox}
                         label="Tags"
@@ -227,7 +242,7 @@ const DropdownFilters: React.FC = () => {
                         items={[]}
                         placeholder="Enter tags to filter by..."
                       />
-                      <Flex direction="column" justify="center" align="center" spacing={4}>
+                      <Flex direction="column" justify="center" align="center" spacing={4} my={2}>
                         <Box>
                           <Button type="submit" onClick={closePopover}>
                             Apply Filters

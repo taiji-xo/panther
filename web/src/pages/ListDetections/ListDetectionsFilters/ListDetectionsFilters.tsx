@@ -73,14 +73,14 @@ const sortingOpts: SortingOptions = [
     },
   },
   {
-    opt: 'Low to Critical',
+    opt: 'Info to Critical',
     resolution: {
       sortBy: ListDetectionsSortFieldsEnum.Severity,
       sortDir: SortDirEnum.Ascending,
     },
   },
   {
-    opt: 'Critical to Low',
+    opt: 'Critical to Info',
     resolution: {
       sortBy: ListDetectionsSortFieldsEnum.Severity,
       sortDir: SortDirEnum.Descending,

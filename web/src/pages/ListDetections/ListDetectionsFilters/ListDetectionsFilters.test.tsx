@@ -19,8 +19,8 @@
 import React from 'react';
 import queryString from 'query-string';
 import { queryStringOptions } from 'Hooks/useUrlParams';
-import { fireClickAndMouseEvents, fireEvent, render, waitMs, within } from 'test-utils';
-import { ListDetectionsSortFieldsEnum, SeverityEnum, SortDirEnum } from 'Generated/schema';
+import { fireClickAndMouseEvents, fireEvent, render, within, waitFor } from 'test-utils';
+import { ListDetectionsSortFieldsEnum, SortDirEnum } from 'Generated/schema';
 import ListDetectionsFilters from './index';
 
 // Mock debounce so it just executes the callback instantly
@@ -29,63 +29,76 @@ jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 const parseParams = (search: string) => queryString.parse(search, queryStringOptions);
 
 describe('ListDetectionsFilters', () => {
+  const filtersUrlParams = `?analysisTypes[]=RULE&complianceStatus=ERROR&enabled=true&hasRemediation=true&initialSet=true&nameContains=AWS&page=1&sortBy=${ListDetectionsSortFieldsEnum.Severity}&sortDir=${SortDirEnum.Ascending}`;
+
   it('renders', () => {
-    const { container, getByText } = render(<ListDetectionsFilters />);
-    expect(getByText('Create New Rule')).toBeInTheDocument();
+    const { container, getByAriaLabel } = render(<ListDetectionsFilters />);
+    expect(getByAriaLabel('Create a new Detection')).toBeInTheDocument();
 
     expect(container).toMatchSnapshot();
   });
 
   it('initializes correctly with url params', () => {
-    const initialRoute = `?enabled=true&nameContains=AWS&page=1&sortBy=${ListDetectionsSortFieldsEnum.Severity}&sortDir=${SortDirEnum.Ascending}`;
-    const { getByLabelText, getAllByLabelText } = render(<ListDetectionsFilters />, {
-      initialRoute,
-    });
-    expect(getByLabelText('Filter Rules by text')).toHaveValue('AWS');
-    expect(getAllByLabelText('Sort By')[0]).toHaveValue('Severity Ascending');
+    const { getByLabelText, getAllByLabelText, getByAriaLabel, getByTestId } = render(
+      <ListDetectionsFilters />,
+      {
+        initialRoute: filtersUrlParams,
+      }
+    );
+    expect(getByLabelText('Filter detections by text')).toHaveValue('AWS');
+    expect(getAllByLabelText('Sort By')[0]).toHaveValue('Info to Critical');
+
+    fireClickAndMouseEvents(getByAriaLabel('Detection Options'));
+
+    const withinDropdown = within(getByTestId('dropdown-detections-listing-filters'));
+    expect(withinDropdown.getAllByLabelText('Status')[0]).toHaveValue('Enabled');
+    expect(withinDropdown.getAllByLabelText('Policy Status')[0]).toHaveValue('Error');
+    expect(withinDropdown.getAllByLabelText('Remediation Status')[0]).toHaveValue('Configured');
+    expect(withinDropdown.getAllByLabelText('Created by')[0]).toHaveValue('Panther (system)');
+    expect(withinDropdown.getByText('Rule')).toBeInTheDocument();
   });
 
   it('updates url params when sort by option changes', async () => {
-    const { getByPlaceholderText, getByText, history } = render(<ListDetectionsFilters />);
-    fireClickAndMouseEvents(getByPlaceholderText('Select a sort option'));
-    fireClickAndMouseEvents(getByText('Severity Ascending'));
-    await waitMs(1);
-    const updatedParams = `?page=1&sortBy=${ListDetectionsSortFieldsEnum.Severity}&sortDir=${SortDirEnum.Ascending}`;
-    expect(parseParams(history.location.search)).toEqual(parseParams(updatedParams));
-  });
+    const {
+      getAllByLabelText,
+      getByText,
+      history,
+      getByLabelText,
+      getByAriaLabel,
+      getByTestId,
+    } = render(<ListDetectionsFilters />);
 
-  it('updates url params when search input changes', async () => {
-    const { getByPlaceholderText, history } = render(<ListDetectionsFilters />);
-    fireEvent.change(getByPlaceholderText('Search for a rule...'), { target: { value: 'AWS' } });
-    await waitMs(1);
-    const updatedParams = '?nameContains=AWS&page=1';
-    expect(parseParams(history.location.search)).toEqual(parseParams(updatedParams));
-  });
+    fireEvent.change(getByLabelText('Filter detections by text'), { target: { value: 'AWS' } });
 
-  it('updates url params when multiple filters change', async () => {
-    const { getByPlaceholderText, findByTestId, getByText, history } = render(
-      <ListDetectionsFilters />
-    );
-    const searchInput = getByPlaceholderText('Search for a rule...');
-    fireEvent.change(searchInput, { target: { value: 'AWS' } });
-    fireClickAndMouseEvents(getByPlaceholderText('Select a sort option'));
-    fireClickAndMouseEvents(getByText('Severity Ascending'));
-    fireClickAndMouseEvents(getByText('Filters'));
-    // Open the Dropdown
-    const withinDropdown = within(await findByTestId('dropdown-rule-listing-filters'));
+    fireClickAndMouseEvents(getAllByLabelText('Sort By')[0]);
+    fireClickAndMouseEvents(getByText('Info to Critical'));
 
-    // Modify all the filter values
-    fireClickAndMouseEvents(withinDropdown.getAllByLabelText('Severities')[0]);
-    fireEvent.click(withinDropdown.getByText('Info'));
-    fireClickAndMouseEvents(withinDropdown.getAllByLabelText('Enabled')[0]);
-    fireEvent.click(withinDropdown.getByText('Yes'));
+    fireClickAndMouseEvents(getByAriaLabel('Detection Options'));
 
-    // Apply the new values of the dropdown filters
+    // wait for debounce to kick in and update some stuff and then continue
+    await waitFor(() => expect(history.location.search).toContain('nameContains'));
+
+    const withinDropdown = within(getByTestId('dropdown-detections-listing-filters'));
+
+    fireClickAndMouseEvents(withinDropdown.getAllByLabelText('State')[0]);
+    fireClickAndMouseEvents(withinDropdown.getByText('Enabled'));
+
+    fireClickAndMouseEvents(withinDropdown.getAllByLabelText('Policy Status')[0]);
+    fireClickAndMouseEvents(withinDropdown.getByText('Error'));
+
+    fireClickAndMouseEvents(withinDropdown.getAllByLabelText('Remediation Status')[0]);
+    fireClickAndMouseEvents(withinDropdown.getByText('Configured'));
+
+    fireClickAndMouseEvents(withinDropdown.getAllByLabelText('Created by')[0]);
+    fireClickAndMouseEvents(withinDropdown.getByText('Panther (system)'));
+
+    fireClickAndMouseEvents(withinDropdown.getAllByLabelText('Detection Types')[0]);
+    fireClickAndMouseEvents(withinDropdown.getByText('Rule'));
+
     fireClickAndMouseEvents(withinDropdown.getByText('Apply Filters'));
 
-    await waitMs(1);
-
-    const updatedParams = `?enabled=true&nameContains=AWS&page=1&severity[]=${SeverityEnum.Info}&sortBy=${ListDetectionsSortFieldsEnum.Severity}&sortDir=${SortDirEnum.Ascending}`;
-    expect(parseParams(history.location.search)).toEqual(parseParams(updatedParams));
+    await waitFor(() =>
+      expect(parseParams(history.location.search)).toEqual(parseParams(filtersUrlParams))
+    );
   });
 });
