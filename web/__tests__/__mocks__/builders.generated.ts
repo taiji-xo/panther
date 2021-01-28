@@ -1061,7 +1061,8 @@ export const buildListDetectionsInput = (
     hasRemediation: 'hasRemediation' in overrides ? overrides.hasRemediation : false,
     resourceTypes: 'resourceTypes' in overrides ? overrides.resourceTypes : ['Extended'],
     logTypes: 'logTypes' in overrides ? overrides.logTypes : ['content'],
-    analysisTypes: 'analysisTypes' in overrides ? overrides.analysisTypes : DetectionTypeEnum.Rule,
+    analysisTypes:
+      'analysisTypes' in overrides ? overrides.analysisTypes : [DetectionTypeEnum.Rule],
     nameContains: 'nameContains' in overrides ? overrides.nameContains : 'recontextualize',
     enabled: 'enabled' in overrides ? overrides.enabled : false,
     severity: 'severity' in overrides ? overrides.severity : [SeverityEnum.Critical],

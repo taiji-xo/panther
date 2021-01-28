@@ -98,7 +98,7 @@ input ListDetectionsInput {
   logTypes: [String!]
 
   # Common
-  analysisTypes: DetectionTypeEnum
+  analysisTypes: [DetectionTypeEnum!]
   nameContains: String
   enabled: Boolean
   severity: [SeverityEnum!]

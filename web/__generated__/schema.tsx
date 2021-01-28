@@ -671,7 +671,7 @@ export type ListDetectionsInput = {
   hasRemediation?: Maybe<Scalars['Boolean']>;
   resourceTypes?: Maybe<Array<Scalars['String']>>;
   logTypes?: Maybe<Array<Scalars['String']>>;
-  analysisTypes?: Maybe<DetectionTypeEnum>;
+  analysisTypes?: Maybe<Array<DetectionTypeEnum>>;
   nameContains?: Maybe<Scalars['String']>;
   enabled?: Maybe<Scalars['Boolean']>;
   severity?: Maybe<Array<SeverityEnum>>;
