@@ -26,10 +26,10 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
-	"github.com/pkg/errors"
 
 	"github.com/aws/aws-lambda-go/events"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	validate "gopkg.in/go-playground/validator.v9"
 	"gopkg.in/yaml.v2"
@@ -408,7 +408,7 @@ func validateUploadedPolicy(item *tableItem) error {
 		item.Severity = compliancemodels.SeverityInfo
 	case models.TypeDataModel:
 		item.Severity = compliancemodels.SeverityInfo
-	case models.TypePolicy,models.TypeRule:
+	case models.TypePolicy, models.TypeRule:
 		break
 	default:
 		return errors.Errorf("policy ID %s is invalid: unknown analysis type %s", item.ID, item.Type)

@@ -1,8 +1,28 @@
 package handlers
 
+/**
+ * Panther is a Cloud-Native SIEM for the Modern Security Team.
+ * Copyright (C) 2020 Panther Labs Inc
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 import (
-  "context"
-  "github.com/pkg/errors"
+	"context"
+
+	"github.com/pkg/errors"
+
 	resourceTypesProvider "github.com/panther-labs/panther/internal/compliance/snapshot_poller/models/aws"
 )
 
@@ -26,7 +46,7 @@ func ValidResourceTypeSet(checkResourceTypeSet []string) error {
 
 // Request the logtypes-api for the current set of logtypes and assign the result list to 'logtypeSetMap'
 func refreshLogTypes() error {
-  // Temporary get log types for testing
+	// Temporary get log types for testing
 	logtypes, err := logtypesAPI.ListAvailableLogTypes(context.Background())
 	if err != nil {
 		return err
@@ -34,8 +54,8 @@ func refreshLogTypes() error {
 	logtypeSetMap = make(map[string]struct{})
 	for _, logtype := range logtypes.LogTypes {
 		logtypeSetMap[logtype] = struct{}{}
-  }
-  return nil
+	}
+	return nil
 }
 
 // Return the existence of the passed logtype in the current logtypes.
@@ -53,8 +73,8 @@ func logtypeIsValid(logtype string) (found bool) {
 // CAVEAT: This method will trigger a request to the log-types api EVERY time it is called.
 func validateLogtypeSet(logtypes []string) error {
 	if err := refreshLogTypes(); err != nil {
-    return err
-  }
+		return err
+	}
 	for _, logtype := range logtypes {
 		if !logtypeIsValid(logtype) {
 			return errors.Errorf("%s", logtype)

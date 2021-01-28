@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -35,8 +36,6 @@ import (
 	"github.com/panther-labs/panther/internal/core/logtypesapi"
 	"github.com/panther-labs/panther/pkg/awsretry"
 	"github.com/panther-labs/panther/pkg/gatewayapi"
-
-	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 )
 
 const systemUserID = "00000000-0000-4000-8000-000000000000"
@@ -57,9 +56,8 @@ var (
 	policyEngine analysis.PolicyEngine
 	ruleEngine   analysis.RuleEngine
 
-
 	lambdaLogTypesClient lambdaiface.LambdaAPI
-	logtypesAPI *logtypesapi.LogTypesAPILambdaClient
+	logtypesAPI          *logtypesapi.LogTypesAPILambdaClient
 )
 
 type envConfig struct {

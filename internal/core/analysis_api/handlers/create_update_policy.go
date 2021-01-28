@@ -20,10 +20,10 @@ package handlers
 
 import (
 	"net/http"
-	"github.com/pkg/errors"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/pkg/errors"
 
 	"github.com/panther-labs/panther/api/lambda/analysis/models"
 	compliancemodels "github.com/panther-labs/panther/api/lambda/compliance/models"

@@ -20,11 +20,11 @@ package handlers
 
 import (
 	"net/http"
-	"github.com/pkg/errors"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
+	"github.com/pkg/errors"
 
 	"github.com/panther-labs/panther/api/lambda/analysis/models"
 	"github.com/panther-labs/panther/pkg/gatewayapi"
