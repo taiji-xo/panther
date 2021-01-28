@@ -33,6 +33,7 @@ import RuleCard from 'Components/cards/RuleCard';
 import PolicyCard from 'Components/cards/PolicyCard';
 import { RuleSummary } from 'Source/graphql/fragments/RuleSummary.generated';
 import { PolicySummary } from 'Source/graphql/fragments/PolicySummary.generated';
+import { DEFAULT_SMALL_PAGE_SIZE } from 'Source/constants';
 import ListDetectionsPageSkeleton from './Skeleton';
 import ListDetectionsPageEmptyDataFallback from './EmptyDataFallback';
 import ListDetectionsFilters from './ListDetectionsFilters';
@@ -47,7 +48,7 @@ const ListDetections = () => {
   const { loading, error, data } = useListDetections({
     fetchPolicy: 'cache-and-network',
     variables: {
-      input: requestParams,
+      input: { ...requestParams, pageSize: DEFAULT_SMALL_PAGE_SIZE },
     },
   });
 
@@ -60,7 +61,7 @@ const ListDetections = () => {
       <Box mb={6}>
         <Alert
           variant="error"
-          title="Couldn't load your rules"
+          title="Couldn't load your detections"
           description={
             extractErrorMessage(error) ||
             'There was an error when performing your request, please contact support@runpanther.io'
@@ -81,7 +82,7 @@ const ListDetections = () => {
   //  Check how many active filters exist by checking how many columns keys exist in the URL
   return (
     <ErrorBoundary>
-      <Panel title="Rules" actions={<ListDetectionsFilters />}>
+      <Panel title="Detections" actions={<ListDetectionsFilters />}>
         <Card as="section" position="relative">
           <Box position="relative">
             <Flex direction="column" spacing={2}>
@@ -116,4 +117,4 @@ const ListDetections = () => {
   );
 };
 
-export default withSEO({ title: 'Rules' })(ListDetections);
+export default withSEO({ title: 'Detections' })(ListDetections);

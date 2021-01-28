@@ -18,41 +18,110 @@
 
 import React from 'react';
 import { Field, Form, Formik } from 'formik';
+import mapValues from 'lodash/mapValues';
 import { Box, Button, Card, Flex, Popover, PopoverContent, PopoverTrigger } from 'pouncejs';
-import { ListRulesInput, SeverityEnum } from 'Generated/schema';
+import {
+  ComplianceStatusEnum,
+  DetectionTypeEnum,
+  ListDetectionsInput,
+  SeverityEnum,
+} from 'Generated/schema';
 import useRequestParamsWithPagination from 'Hooks/useRequestParamsWithPagination';
 import isUndefined from 'lodash/isUndefined';
 import { capitalize } from 'Helpers/utils';
 import TextButton from 'Components/buttons/TextButton';
 import FormikCombobox from 'Components/fields/ComboBox';
 import FormikMultiCombobox from 'Components/fields/MultiComboBox';
+import { RESOURCE_TYPES } from 'Source/constants';
+import { useListAvailableLogTypes } from 'Source/graphql/queries';
 
-export type ListAlertsDropdownFiltersValues = Pick<ListRulesInput, 'severity' | 'enabled'>;
+export type ListDetectionsDropdownFilterValues = Pick<
+  ListDetectionsInput,
+  | 'severity'
+  | 'enabled'
+  | 'hasRemediation'
+  | 'analysisTypes'
+  // | 'complianceStatus'
+  | 'initialSet'
+  | 'logTypes'
+  | 'resourceTypes'
+  | 'tags'
+>;
 
-const severityOptions = Object.values(SeverityEnum);
-const severityToString = (severity: SeverityEnum) => capitalize(severity.toLowerCase());
+const ALL = 'ALL';
 
-const defaultValues = {
-  severity: [],
+const severityFieldItems = Object.values(SeverityEnum);
+const severityFieldItemToString = (severity: SeverityEnum) => capitalize(severity.toLowerCase());
+
+const detectionTypeFieldItems = Object.values(DetectionTypeEnum);
+const detectionFieldTypeItemToString = (item: DetectionTypeEnum) => capitalize(item.toLowerCase());
+
+const enabledFieldItems = [ALL, true, false];
+const enabledFieldItemToString = (item: boolean | typeof ALL) => {
+  if (item === ALL) {
+    return 'All';
+  }
+  return item === true ? 'Enabled' : 'Disabled';
+};
+
+const remediationFieldItems = [ALL, true, false];
+const remediationFieldItemToString = (item: boolean | typeof ALL) => {
+  if (item === ALL) {
+    return 'All';
+  }
+  return item === true ? 'Configured' : 'Not Configured';
+};
+
+const creatorFieldItems = [ALL, true, false];
+const creatorFieldItemToString = (item: boolean | typeof ALL) => {
+  if (item === ALL) {
+    return 'Any';
+  }
+  return item === true ? 'Panther (system)' : 'Me';
+};
+
+const complianceStatusFieldItems = [ALL, ...Object.values(ComplianceStatusEnum)];
+const complianceStatusFieldItemToString = (status: ComplianceStatusEnum | typeof ALL) =>
+  status === ALL ? 'All' : capitalize(status.toLowerCase());
+
+const defaultDropdownValues = {
   enabled: null,
+  complianceStatus: null,
+  hasRemediation: null,
+  initialSet: null,
+  severity: [],
+  logTypes: [],
+  resourceTypes: [],
+  tags: [],
+  analysisTypes: [],
 };
 
 const DropdownFilters: React.FC = () => {
+  const { data: logTypeData } = useListAvailableLogTypes();
   const { requestParams, updateRequestParamsAndResetPaging } = useRequestParamsWithPagination<
-    ListRulesInput
+    ListDetectionsInput
   >();
 
   const initialDropdownFilters = React.useMemo(
     () =>
       ({
-        ...defaultValues,
+        ...defaultDropdownValues,
         ...requestParams,
-      } as ListAlertsDropdownFiltersValues),
+      } as ListDetectionsDropdownFilterValues),
     [requestParams]
   );
 
-  const filtersCount = Object.keys(defaultValues).filter(key => !isUndefined(requestParams[key]))
-    .length;
+  const handleSubmit = React.useCallback(
+    (values: ListDetectionsDropdownFilterValues) => {
+      // @ts-ignore `mapValues` has weird typings
+      updateRequestParamsAndResetPaging(mapValues(values, v => (v === ALL ? null : v)));
+    },
+    [updateRequestParamsAndResetPaging]
+  );
+
+  const filtersCount = Object.keys(defaultDropdownValues).filter(
+    key => !isUndefined(requestParams[key])
+  ).length;
 
   return (
     <Popover>
@@ -63,7 +132,7 @@ const DropdownFilters: React.FC = () => {
             iconAlignment="right"
             icon="filter-light"
             size="large"
-            aria-label="Rule Options"
+            aria-label="Detection Options"
           >
             Filters {filtersCount ? `(${filtersCount})` : ''}
           </PopoverTrigger>
@@ -75,47 +144,99 @@ const DropdownFilters: React.FC = () => {
               pb={4}
               backgroundColor="navyblue-400"
               minWidth={425}
-              data-testid="dropdown-rule-listing-filters"
+              data-testid="dropdown-detections-listing-filters"
             >
-              <Formik<ListAlertsDropdownFiltersValues>
+              <Formik<ListDetectionsDropdownFilterValues>
                 enableReinitialize
-                onSubmit={(values: ListAlertsDropdownFiltersValues) => {
-                  updateRequestParamsAndResetPaging(values);
-                }}
+                onSubmit={handleSubmit}
                 initialValues={initialDropdownFilters}
               >
                 {({ setValues }) => (
                   <Form>
-                    <Box pb={4}>
+                    <Flex direction="column" spacing={4}>
                       <Field
                         name="severity"
                         as={FormikMultiCombobox}
-                        items={severityOptions}
-                        itemToString={severityToString}
+                        items={severityFieldItems}
+                        itemToString={severityFieldItemToString}
                         label="Severities"
-                        placeholder="Select severities to filter"
+                        placeholder="Select severities to filter..."
                       />
-                    </Box>
-                    <Box pb={4}>
                       <Field
-                        name="enabled"
                         as={FormikCombobox}
-                        items={[true, false]}
-                        itemToString={(item: boolean) => (item ? 'Yes' : 'No')}
-                        label="Enabled"
-                        placeholder="Only show enabled rules?"
+                        name="complianceStatus"
+                        items={complianceStatusFieldItems}
+                        itemToString={complianceStatusFieldItemToString}
+                        label="Policy Status"
+                        placeholder="Filter by policy status..."
                       />
-                    </Box>
-
-                    <Flex direction="column" justify="center" align="center" spacing={4}>
-                      <Box>
-                        <Button type="submit" onClick={closePopover}>
-                          Apply Filters
-                        </Button>
-                      </Box>
-                      <TextButton role="button" onClick={() => setValues(defaultValues)}>
-                        Clear Filters
-                      </TextButton>
+                      <Field
+                        as={FormikCombobox}
+                        name="enabled"
+                        items={enabledFieldItems}
+                        itemToString={enabledFieldItemToString}
+                        label="Enabled"
+                        placeholder="Which detections should we show?"
+                      />
+                      <Field
+                        as={FormikCombobox}
+                        name="hasRemediation"
+                        items={remediationFieldItems}
+                        itemToString={remediationFieldItemToString}
+                        label="Remediation Status"
+                        placeholder="Choose a remediation status...'"
+                      />
+                      <Field
+                        as={FormikCombobox}
+                        name="initialSet"
+                        items={creatorFieldItems}
+                        itemToString={creatorFieldItemToString}
+                        label="Created by"
+                        placeholder="Filter by detection creator..."
+                      />
+                      <Field
+                        as={FormikMultiCombobox}
+                        label="Detection Types"
+                        name="analysisTypes"
+                        placeholder="Select detection types"
+                        items={detectionTypeFieldItems}
+                        itemToString={detectionFieldTypeItemToString}
+                      />
+                      <Field
+                        as={FormikMultiCombobox}
+                        searchable
+                        label="Log Types"
+                        name="logTypes"
+                        items={logTypeData?.listAvailableLogTypes?.logTypes ?? []}
+                        placeholder="Select log types to filter by..."
+                      />
+                      <Field
+                        as={FormikMultiCombobox}
+                        searchable
+                        label="Resource Types"
+                        name="resourceTypes"
+                        items={RESOURCE_TYPES}
+                        placeholder="Select resource types to filter by..."
+                      />
+                      <Field
+                        as={FormikMultiCombobox}
+                        label="Tags"
+                        searchable
+                        allowAdditions
+                        name="tags"
+                        items={[]}
+                        placeholder="Enter tags to filter by..."
+                      />
+                      <Flex direction="column" justify="center" align="center" spacing={4}>
+                        <Box>
+                          <Button type="submit" onClick={closePopover}>
+                            Apply Filters
+                          </Button>
+                        </Box>
+                        <TextButton role="button" onClick={() => setValues(defaultDropdownValues)}>
+                          Clear Filters
+                        </TextButton>
+                      </Flex>
                     </Flex>
                   </Form>
                 )}

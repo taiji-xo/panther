@@ -19,7 +19,7 @@ import React from 'react';
 import { Box, LinkProps } from 'pouncejs';
 import { Link as RRLink } from 'react-router-dom';
 
-export type LinkButtonWrapperProps = LinkProps;
+export type LinkButtonWrapperProps = Pick<LinkProps, 'external' | 'disabled' | 'to'>;
 
 const LinkButton: React.FC<LinkButtonWrapperProps> = ({ disabled, external, to, children }) => {
   let linkProps: LinkProps;

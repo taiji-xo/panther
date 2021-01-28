@@ -19,19 +19,14 @@
 import React from 'react';
 import urls from 'Source/urls';
 import { Form, Formik, FastField } from 'formik';
-import {
-  SortDirEnum,
-  ListDetectionsInput,
-  ListDetectionsSortFieldsEnum,
-  DetectionTypeEnum,
-} from 'Generated/schema';
+import { SortDirEnum, ListDetectionsInput, ListDetectionsSortFieldsEnum } from 'Generated/schema';
 import { Box, Flex } from 'pouncejs';
 import pick from 'lodash/pick';
 import useRequestParamsWithPagination from 'Hooks/useRequestParamsWithPagination';
+import LinkIconButton from 'Components/buttons/LinkIconButton';
 import FormikAutosave from 'Components/utils/Autosave';
 import FormikCombobox from 'Components/fields/ComboBox';
 import FormikTextInput from 'Components/fields/TextInput';
-import LinkButton from 'Components/buttons/LinkButton';
 import DropdownFilters from './DropdownFilters';
 
 export type ListDetectionsInlineFiltersValues = Pick<ListDetectionsInput, 'sortBy' | 'sortDir'>;
@@ -50,14 +45,14 @@ const defaultValues = {
 
 const sortingOpts: SortingOptions = [
   {
-    opt: 'Name Ascending',
+    opt: 'Display name (A-Z)',
     resolution: {
       sortBy: ListDetectionsSortFieldsEnum.DisplayName,
       sortDir: SortDirEnum.Ascending,
     },
   },
   {
-    opt: 'Name Descending',
+    opt: 'Display name (Z-A)',
     resolution: {
       sortBy: ListDetectionsSortFieldsEnum.DisplayName,
       sortDir: SortDirEnum.Descending,
@@ -78,23 +73,36 @@ const sortingOpts: SortingOptions = [
     },
   },
   {
-    opt: 'Severity Ascending',
+    opt: 'Low to Critical',
     resolution: {
       sortBy: ListDetectionsSortFieldsEnum.Severity,
       sortDir: SortDirEnum.Ascending,
     },
   },
   {
-    opt: 'Severity Descending',
+    opt: 'Critical to Low',
     resolution: {
       sortBy: ListDetectionsSortFieldsEnum.Severity,
+      sortDir: SortDirEnum.Descending,
+    },
+  },
+  {
+    opt: 'Enabled to Disabled',
+    resolution: {
+      sortBy: ListDetectionsSortFieldsEnum.Enabled,
+      sortDir: SortDirEnum.Ascending,
+    },
+  },
+  {
+    opt: 'Disabled to Enabled',
+    resolution: {
+      sortBy: ListDetectionsSortFieldsEnum.Enabled,
       sortDir: SortDirEnum.Descending,
     },
   },
 ];
 
 const sortingItems = sortingOpts.map(sortingOption => sortingOption.opt);
-const detectionTypeItems = Object.values(DetectionTypeEnum);
 
 /**
  * Since sorting is not responding to some ListDetectionsInput key we shall extract
@@ -122,7 +130,7 @@ const wrapSortingOptions = params => {
   };
 };
 
-const ListRuleFilters: React.FC = () => {
+const ListDetectionsFilters: React.FC = () => {
   const { requestParams, updateRequestParamsAndResetPaging } = useRequestParamsWithPagination<
     ListDetectionsInput
   >();
@@ -145,18 +153,18 @@ const ListRuleFilters: React.FC = () => {
       >
         <Form>
           <FormikAutosave threshold={200} />
-          <Flex spacing={4} align="center" pr={4}>
-            <Box minWidth={410}>
+          <Flex spacing={4} align="center">
+            <Box minWidth={425} maxWidth={490} flexGrow={3}>
               <FastField
                 name="nameContains"
                 icon="search"
                 iconAlignment="left"
                 as={FormikTextInput}
-                label="Filter Rules by text"
-                placeholder="Search for a rule..."
+                label="Filter detections by text"
+                placeholder="Search for a detection..."
               />
             </Box>
-            <Box minWidth={150}>
+            <Box minWidth={225}>
               <FastField
                 name="sorting"
                 as={FormikCombobox}
@@ -165,22 +173,17 @@ const ListRuleFilters: React.FC = () => {
                 placeholder="Select a sort option"
               />
             </Box>
-            <Box minWidth={150}>
-              <FastField
-                name="analysisType"
-                as={FormikCombobox}
-                items={detectionTypeItems}
-                label="Detection Type"
-                placeholder="Select a type"
-              />
-            </Box>
           </Flex>
         </Form>
       </Formik>
       <DropdownFilters />
-      <LinkButton to={urls.detections.create()}>Create New Detection</LinkButton>
+      <LinkIconButton
+        icon="add-circle"
+        aria-label="Create a new Detection"
+        to={urls.detections.create()}
+      />
     </Flex>
   );
 };
 
-export default React.memo(ListRuleFilters);
+export default React.memo(ListDetectionsFilters);

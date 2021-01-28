@@ -33,7 +33,7 @@ const ListDetectionsPageEmptyDataFallback: React.FC = () => {
         Writing detections will allow you to get alerts about suspicious activity or misconfigured
         resources in your system
       </Text>
-      <LinkButton to={urls.detections.create()}>Create New Rule</LinkButton>
+      <LinkButton to={urls.detections.create()}>Create a detection</LinkButton>
     </Flex>
   );
 };
