@@ -24,27 +24,34 @@ import PolicyCard from './index';
 
 describe('PolicyCard', () => {
   it('displays the correct data in the card', async () => {
-    const policyData = buildPolicy();
+    const policy = buildPolicy();
 
-    const { getByText } = render(<PolicyCard policy={policyData} />);
+    const { getByText } = render(<PolicyCard policy={policy} />);
 
-    expect(getByText(policyData.displayName)).toBeInTheDocument();
+    expect(getByText(policy.displayName)).toBeInTheDocument();
     expect(getByText('Destinations')).toBeInTheDocument();
     expect(getByText(SeverityEnum.High)).toBeInTheDocument();
     expect(getByText('DISABLED')).toBeInTheDocument();
 
-    policyData.resourceTypes.forEach(resourceType => {
+    policy.resourceTypes.forEach(resourceType => {
       expect(getByText(resourceType)).toBeInTheDocument();
     });
   });
 
   it('should have valid links', async () => {
-    const policyData = buildPolicy();
+    const policy = buildPolicy();
 
-    const { getByAriaLabel } = render(<PolicyCard policy={policyData} />);
+    const { getByAriaLabel } = render(<PolicyCard policy={policy} />);
     expect(getByAriaLabel('Link to Rule')).toHaveAttribute(
       'href',
-      urls.compliance.policies.details(policyData.id)
+      urls.compliance.policies.details(policy.id)
     );
+  });
+
+  it('renders a checkbox when selection is enabled', () => {
+    const policy = buildPolicy();
+    const { getByAriaLabel } = render(<RuleCard rule={policy} />);
+
+    expect(getByAriaLabel(`select ${policy.id}`)).toBeInTheDocument();
   });
 });

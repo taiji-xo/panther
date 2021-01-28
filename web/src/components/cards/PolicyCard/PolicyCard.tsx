@@ -18,7 +18,7 @@
 
 import React from 'react';
 import GenericItemCard from 'Components/GenericItemCard';
-import { Flex, Link, SimpleGrid, Text } from 'pouncejs';
+import { Box, Flex, Link, SimpleGrid, Text } from 'pouncejs';
 import { Link as RRLink } from 'react-router-dom';
 import SeverityBadge from 'Components/badges/SeverityBadge';
 import StatusBadge from 'Components/badges/StatusBadge';
@@ -26,21 +26,30 @@ import BulletedValueList from 'Components/BulletedValueList';
 import urls from 'Source/urls';
 import { ComplianceStatusEnum, Policy } from 'Generated/schema';
 import { formatDatetime } from 'Helpers/utils';
+import { SelectCheckbox } from 'Components/utils/SelectContext';
 import useDetectionDestinations from 'Hooks/useDetectionDestinations';
 import RelatedDestinations from 'Components/RelatedDestinations';
 import PolicyCardOptions from './PolicyCardOptions';
 
 interface PolicyCardProps {
   policy: Policy;
+  selectionEnabled?: boolean;
 }
 
-const PolicyCard: React.FC<PolicyCardProps> = ({ policy }) => {
+const PolicyCard: React.FC<PolicyCardProps> = ({ policy, selectionEnabled = false }) => {
   const {
     detectionDestinations,
     loading: loadingDetectionDestinations,
   } = useDetectionDestinations({ detection: policy });
   return (
     <GenericItemCard>
+      {selectionEnabled && (
+        <Flex align="start" pr={2}>
+          <Box transform="translate3d(0,-8px,0)">
+            <SelectCheckbox selectionId={policy.id} />
+          </Box>
+        </Flex>
+      )}
       <GenericItemCard.Body>
         <GenericItemCard.Header>
           <GenericItemCard.Heading>

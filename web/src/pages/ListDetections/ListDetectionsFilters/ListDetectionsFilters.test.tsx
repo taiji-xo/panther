@@ -30,8 +30,8 @@ const parseParams = (search: string) => queryString.parse(search, queryStringOpt
 
 describe('ListDetectionsFilters', () => {
   it('renders', () => {
-    const { container, getByText } = render(<ListDetectionsFilters />);
-    expect(getByText('Create New Rule')).toBeInTheDocument();
+    const { container, getByAriaLabel } = render(<ListDetectionsFilters />);
+    expect(getByAriaLabel('Create a new Detection')).toBeInTheDocument();
 
     expect(container).toMatchSnapshot();
   });
