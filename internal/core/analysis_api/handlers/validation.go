@@ -1,7 +1,6 @@
 package handlers
 
 import (
-  "fmt"
   "context"
   "github.com/pkg/errors"
   "github.com/aws/aws-sdk-go/service/lambda"
@@ -12,7 +11,6 @@ import (
 var (
   lambdaLogTypesClient *lambda.Lambda
   logtypesAPI          *logtypesapi.LogTypesAPILambdaClient
-
   logtypeSetMap map[string]struct{}
 )
 
@@ -36,15 +34,12 @@ func refreshLogTypes() error {
   // Temporary get log types for testing
 	logtypes, err := logtypesAPI.ListAvailableLogTypes(context.Background())
 	if err != nil {
-    fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>> ERROR!!! ListAvailableLogTypes: %v\n", err.Error())
 		return err
 	}
-
 	logtypeSetMap = make(map[string]struct{})
 	for _, logtype := range logtypes.LogTypes {
 		logtypeSetMap[logtype] = struct{}{}
   }
-
   return nil
 }
 
@@ -63,10 +58,8 @@ func logtypeIsValid(logtype string) (found bool) {
 // CAVEAT: This method will trigger a request to the log-types api EVERY time it is called.
 func validateLogtypeSet(logtypes []string) error {
 	if err := refreshLogTypes(); err != nil {
-    fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>> ERROR!!! validateLogtypeSet: %v\n", err.Error())
     return err
   }
-
 	for _, logtype := range logtypes {
 		if !logtypeIsValid(logtype) {
 			return errors.Errorf("%s", logtype)

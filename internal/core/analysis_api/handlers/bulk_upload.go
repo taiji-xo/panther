@@ -22,7 +22,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/base64"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
@@ -83,9 +82,9 @@ func (API) BulkUpload(input *models.BulkUploadInput) *events.APIGatewayProxyResp
 		if result.err != nil {
 			// Set the response with an error code - 4XX first, otherwise 5XX
 			if result.err == errWrongType {
-				msg := fmt.Sprintf("ID %s does not have expected type %s", result.item.ID, result.item.Type)
+				err := errors.Errorf("ID %s does not have expected type %s", result.item.ID, result.item.Type)
 				response = &events.APIGatewayProxyResponse{
-					Body:       msg,
+					Body:       err.Error(),
 					StatusCode: http.StatusConflict,
 				}
 			} else if response == nil {
@@ -156,13 +155,13 @@ func extractZipFile(input *models.BulkUploadInput) (map[string]*tableItem, error
 	// Base64-decode
 	content, err := base64.StdEncoding.DecodeString(input.Data)
 	if err != nil {
-		return nil, fmt.Errorf("base64 decoding failed: %s", err)
+		return nil, errors.Errorf("base64 decoding failed: %s", err)
 	}
 
 	// Unzip in memory (the max request size is only 6 MB, so this should easily fit)
 	zipReader, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
 	if err != nil {
-		return nil, fmt.Errorf("zipReader failed: %s", err)
+		return nil, errors.Errorf("zipReader failed: %s", err)
 	}
 
 	policyBodies := make(map[string]string) // map base file name to contents
@@ -176,7 +175,7 @@ func extractZipFile(input *models.BulkUploadInput) (map[string]*tableItem, error
 
 		unzippedBytes, err := readZipFile(zipFile)
 		if err != nil {
-			return nil, fmt.Errorf("file extraction failed: %s: %s", zipFile.Name, err)
+			return nil, errors.Errorf("file extraction failed: %s: %s", zipFile.Name, err)
 		}
 
 		if strings.Contains(zipFile.Name, "__pycache__") {
@@ -203,7 +202,10 @@ func extractZipFile(input *models.BulkUploadInput) (map[string]*tableItem, error
 		}
 
 		// Map the Config struct fields over to the fields we need to store in Dynamo
-		analysisItem := tableItemFromConfig(config)
+		analysisItem, err := tableItemFromConfig(config)
+		if err != nil {
+			return nil, err
+		}
 
 		if analysisItem.Type == models.TypeDataModel {
 			// ensure Mappings are nil rather than an empty slice
@@ -237,7 +239,7 @@ func extractZipFile(input *models.BulkUploadInput) (map[string]*tableItem, error
 		}
 
 		if _, exists := result[analysisItem.ID]; exists {
-			return nil, fmt.Errorf("multiple analysis specs with ID %s", analysisItem.ID)
+			return nil, errors.Errorf("multiple analysis specs with ID %s", analysisItem.ID)
 		}
 		result[analysisItem.ID] = analysisItem
 	}
@@ -251,14 +253,36 @@ func extractZipFile(input *models.BulkUploadInput) (map[string]*tableItem, error
 			}
 		} else if policy.Type != models.TypeDataModel {
 			// it is ok for DataModels to be missing python body
-			return nil, fmt.Errorf("policy %s is missing a body", policy.ID)
+			return nil, errors.Errorf("policy %s is missing a body", policy.ID)
 		}
 	}
 
 	return result, nil
 }
 
-func tableItemFromConfig(config analysis.Config) *tableItem {
+func tableItemFromConfig(config analysis.Config) (*tableItem, error) {
+	itemType := models.DetectionType(strings.ToUpper(config.AnalysisType))
+	var resourceTypes []string = config.ResourceTypes
+
+	// Validations for valid log and resource types
+	switch itemType {
+	case models.TypeDataModel, models.TypeRule:
+		if len(resourceTypes) == 0 {
+			resourceTypes = config.LogTypes
+		}
+		if err := validateLogtypeSet(resourceTypes); err != nil {
+			itemTitle := "DataModel"
+			if itemType == models.TypeRule {
+				itemTitle = "Rule"
+			}
+			return nil, errors.Errorf("%s %s contains invalid log type: %s", itemTitle, config.DisplayName, err.Error())
+		}
+	case models.TypePolicy:
+		if err := ValidResourceTypeSet(resourceTypes); err != nil {
+			return nil, errors.Errorf("Policy %s contains invalid log type: %s", config.DisplayName, err.Error())
+		}
+	}
+
 	item := tableItem{
 		AutoRemediationID:         config.AutoRemediationID,
 		AutoRemediationParameters: config.AutoRemediationParameters,
@@ -272,13 +296,13 @@ func tableItemFromConfig(config analysis.Config) *tableItem {
 		ID:            config.PolicyID,
 		OutputIDs:     config.OutputIds,
 		Reference:     config.Reference,
-		ResourceTypes: config.ResourceTypes,
+		ResourceTypes: resourceTypes,
 		Runbook:       config.Runbook,
 		Severity:      compliancemodels.Severity(strings.ToUpper(config.Severity)),
 		Suppressions:  config.Suppressions,
 		Tags:          config.Tags,
 		Tests:         make([]models.UnitTest, len(config.Tests)),
-		Type:          models.DetectionType(strings.ToUpper(config.AnalysisType)),
+		Type:          itemType,
 		Reports:       config.Reports,
 		Threshold:     config.Threshold,
 	}
@@ -291,37 +315,26 @@ func tableItemFromConfig(config analysis.Config) *tableItem {
 		} else {
 			item.DedupPeriodMinutes = config.DedupPeriodMinutes
 		}
-
 		// If there is no value set, default to 1
 		if config.Threshold == 0 {
 			item.Threshold = defaultRuleThreshold
 		} else {
 			item.Threshold = config.Threshold
 		}
-
 		// These "syntax sugar" re-mappings are to make managing rules from the CLI more intuitive
 		if config.PolicyID == "" {
 			item.ID = config.RuleID
 		}
-		if len(config.ResourceTypes) == 0 {
-			item.ResourceTypes = config.LogTypes
-		}
-
 	case models.TypeGlobal:
 		item.ID = config.GlobalID
-		// Support non-ID'd globals as the 'panther' global
 		if item.ID == "" {
 			item.ID = "panther"
 		}
-
 	case models.TypeDataModel:
 		item.ID = config.DataModelID
-		if len(config.ResourceTypes) == 0 {
-			item.ResourceTypes = config.LogTypes
-		}
 	}
 
-	return &item
+	return &item, nil
 }
 
 func buildRuleTest(test analysis.Test) (models.UnitTest, error) {
@@ -370,12 +383,10 @@ func readZipFile(zf *zip.File) ([]byte, error) {
 	return ioutil.ReadAll(f)
 }
 
+// Data Model Validations: len(ResourceTypes) <= 1, Single Model Enabled
 func validateUploadedDataModel(item *tableItem) error {
 	if len(item.ResourceTypes) > 1 {
 		return errors.New("only one LogType may be specified per DataModel")
-	}
-	if err := validateLogtypeSet(item.ResourceTypes); err != nil {
-		return errors.Errorf("DataModel contains invalid log type: %s", err.Error())
 	}
 	isEnabled, err := isSingleDataModelEnabled(item.ID, item.Enabled, item.ResourceTypes)
 	if err != nil {
@@ -397,24 +408,16 @@ func validateUploadedPolicy(item *tableItem) error {
 		item.Severity = compliancemodels.SeverityInfo
 	case models.TypeDataModel:
 		item.Severity = compliancemodels.SeverityInfo
-	case models.TypePolicy:
-		if err := ValidResourceTypeSet(item.ResourceTypes); err != nil {
-			return err
-		}
-	case models.TypeRule:
-		// We could call the refresh before we traverse the set of new rules. The code you see here
-		// refeshes the log types on each validateLogtypeSet call...
-		if err := validateLogtypeSet(item.ResourceTypes); err != nil {
-			return errors.Errorf("Rule contains invalid log type: %s", err.Error())
-		}
+	case models.TypePolicy,models.TypeRule:
 		break
 	default:
-		return fmt.Errorf("policy ID %s is invalid: unknown analysis type %s", item.ID, item.Type)
+		return errors.Errorf("policy ID %s is invalid: unknown analysis type %s", item.ID, item.Type)
 	}
 
-	policy := item.Policy(compliancemodels.StatusPass) // Convert to the external Policy model for validation
+	// Convert to the external Policy model for validation
+	policy := item.Policy(compliancemodels.StatusPass)
 	if err := validate.New().Struct(policy); err != nil {
-		return fmt.Errorf("policy ID %s is invalid: %s", policy.ID, err)
+		return errors.Errorf("policy ID %s is invalid: %s", policy.ID, err)
 	}
 	return nil
 }

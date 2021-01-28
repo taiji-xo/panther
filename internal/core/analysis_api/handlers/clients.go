@@ -91,6 +91,4 @@ func Setup() {
 		LambdaName: logtypesapi.LambdaName,
 		LambdaAPI:  lambdaLogTypesClient,
 	}
-
-	refreshLogTypes()
 }
