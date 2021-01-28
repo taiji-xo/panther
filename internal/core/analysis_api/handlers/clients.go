@@ -35,12 +35,17 @@ import (
 	"github.com/panther-labs/panther/internal/core/logtypesapi"
 	"github.com/panther-labs/panther/pkg/awsretry"
 	"github.com/panther-labs/panther/pkg/gatewayapi"
+
+	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 )
 
 const systemUserID = "00000000-0000-4000-8000-000000000000"
 const maxRetries = 5
 
 var (
+	// lambdaiface.LambdaAPI
+	// lambdaLogTypesClient *lambda.Lambda
+
 	env envConfig
 
 	awsSession       *session.Session
@@ -51,6 +56,10 @@ var (
 
 	policyEngine analysis.PolicyEngine
 	ruleEngine   analysis.RuleEngine
+
+
+	lambdaLogTypesClient lambdaiface.LambdaAPI
+	logtypesAPI *logtypesapi.LogTypesAPILambdaClient
 )
 
 type envConfig struct {
@@ -80,13 +89,14 @@ func Setup() {
 	policyEngine = analysis.NewPolicyEngine(lambdaClient, env.PolicyEngine)
 	ruleEngine = analysis.NewRuleEngine(lambdaClient, env.RulesEngine)
 
-	clientsSession := awsSession.Copy(
+	logtypesClientsSession := awsSession.Copy(
 		request.WithRetryer(
 			aws.NewConfig().WithMaxRetries(maxRetries),
 			awsretry.NewConnectionErrRetryer(maxRetries),
 		),
 	)
-	lambdaLogTypesClient = lambda.New(clientsSession)
+
+	lambdaLogTypesClient = lambda.New(logtypesClientsSession)
 	logtypesAPI = &logtypesapi.LogTypesAPILambdaClient{
 		LambdaName: logtypesapi.LambdaName,
 		LambdaAPI:  lambdaLogTypesClient,

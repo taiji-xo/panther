@@ -403,7 +403,7 @@ func validateUploadedPolicy(item *tableItem) error {
 	switch item.Type {
 	case models.TypeGlobal:
 		if len(item.ResourceTypes) > 1 {
-			return errors.Errorf("only one LogType may be specified per DataModel")
+			return errors.New("only one LogType may be specified per DataModel")
 		}
 		item.Severity = compliancemodels.SeverityInfo
 	case models.TypeDataModel:

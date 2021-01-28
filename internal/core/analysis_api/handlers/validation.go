@@ -3,16 +3,11 @@ package handlers
 import (
   "context"
   "github.com/pkg/errors"
-  "github.com/aws/aws-sdk-go/service/lambda"
-  "github.com/panther-labs/panther/internal/core/logtypesapi"
 	resourceTypesProvider "github.com/panther-labs/panther/internal/compliance/snapshot_poller/models/aws"
 )
 
-var (
-  lambdaLogTypesClient *lambda.Lambda
-  logtypesAPI          *logtypesapi.LogTypesAPILambdaClient
-  logtypeSetMap map[string]struct{}
-)
+// Populated by a call to refreshLogTypes
+var logtypeSetMap map[string]struct{}
 
 // Traverse a passed set of resource and return an error if any of them are not found in the current
 // list of valid resource types
