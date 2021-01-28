@@ -19,6 +19,10 @@ package handlers
  */
 
 import (
+	"context"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
@@ -28,12 +32,21 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/pkg/errors"
+
 
 	"github.com/panther-labs/panther/internal/core/analysis_api/analysis"
+	"github.com/panther-labs/panther/internal/core/logtypesapi"
+	"github.com/panther-labs/panther/pkg/awsretry"
 	"github.com/panther-labs/panther/pkg/gatewayapi"
+
+	// Imports a hardcoded map[string]struct{} Where keys are the set of valid resource types.
+	resourceTypesProvider "github.com/panther-labs/panther/internal/compliance/snapshot_poller/models/aws"
 )
 
 const systemUserID = "00000000-0000-4000-8000-000000000000"
+const maxRetries = 5
+
 
 var (
 	env envConfig
@@ -74,4 +87,18 @@ func Setup() {
 
 	policyEngine = analysis.NewPolicyEngine(lambdaClient, env.PolicyEngine)
 	ruleEngine = analysis.NewRuleEngine(lambdaClient, env.RulesEngine)
+
+	clientsSession := awsSession.Copy(
+		request.WithRetryer(
+			aws.NewConfig().WithMaxRetries(maxRetries),
+			awsretry.NewConnectionErrRetryer(maxRetries),
+		),
+	)
+	lambdaLogTypesClient = lambda.New(clientsSession)
+	logtypesAPI = &logtypesapi.LogTypesAPILambdaClient{
+		LambdaName: logtypesapi.LambdaName,
+		LambdaAPI:  lambdaLogTypesClient,
+	}
+
+	refreshLogTypes()
 }

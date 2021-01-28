@@ -374,6 +374,9 @@ func validateUploadedDataModel(item *tableItem) error {
 	if len(item.ResourceTypes) > 1 {
 		return errors.New("only one LogType may be specified per DataModel")
 	}
+	if err := ValidResourceTypeSet(item.ResourceTypes); err != nil {
+		return err
+	}
 	isEnabled, err := isSingleDataModelEnabled(item.ID, item.Enabled, item.ResourceTypes)
 	if err != nil {
 		return err
@@ -391,7 +394,16 @@ func validateUploadedPolicy(item *tableItem) error {
 		item.Severity = compliancemodels.SeverityInfo
 	case models.TypeDataModel:
 		item.Severity = compliancemodels.SeverityInfo
-	case models.TypePolicy, models.TypeRule:
+	case models.TypePolicy:
+		if err := ValidResourceTypeSet(item.ResourceTypes); err != nil {
+			return err
+		}
+	case models.TypeRule:
+		// We could call the refresh before we traverse the set of new rules. The code you see here
+		// refeshes the log types on each validateLogtypeSet call...
+		if err := validateLogtypeSet(item.ResourceTypes); err != nil {
+			return errors.Errorf("Rule contains invalid log type: %s", err.Error())
+		}
 		break
 	default:
 		return fmt.Errorf("policy ID %s is invalid: unknown analysis type %s", item.ID, item.Type)

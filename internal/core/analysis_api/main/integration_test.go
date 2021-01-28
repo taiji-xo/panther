@@ -47,8 +47,13 @@ import (
 
 const (
 	tableName           = "panther-analysis"
-	analysesRoot        = "./test_analyses"
+	analysesRoot        = "./bulk_test_resources/test_analyses"
 	analysesZipLocation = "./bulk_upload.zip"
+
+	bulkTestDataDirPath              = "./bulk_test_resources"
+	bulkInvalidRuleLogTypeDir        = "rule_invalid_logtype"
+	bulkInvalidDatamodelTypeDir      = "datamodel_invalid_logtype"
+	bulkInvalidPolicyResourceTypeDir = "policy_invalid_resourcetype"
 )
 
 var (
@@ -130,7 +135,7 @@ var (
 		Description: "Example LogType Schema",
 		Enabled:     true,
 		ID:          "SecondDataModelTypeAnalysis",
-		LogTypes:    []string{"Box.Events"},
+		LogTypes:    []string{"Box.Event"},
 		Mappings: []models.DataModelMapping{
 			{
 				Name: "source_ip",
@@ -143,7 +148,7 @@ var (
 		Description: "Example LogType Schema",
 		Enabled:     false,
 		ID:          "ThirdDataModelTypeAnalysis",
-		LogTypes:    []string{"Box.Events"},
+		LogTypes:    []string{"Box.Event"},
 		Mappings: []models.DataModelMapping{
 			{
 				Name: "source_ip",
@@ -155,7 +160,7 @@ var (
 	dataModelFromBulkYML = &models.DataModel{
 		Enabled:  true,
 		ID:       "Some.Events.DataModel",
-		LogTypes: []string{"Some.Events"},
+		LogTypes: []string{"Fastly.Access"},
 		Mappings: []models.DataModelMapping{
 			{
 				Name: "source_ip",
@@ -263,6 +268,15 @@ func TestIntegrationAPI(t *testing.T) {
 	t.Run("BulkUpload", func(t *testing.T) {
 		t.Run("BulkUploadInvalid", bulkUploadInvalid)
 		t.Run("BulkUploadSuccess", bulkUploadSuccess)
+	})
+	if t.Failed() {
+		return
+	}
+
+	t.Run("BulkUploadInvalid", func(t *testing.T) {
+		t.Run("BulkUploadInvalidPolicyResourceTypesFail", bulkUploadInvalidPolicyResourceTypesFail)
+		t.Run("BulkUploadInvalidRuleLogtypeFail", bulkUploadInvalidRuleLogtypeFail)
+		t.Run("BulkUploadInvalidDatamodelLogtypeFail", bulkUploadInvalidDatamodelLogtypeFail)
 	})
 	if t.Failed() {
 		return
@@ -2614,4 +2628,75 @@ func batchDeleteRules(t *testing.T, ruleID ...string) {
 	statusCode, err := apiClient.Invoke(&input, nil)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, statusCode)
+}
+
+
+// Validate a bulk upload failure where policies in bulk data contain invalid Resource Types
+func bulkUploadInvalidPolicyResourceTypesFail(t *testing.T) {
+	t.Parallel()
+	// zipFsSourcePath is the path where the zip contents are located. All files will be zipped
+	zipFsSourcePath := path.Join(bulkTestDataDirPath, bulkInvalidPolicyResourceTypeDir)
+
+	// Zip all the files in source path to destination path
+	result, _, err := BulkZipUploadHelper(t, zipFsSourcePath)
+	require.Error(t, err)
+
+	// This is an empty BulkUpload Output
+	expected := models.BulkUploadOutput{}
+	require.Equal(t, expected, *result)
+}
+
+// validate fail of bulk upload where upload zip contains a rule with an invalid log type
+func bulkUploadInvalidRuleLogtypeFail(t *testing.T) {
+	t.Parallel()
+	// zipFsSourcePath is the path where the zip contents are located. All files will be zipped
+	zipFsSourcePath := filepath.Join(bulkTestDataDirPath, bulkInvalidRuleLogTypeDir)
+
+	// Zip all the files in source path to destination path
+	result, _, err := BulkZipUploadHelper(t, zipFsSourcePath)
+	require.Error(t, err)
+
+	// This is an empty BulkUpload Output
+	expected := models.BulkUploadOutput{}
+	require.Equal(t, expected, *result)
+}
+
+// validate fail of bulk upload where upload zip contains a rule with an invalid log type
+func bulkUploadInvalidDatamodelLogtypeFail(t *testing.T) {
+	t.Parallel()
+	// zipFsSourcePath is the path where the zip contents are located. All files will be zipped
+	ruleInvalidLTZipPath := filepath.Join(bulkTestDataDirPath, bulkInvalidDatamodelTypeDir)
+
+	// Zip all the files in source path to destination path
+	result, _, err := BulkZipUploadHelper(t, ruleInvalidLTZipPath)
+	require.Error(t, err) // Invalid rule logtypes test. Expect an error
+
+	// Empty BulkUpload Output. All fields initialized to zero value
+	expected := models.BulkUploadOutput{}
+	require.Equal(t, expected, *result)
+}
+
+// Utility Methods:
+
+// Bulk Data upload helper Zips files in the fsSourcePath to ./<basename(fsSourcePath)>.zip
+// then attempts to upload them to the analysis service
+// BulkZipUploadHelper returns an error because some tests are intended to fail. Acceptable Errors
+// are never expected when managing the files so the test will fail if the error originates from
+// anything besides invoking the service client upload invokation.
+func BulkZipUploadHelper(t *testing.T, fsSourcePath string) (*models.BulkUploadOutput, int, error) {
+	srcPathBaseName := filepath.Base(fsSourcePath)            // Get the base name
+	fsDstName := srcPathBaseName + ".zip"                     // Add the zip extension
+	err := shutil.ZipDirectory(fsSourcePath, fsDstName, true) // Zip the contents source -> dst
+	require.NoError(t, err)
+	zipFile, err := os.Open(fsDstName)
+	require.NoError(t, err)
+	content, err := ioutil.ReadAll(bufio.NewReader(zipFile))
+	require.NoError(t, err)
+	encoded := base64.StdEncoding.EncodeToString(content)
+	// Invoke bulk upload content
+	uploadContent := &models.BulkUploadInput{Data: encoded, UserID: userID}
+	input := models.LambdaInput{BulkUpload: uploadContent}
+	var output models.BulkUploadOutput
+	statusCode, err := apiClient.Invoke(&input, &output)
+	return &output, statusCode, err
 }

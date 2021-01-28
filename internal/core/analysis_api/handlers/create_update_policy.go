@@ -41,6 +41,14 @@ func (API) UpdatePolicy(input *models.UpdatePolicyInput) *events.APIGatewayProxy
 
 // Shared by CreatePolicy and UpdatePolicy
 func writePolicy(input *models.CreatePolicyInput, create bool) *events.APIGatewayProxyResponse {
+
+	if err := ValidResourceTypeSet(input.ResourceTypes); err != nil {
+		return &events.APIGatewayProxyResponse{
+			Body:       fmt.Sprintf("Policy contains invalid resource type: %s", err.Error()),
+			StatusCode: http.StatusBadRequest,
+		}
+	}
+
 	// Disallow saving if policy is enabled and its tests fail.
 	testsPass, err := enabledPolicyTestsPass(input)
 
