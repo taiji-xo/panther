@@ -76,6 +76,7 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ policy }) => {
           </GenericItemCard.ValuesGroup>
           <GenericItemCard.ValuesGroup>
             <Flex ml="auto" mr={0} align="flex-end" spacing={4}>
+              <StatusBadge status={policy.complianceStatus} />
               <StatusBadge
                 status={policy.enabled ? 'ENABLED' : ComplianceStatusEnum.Error}
                 disabled={!policy.enabled}
