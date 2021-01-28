@@ -61,7 +61,8 @@ var (
 	integrationTest bool
 	apiClient       gatewayapi.API
 
-	userID = "test-panther-user" // does NOT need to be a uuid4
+	// does NOT need to be a uuid4
+	userID = "test-panther-user"
 
 	// NOTE: this gets changed by the bulk upload!
 	policy = &models.Policy{
@@ -90,7 +91,9 @@ var (
 			},
 		},
 	}
-	versionedPolicy *models.Policy // this will get set when we modify policy for use in delete testing
+
+	// this will get set when we modify policy for use in delete testing
+	versionedPolicy *models.Policy
 
 	// Set during bulk upload
 	policyFromBulk     = &models.Policy{ID: "AWS.CloudTrail.Log.Validation.Enabled"}
@@ -235,11 +238,14 @@ func TestIntegrationAPI(t *testing.T) {
 		t.Run("CreatePolicyInvalid", createInvalid)
 		t.Run("CreatePolicySuccess", createPolicySuccess)
 		t.Run("CreateRuleSuccess", createRuleSuccess)
+		t.Run("TestFailCreateRuleInvalidLogType", testFailCreateRuleInvalidLogType)
+
 		// This test (and the other global tests) does trigger the layer-manager lambda to run, but since there is only
 		// support for a single global nothing changes (the version gets bumped a few times). Once multiple globals are
 		// supported, these tests can be improved to run policies and rules that rely on these imports.
 		t.Run("CreateGlobalSuccess", createGlobalSuccess)
 		t.Run("CreateDataModel", createDataModel)
+		t.Run("TestFailCreateDataModelInvalidLogType", testFailCreateDataModelInvalidLogType)
 
 		t.Run("SaveEnabledPolicyFailingTests", saveEnabledPolicyFailingTests)
 		t.Run("SaveDisabledPolicyFailingTests", saveDisabledPolicyFailingTests)
@@ -250,6 +256,7 @@ func TestIntegrationAPI(t *testing.T) {
 		t.Run("SaveDisabledRuleFailingTests", saveDisabledRuleFailingTests)
 		t.Run("SaveEnabledRulePassingTests", saveEnabledRulePassingTests)
 		t.Run("SaveRuleInvalidTestInputJson", saveRuleInvalidTestInputJSON)
+		t.Run("TestFailCreatePolicyInvalidResourceType", testFailCreatePolicyInvalidResourceType)
 	})
 	if t.Failed() {
 		return
@@ -760,6 +767,34 @@ func createPolicySuccess(t *testing.T) {
 	policy = &result
 }
 
+// Create policy fail when policy contains invalid ResourceTypes
+func testFailCreatePolicyInvalidResourceType(t *testing.T) {
+	input := models.LambdaInput{
+		CreatePolicy: &models.CreatePolicyInput{
+			AutoRemediationID:         policy.AutoRemediationID,
+			AutoRemediationParameters: policy.AutoRemediationParameters,
+			Body:                      policy.Body,
+			Description:               policy.Description,
+			DisplayName:               "Duplicate AWS Config Recording Status",
+			Enabled:                   policy.Enabled,
+			ID:                        "AWS.Config.DuplicateRecordingNoErrors",
+			OutputIDs:                 policy.OutputIDs,
+			ResourceTypes: []string{
+				"AWS.Config.DuplicateRecorder",
+			},
+			Severity:     policy.Severity,
+			Suppressions: policy.Suppressions,
+			Tags:         policy.Tags,
+			Tests:        policy.Tests,
+			UserID:       userID,
+		},
+	}
+	var result models.Policy
+	statusCode, err := apiClient.Invoke(&input, &result)
+	assert.Equal(t, http.StatusBadRequest, statusCode)
+	assert.Error(t, err)
+}
+
 // Tests that a policy cannot be saved if it is enabled and its tests fail.
 func saveEnabledPolicyFailingTests(t *testing.T) {
 	t.Parallel()
@@ -1119,6 +1154,37 @@ func createRuleSuccess(t *testing.T) {
 	rule = &result
 }
 
+// Create policy fail when policy contains invalid ResourceTypes
+func testFailCreateRuleInvalidLogType(t *testing.T) {
+	logTypes := []string{
+		"AWS.CloudTrailInvalidLogtype",
+	}
+	tags := []string{
+		"AWS",
+		"Identity and Access Management",
+	}
+	input := models.LambdaInput{
+		CreateRule: &models.CreateRuleInput{
+			Body:               rule.Body,
+			DedupPeriodMinutes: rule.DedupPeriodMinutes,
+			Description:        "--INVALID-LOGTYPES-RULE--",
+			DisplayName:        "--INVALID-LOGTYPES-RULE--",
+			Enabled:            rule.Enabled,
+			ID:                 "AWS.CloudTrail.ConsoleLoginInvalidRule",
+			LogTypes:           logTypes,
+			OutputIDs:          []string{},
+			Severity:           rule.Severity,
+			Tags:               tags,
+			Threshold:          rule.Threshold,
+			UserID:             "test-panther-user",
+		},
+	}
+	var result models.Rule
+	statusCode, err := apiClient.Invoke(&input, &result)
+	assert.Equal(t, http.StatusBadRequest, statusCode)
+	assert.Error(t, err)
+}
+
 func createDataModel(t *testing.T) {
 	t.Parallel()
 
@@ -1186,6 +1252,32 @@ func createDataModel(t *testing.T) {
 	statusCode, err = apiClient.Invoke(&input, nil)
 	require.Error(t, err)
 	assert.Equal(t, http.StatusBadRequest, statusCode)
+}
+
+// Verify Fail on create data model where data model LogTypes contains an invalid log type.
+func testFailCreateDataModelInvalidLogType(t *testing.T) {
+	invalidDataModel := &models.CreateDataModelInput{
+		Body:        "def get_source_ip(event): return 'source_ip'\n",
+		Description: "A Data Model with an invalid log type for testing",
+		DisplayName: "INVALIDDATAMODEL",
+		Enabled:     true,
+		ID:          "INVALIDLOGTYPEDataModelTypeAnalysis",
+		LogTypes:    []string{"OneLogin.INVALIDEvents"},
+		Mappings: []models.DataModelMapping{
+			{
+				Name: "source_ip",
+				Path: "ipAddress",
+			},
+		},
+		UserID: "test-panther-user",
+	}
+	input := models.LambdaInput{
+		CreateDataModel: invalidDataModel,
+	}
+	var result models.DataModel
+	statusCode, err := apiClient.Invoke(&input, &result)
+	assert.Equal(t, http.StatusBadRequest, statusCode)
+	assert.Error(t, err)
 }
 
 func createGlobalSuccess(t *testing.T) {
