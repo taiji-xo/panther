@@ -100,8 +100,12 @@ const PrimaryPageLayout: React.FunctionComponent = () => {
                 <Route exact path={urls.detections.list()} component={ListDetectionsPage} />
                 {/* ******************* COMPLIANCE ***************************** */}
                 <Redirect exact from={urls.compliance.home()} to={urls.compliance.overview()} />
+                <Redirect
+                  exact
+                  from={urls.compliance.policies.list()}
+                  to={`${urls.detections.list()}?analysisTypes[]=POLICY&page=1&sortBy=lastModified&sortDir=descending`}
+                />
                 <Route exact path={urls.compliance.overview()} component={OverviewPage} />
-                <Route exact path={urls.compliance.policies.list()} component={ListPoliciesPage} />
                 <Route exact path={urls.detections.create()} component={CreateDetectionPage} />
                 <Route
                   exact
@@ -140,8 +144,12 @@ const PrimaryPageLayout: React.FunctionComponent = () => {
                 />
                 {/* ******************* LOG ANALYSIS ***************************** */}
                 <Redirect exact from={urls.logAnalysis.home()} to={urls.logAnalysis.overview()} />
+                <Redirect
+                  exact
+                  from={urls.logAnalysis.rules.list()}
+                  to={`${urls.detections.list()}?analysisTypes[]=RULE&page=1&sortBy=lastModified&sortDir=descending`}
+                />
                 <Route exact path={urls.logAnalysis.overview()} component={LogAnalysisOverview} />
-                <Route exact path={urls.logAnalysis.rules.list()} component={ListRulesPage} />
                 <Route
                   exact
                   path={urls.logAnalysis.rules.details(':id')}
