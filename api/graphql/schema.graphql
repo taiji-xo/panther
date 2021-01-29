@@ -403,13 +403,13 @@ input AddRuleInput {
   displayName: String
   enabled: Boolean!
   id: ID!
-  logTypes: [String]
+  logTypes: [String!]
   outputIds: [ID!]
   reference: String
   runbook: String
   severity: SeverityEnum!
-  tags: [String]
-  tests: [DetectionTestDefinitionInput] # Rule and Policy share the same tests structure
+  tags: [String!]
+  tests: [DetectionTestDefinitionInput!]
 }
 
 input UpdateRuleInput {
@@ -420,13 +420,13 @@ input UpdateRuleInput {
   displayName: String
   enabled: Boolean
   id: ID!
-  logTypes: [String]
+  logTypes: [String!]
   outputIds: [ID!]
   reference: String
   runbook: String
   severity: SeverityEnum
-  tags: [String]
-  tests: [DetectionTestDefinitionInput] # Rule and Policy share the same tests structure
+  tags: [String!]
+  tests: [DetectionTestDefinitionInput!]
 }
 
 input GetRuleInput {
@@ -444,34 +444,34 @@ type ListRulesResponse {
 }
 
 interface Detection {
-  body: String
-  createdAt: AWSDateTime
+  body: String!
+  createdAt: AWSDateTime!
   createdBy: ID
   description: String
   displayName: String
-  enabled: Boolean
+  enabled: Boolean!
   id: ID!
   lastModified: AWSDateTime
   lastModifiedBy: ID
   outputIds: [ID!]!
   reference: String
   runbook: String
-  severity: SeverityEnum
-  tags: [String!]
-  tests: [DetectionTestDefinition!]
+  severity: SeverityEnum!
+  tags: [String!]!
+  tests: [DetectionTestDefinition!]!
   versionId: ID
   analysisType: DetectionTypeEnum!
 }
 
 type Rule implements Detection {
-  body: String
-  createdAt: AWSDateTime
+  body: String!
+  createdAt: AWSDateTime!
   createdBy: ID
   dedupPeriodMinutes: Int!
   threshold: Int!
   description: String
   displayName: String
-  enabled: Boolean
+  enabled: Boolean!
   id: ID!
   lastModified: AWSDateTime
   lastModifiedBy: ID
@@ -479,9 +479,9 @@ type Rule implements Detection {
   outputIds: [ID!]!
   reference: String
   runbook: String
-  severity: SeverityEnum
-  tags: [String!]
-  tests: [DetectionTestDefinition!]
+  severity: SeverityEnum!
+  tags: [String!]!
+  tests: [DetectionTestDefinition!]!
   versionId: ID
   analysisType: DetectionTypeEnum!
 }
@@ -901,13 +901,13 @@ input PagerDutyConfigInput {
 type Policy implements Detection {
   autoRemediationId: ID
   autoRemediationParameters: AWSJSON
-  body: String
+  body: String!
   complianceStatus: ComplianceStatusEnum
-  createdAt: AWSDateTime
+  createdAt: AWSDateTime!
   createdBy: ID
   description: String
   displayName: String
-  enabled: Boolean
+  enabled: Boolean!
   id: ID!
   lastModified: AWSDateTime
   lastModifiedBy: ID
@@ -915,10 +915,10 @@ type Policy implements Detection {
   reference: String
   resourceTypes: [String!]
   runbook: String
-  severity: SeverityEnum
+  severity: SeverityEnum!
   suppressions: [String!]
-  tags: [String!]
-  tests: [DetectionTestDefinition!]
+  tags: [String!]!
+  tests: [DetectionTestDefinition!]!
   versionId: ID
   analysisType: DetectionTypeEnum!
 }
