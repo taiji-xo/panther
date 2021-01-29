@@ -38,7 +38,7 @@ describe('ListDetectionsFilters', () => {
     expect(container).toMatchSnapshot();
   });
 
-  it('initializes correctly with url params', () => {
+  it('initializes correctly from url params', () => {
     const { getByLabelText, getAllByLabelText, getByAriaLabel, getByTestId } = render(
       <ListDetectionsFilters />,
       {
@@ -58,7 +58,7 @@ describe('ListDetectionsFilters', () => {
     expect(withinDropdown.getByText('Rule')).toBeInTheDocument();
   });
 
-  it('updates url params when sort by option changes', async () => {
+  it('updates url params when filters change or get cleared', async () => {
     const {
       getAllByLabelText,
       getByText,
@@ -96,9 +96,11 @@ describe('ListDetectionsFilters', () => {
     fireClickAndMouseEvents(withinDropdown.getByText('Rule'));
 
     fireClickAndMouseEvents(withinDropdown.getByText('Apply Filters'));
-
     await waitFor(() =>
       expect(parseParams(history.location.search)).toEqual(parseParams(filtersUrlParams))
     );
+
+    fireClickAndMouseEvents(getByText('Clear Filters'));
+    await waitFor(() => expect(parseParams(history.location.search)).toEqual('/'));
   });
 });
