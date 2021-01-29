@@ -20,14 +20,9 @@ package handlers
 
 import (
 	"context"
-
 	"github.com/pkg/errors"
-
 	resourceTypesProvider "github.com/panther-labs/panther/internal/compliance/snapshot_poller/models/aws"
 )
-
-// Populated by a call to refreshLogTypes
-var logtypeSetMap map[string]struct{}
 
 // Traverse a passed set of resource and return an error if any of them are not found in the current
 // list of valid resource types
@@ -44,40 +39,26 @@ func ValidResourceTypeSet(checkResourceTypeSet []string) error {
 	return nil
 }
 
-// Request the logtypes-api for the current set of logtypes and assign the result list to 'logtypeSetMap'
-func refreshLogTypes() error {
-	// Temporary get log types for testing
-	logtypes, err := logtypesAPI.ListAvailableLogTypes(context.Background())
-	if err != nil {
-		return err
-	}
-	logtypeSetMap = make(map[string]struct{})
-	for _, logtype := range logtypes.LogTypes {
-		logtypeSetMap[logtype] = struct{}{}
-	}
-	return nil
-}
-
-// Return the existence of the passed logtype in the current logtypes.
-// NOTE: Accuret results require an updated logtypeSetMap - currently accomplished using the call to
-// 'refreshLogTypes'. That method makes a call to the log-types api, so use it as infrequently as possible
-// The refresh method can be called a single time for multiple individual log type validation checks.
-func logtypeIsValid(logtype string) (found bool) {
-	_, found = logtypeSetMap[logtype]
-	return
-}
-
-// Traverse a passed set of resource and return an error if any of them are not found in the current
-// list of valid resource types
+// Retrieve a set of log types from the logtypes api and validate every entry in the passed set
+// is a value found in the logtypes-api returned set
 //
 // CAVEAT: This method will trigger a request to the log-types api EVERY time it is called.
 func validateLogtypeSet(logtypes []string) error {
-	if err := refreshLogTypes(); err != nil {
+	availableLogTypes, err := logtypesAPI.ListAvailableLogTypes(context.TODO())
+	if err != nil {
 		return err
 	}
-	for _, logtype := range logtypes {
-		if !logtypeIsValid(logtype) {
-			return errors.Errorf("%s", logtype)
+
+	// Potential imrpovement - if you want the set of invalid log types the parameter could be used to
+	// build the map and we could iterate through availableLogTypes / remove the keys from the map that
+	// are found. At the end we would end up with a map of logtypes that are invalid.
+	logtypeSetMap := make(map[string]struct{})
+	for _, logtype := range availableLogTypes.LogTypes {
+		logtypeSetMap[logtype] = struct{}{}
+	}
+	for _, lt := range logtypes {
+		if _, found := logtypeSetMap[lt]; !found {
+			return errors.Errorf("%s", lt)
 		}
 	}
 	return nil

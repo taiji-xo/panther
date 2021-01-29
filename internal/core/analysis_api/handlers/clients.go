@@ -25,7 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/lambda"
-	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
+	// "github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -56,7 +56,6 @@ var (
 	policyEngine analysis.PolicyEngine
 	ruleEngine   analysis.RuleEngine
 
-	lambdaLogTypesClient lambdaiface.LambdaAPI
 	logtypesAPI          *logtypesapi.LogTypesAPILambdaClient
 )
 
@@ -94,9 +93,8 @@ func Setup() {
 		),
 	)
 
-	lambdaLogTypesClient = lambda.New(logtypesClientsSession)
 	logtypesAPI = &logtypesapi.LogTypesAPILambdaClient{
 		LambdaName: logtypesapi.LambdaName,
-		LambdaAPI:  lambdaLogTypesClient,
+		LambdaAPI:  lambda.New(logtypesClientsSession),
 	}
 }
