@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Panther Rules Engine Read-only Cross Account Assume Role and Secrets Manager Managed Policy for Panther Account
+
+Parameters:
+  TargetAccountID:
+    Type: String
+    Description: Enter the AWS Account number where the resources are located
+  PantherRulesEngineRoleName:
+    Type: String
+    Description: Enter the name of the Panther Rules Engine Role Name which can be found under IAM by searching "rules" in the Panther Master Account.
+
+Resources:
+  RulesEngineAssumeReadOnlyPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: panther-rule-engine-cross-account-readonly-permissions
+      Description: Panther Rules Engine Cross Account Read-only Managed policy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource: !Sub arn:aws:iam::${TargetAccountID}:role/PantherRulesEngineCrossAccountReadOnlyRole
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetResourcePolicy
+              - secretsmanager:GetSecretValue
+              - secretsmanager:DescribeSecret
+              - secretsmanager:ListSecretVersionIds
+            Resource: arn:aws:secretsmanager:*
+      Roles:
+        - !Ref PantherRulesEngineRoleName
+
+Outputs:
+  RulesEngineAssumeReadOnlyPolicy:
+    Description: Panther Engine Read-Only Assume Role Policy ARN
+    Value: !Ref RulesEngineAssumeReadOnlyPolicy

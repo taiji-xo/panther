@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Panther Rules Engine Customer Account Cross Account Read-only S3 and Secrets Role
+
+Parameters:
+  PantherMasterAccountID:
+    Type: String
+    Description: Enter the 12 Digit AWS Panther Master AccountID located in Panther under General > Settings.
+  PantherRulesEngineRoleName:
+    Type: String
+    Description: Enter the name of the Panther Rules Engine Role Name which can be found under IAM by searching "rules" in the Panther Master Account.
+  TargetBucketName:
+    Type: String
+    Description: Enter the S3 Bucket that the Panther Rules Engine can Read from.
+
+Resources:
+  PantherRulesEngineIamRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              AWS: !Sub arn:aws:iam::${PantherMasterAccountID}:role/${PantherRulesEngineRoleName}
+
+      Policies:
+        - PolicyName: panther-rule-engine-cross-account-read-only-role
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:List*
+                Resource: !Sub arn:aws:s3:::${TargetBucketName}/*
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetResourcePolicy
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:DescribeSecret
+                  - secretsmanager:ListSecretVersionIds
+                Resource: arn:aws:secretsmanager:*
+
+      RoleName: PantherRulesEngineCrossAccountReadOnlyRole
+
+Outputs:
+  PantherRulesEngineIamRole:
+    Description: Panther Rules Engine Read-only IAM Role ARN
+    Value: !GetAtt PantherRulesEngineIamRole.Arn
