@@ -107,6 +107,7 @@ describe('ListDetectionsFilters', () => {
 
     fireClickAndMouseEvents(dropdownTrigger);
     fireClickAndMouseEvents(getByText('Clear Filters'));
+    fireClickAndMouseEvents(withinDropdown.getByText('Apply Filters'));
     await waitFor(() => expect(parseParams(history.location.search)).toEqual('/'));
   });
 });
