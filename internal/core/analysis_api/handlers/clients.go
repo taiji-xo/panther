@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/lambda"
+
 	// "github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
@@ -56,7 +57,7 @@ var (
 	policyEngine analysis.PolicyEngine
 	ruleEngine   analysis.RuleEngine
 
-	logtypesAPI          *logtypesapi.LogTypesAPILambdaClient
+	logtypesAPI *logtypesapi.LogTypesAPILambdaClient
 )
 
 type envConfig struct {

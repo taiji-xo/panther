@@ -20,7 +20,9 @@ package handlers
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
+
 	resourceTypesProvider "github.com/panther-labs/panther/internal/compliance/snapshot_poller/models/aws"
 )
 
