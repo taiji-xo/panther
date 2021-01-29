@@ -101,13 +101,13 @@ export type AddRuleInput = {
   displayName?: Maybe<Scalars['String']>;
   enabled: Scalars['Boolean'];
   id: Scalars['ID'];
-  logTypes?: Maybe<Array<Maybe<Scalars['String']>>>;
+  logTypes?: Maybe<Array<Scalars['String']>>;
   outputIds?: Maybe<Array<Scalars['ID']>>;
   reference?: Maybe<Scalars['String']>;
   runbook?: Maybe<Scalars['String']>;
   severity: SeverityEnum;
-  tags?: Maybe<Array<Maybe<Scalars['String']>>>;
-  tests?: Maybe<Array<Maybe<DetectionTestDefinitionInput>>>;
+  tags?: Maybe<Array<Scalars['String']>>;
+  tests?: Maybe<Array<DetectionTestDefinitionInput>>;
 };
 
 export type AddS3LogIntegrationInput = {
@@ -374,6 +374,7 @@ export type Destination = {
   outputConfig: DestinationConfig;
   verificationStatus?: Maybe<Scalars['String']>;
   defaultForSeverity: Array<Maybe<SeverityEnum>>;
+  alertTypes: Array<AlertTypesEnum>;
 };
 
 export type DestinationConfig = {
@@ -409,6 +410,7 @@ export type DestinationInput = {
   outputConfig: DestinationConfigInput;
   outputType: Scalars['String'];
   defaultForSeverity: Array<Maybe<SeverityEnum>>;
+  alertTypes: Array<Maybe<AlertTypesEnum>>;
 };
 
 export enum DestinationTypeEnum {
@@ -425,21 +427,21 @@ export enum DestinationTypeEnum {
 }
 
 export type Detection = {
-  body?: Maybe<Scalars['String']>;
-  createdAt?: Maybe<Scalars['AWSDateTime']>;
+  body: Scalars['String'];
+  createdAt: Scalars['AWSDateTime'];
   createdBy?: Maybe<Scalars['ID']>;
   description?: Maybe<Scalars['String']>;
   displayName?: Maybe<Scalars['String']>;
-  enabled?: Maybe<Scalars['Boolean']>;
+  enabled: Scalars['Boolean'];
   id: Scalars['ID'];
   lastModified?: Maybe<Scalars['AWSDateTime']>;
   lastModifiedBy?: Maybe<Scalars['ID']>;
   outputIds: Array<Scalars['ID']>;
   reference?: Maybe<Scalars['String']>;
   runbook?: Maybe<Scalars['String']>;
-  severity?: Maybe<SeverityEnum>;
-  tags?: Maybe<Array<Scalars['String']>>;
-  tests?: Maybe<Array<DetectionTestDefinition>>;
+  severity: SeverityEnum;
+  tags: Array<Scalars['String']>;
+  tests: Array<DetectionTestDefinition>;
   versionId?: Maybe<Scalars['ID']>;
   analysisType: DetectionTypeEnum;
 };
@@ -1107,13 +1109,13 @@ export type Policy = Detection & {
   __typename?: 'Policy';
   autoRemediationId?: Maybe<Scalars['ID']>;
   autoRemediationParameters?: Maybe<Scalars['AWSJSON']>;
-  body?: Maybe<Scalars['String']>;
+  body: Scalars['String'];
   complianceStatus?: Maybe<ComplianceStatusEnum>;
-  createdAt?: Maybe<Scalars['AWSDateTime']>;
+  createdAt: Scalars['AWSDateTime'];
   createdBy?: Maybe<Scalars['ID']>;
   description?: Maybe<Scalars['String']>;
   displayName?: Maybe<Scalars['String']>;
-  enabled?: Maybe<Scalars['Boolean']>;
+  enabled: Scalars['Boolean'];
   id: Scalars['ID'];
   lastModified?: Maybe<Scalars['AWSDateTime']>;
   lastModifiedBy?: Maybe<Scalars['ID']>;
@@ -1121,10 +1123,10 @@ export type Policy = Detection & {
   reference?: Maybe<Scalars['String']>;
   resourceTypes?: Maybe<Array<Scalars['String']>>;
   runbook?: Maybe<Scalars['String']>;
-  severity?: Maybe<SeverityEnum>;
+  severity: SeverityEnum;
   suppressions?: Maybe<Array<Scalars['String']>>;
-  tags?: Maybe<Array<Scalars['String']>>;
-  tests?: Maybe<Array<DetectionTestDefinition>>;
+  tags: Array<Scalars['String']>;
+  tests: Array<DetectionTestDefinition>;
   versionId?: Maybe<Scalars['ID']>;
   analysisType: DetectionTypeEnum;
 };
@@ -1303,14 +1305,14 @@ export type ResourceSummary = {
 
 export type Rule = Detection & {
   __typename?: 'Rule';
-  body?: Maybe<Scalars['String']>;
-  createdAt?: Maybe<Scalars['AWSDateTime']>;
+  body: Scalars['String'];
+  createdAt: Scalars['AWSDateTime'];
   createdBy?: Maybe<Scalars['ID']>;
   dedupPeriodMinutes: Scalars['Int'];
   threshold: Scalars['Int'];
   description?: Maybe<Scalars['String']>;
   displayName?: Maybe<Scalars['String']>;
-  enabled?: Maybe<Scalars['Boolean']>;
+  enabled: Scalars['Boolean'];
   id: Scalars['ID'];
   lastModified?: Maybe<Scalars['AWSDateTime']>;
   lastModifiedBy?: Maybe<Scalars['ID']>;
@@ -1318,9 +1320,9 @@ export type Rule = Detection & {
   outputIds: Array<Scalars['ID']>;
   reference?: Maybe<Scalars['String']>;
   runbook?: Maybe<Scalars['String']>;
-  severity?: Maybe<SeverityEnum>;
-  tags?: Maybe<Array<Scalars['String']>>;
-  tests?: Maybe<Array<DetectionTestDefinition>>;
+  severity: SeverityEnum;
+  tags: Array<Scalars['String']>;
+  tests: Array<DetectionTestDefinition>;
   versionId?: Maybe<Scalars['ID']>;
   analysisType: DetectionTypeEnum;
 };
@@ -1573,13 +1575,13 @@ export type UpdateRuleInput = {
   displayName?: Maybe<Scalars['String']>;
   enabled?: Maybe<Scalars['Boolean']>;
   id: Scalars['ID'];
-  logTypes?: Maybe<Array<Maybe<Scalars['String']>>>;
+  logTypes?: Maybe<Array<Scalars['String']>>;
   outputIds?: Maybe<Array<Scalars['ID']>>;
   reference?: Maybe<Scalars['String']>;
   runbook?: Maybe<Scalars['String']>;
   severity?: Maybe<SeverityEnum>;
-  tags?: Maybe<Array<Maybe<Scalars['String']>>>;
-  tests?: Maybe<Array<Maybe<DetectionTestDefinitionInput>>>;
+  tags?: Maybe<Array<Scalars['String']>>;
+  tests?: Maybe<Array<DetectionTestDefinitionInput>>;
 };
 
 export type UpdateS3LogIntegrationInput = {
@@ -2412,6 +2414,7 @@ export type DestinationResolvers<
     ParentType,
     ContextType
   >;
+  alertTypes?: Resolver<Array<ResolversTypes['AlertTypesEnum']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType>;
 };
 
@@ -2437,25 +2440,21 @@ export type DetectionResolvers<
   ParentType extends ResolversParentTypes['Detection'] = ResolversParentTypes['Detection']
 > = {
   __resolveType: TypeResolveFn<'Policy' | 'Rule', ParentType, ContextType>;
-  body?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  createdAt?: Resolver<Maybe<ResolversTypes['AWSDateTime']>, ParentType, ContextType>;
+  body?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['AWSDateTime'], ParentType, ContextType>;
   createdBy?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  enabled?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   lastModified?: Resolver<Maybe<ResolversTypes['AWSDateTime']>, ParentType, ContextType>;
   lastModifiedBy?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   outputIds?: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
   reference?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   runbook?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  severity?: Resolver<Maybe<ResolversTypes['SeverityEnum']>, ParentType, ContextType>;
-  tags?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
-  tests?: Resolver<
-    Maybe<Array<ResolversTypes['DetectionTestDefinition']>>,
-    ParentType,
-    ContextType
-  >;
+  severity?: Resolver<ResolversTypes['SeverityEnum'], ParentType, ContextType>;
+  tags?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  tests?: Resolver<Array<ResolversTypes['DetectionTestDefinition']>, ParentType, ContextType>;
   versionId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   analysisType?: Resolver<ResolversTypes['DetectionTypeEnum'], ParentType, ContextType>;
 };
@@ -3011,17 +3010,17 @@ export type PolicyResolvers<
 > = {
   autoRemediationId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   autoRemediationParameters?: Resolver<Maybe<ResolversTypes['AWSJSON']>, ParentType, ContextType>;
-  body?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  body?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   complianceStatus?: Resolver<
     Maybe<ResolversTypes['ComplianceStatusEnum']>,
     ParentType,
     ContextType
   >;
-  createdAt?: Resolver<Maybe<ResolversTypes['AWSDateTime']>, ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['AWSDateTime'], ParentType, ContextType>;
   createdBy?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  enabled?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   lastModified?: Resolver<Maybe<ResolversTypes['AWSDateTime']>, ParentType, ContextType>;
   lastModifiedBy?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
@@ -3029,14 +3028,10 @@ export type PolicyResolvers<
   reference?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   resourceTypes?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   runbook?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  severity?: Resolver<Maybe<ResolversTypes['SeverityEnum']>, ParentType, ContextType>;
+  severity?: Resolver<ResolversTypes['SeverityEnum'], ParentType, ContextType>;
   suppressions?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
-  tags?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
-  tests?: Resolver<
-    Maybe<Array<ResolversTypes['DetectionTestDefinition']>>,
-    ParentType,
-    ContextType
-  >;
+  tags?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  tests?: Resolver<Array<ResolversTypes['DetectionTestDefinition']>, ParentType, ContextType>;
   versionId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   analysisType?: Resolver<ResolversTypes['DetectionTypeEnum'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType>;
@@ -3258,14 +3253,14 @@ export type RuleResolvers<
   ContextType = any,
   ParentType extends ResolversParentTypes['Rule'] = ResolversParentTypes['Rule']
 > = {
-  body?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  createdAt?: Resolver<Maybe<ResolversTypes['AWSDateTime']>, ParentType, ContextType>;
+  body?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['AWSDateTime'], ParentType, ContextType>;
   createdBy?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   dedupPeriodMinutes?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   threshold?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  enabled?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   lastModified?: Resolver<Maybe<ResolversTypes['AWSDateTime']>, ParentType, ContextType>;
   lastModifiedBy?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
@@ -3273,13 +3268,9 @@ export type RuleResolvers<
   outputIds?: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
   reference?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   runbook?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  severity?: Resolver<Maybe<ResolversTypes['SeverityEnum']>, ParentType, ContextType>;
-  tags?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
-  tests?: Resolver<
-    Maybe<Array<ResolversTypes['DetectionTestDefinition']>>,
-    ParentType,
-    ContextType
-  >;
+  severity?: Resolver<ResolversTypes['SeverityEnum'], ParentType, ContextType>;
+  tags?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  tests?: Resolver<Array<ResolversTypes['DetectionTestDefinition']>, ParentType, ContextType>;
   versionId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   analysisType?: Resolver<ResolversTypes['DetectionTypeEnum'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType>;

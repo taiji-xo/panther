@@ -20,12 +20,11 @@ type Mutation {
   addRule(input: AddRuleInput!): Rule!
   addGlobalPythonModule(input: AddGlobalPythonModuleInput!): GlobalPythonModule!
   deleteDataModel(input: DeleteDataModelInput!): Boolean
+  deleteDetection(id: DeleteDetectionInput!): Boolean
   deleteDestination(id: ID!): Boolean
   deleteComplianceIntegration(id: ID!): Boolean
   deleteCustomLog(input: DeleteCustomLogInput): DeleteCustomLogOutput!
   deleteLogIntegration(id: ID!): Boolean
-  deletePolicy(input: DeletePolicyInput!): Boolean
-  deleteRule(input: DeleteRuleInput!): Boolean
   deleteGlobalPythonModule(input: DeleteGlobalPythonModuleInput!): Boolean
   deleteUser(id: ID!): Boolean
   inviteUser(input: InviteUserInput): User!
@@ -403,13 +402,13 @@ input AddRuleInput {
   displayName: String
   enabled: Boolean!
   id: ID!
-  logTypes: [String]
+  logTypes: [String!]
   outputIds: [ID!]
   reference: String
   runbook: String
   severity: SeverityEnum!
-  tags: [String]
-  tests: [DetectionTestDefinitionInput] # Rule and Policy share the same tests structure
+  tags: [String!]
+  tests: [DetectionTestDefinitionInput!]
 }
 
 input UpdateRuleInput {
@@ -420,13 +419,13 @@ input UpdateRuleInput {
   displayName: String
   enabled: Boolean
   id: ID!
-  logTypes: [String]
+  logTypes: [String!]
   outputIds: [ID!]
   reference: String
   runbook: String
   severity: SeverityEnum
-  tags: [String]
-  tests: [DetectionTestDefinitionInput] # Rule and Policy share the same tests structure
+  tags: [String!]
+  tests: [DetectionTestDefinitionInput!]
 }
 
 input GetRuleInput {
@@ -434,8 +433,8 @@ input GetRuleInput {
   versionId: ID
 }
 
-input DeleteRuleInput {
-  rules: [DeleteEntry!]!
+input DeleteDetectionInput {
+  detections: [DeleteEntry!]!
 }
 
 type ListRulesResponse {
@@ -444,34 +443,34 @@ type ListRulesResponse {
 }
 
 interface Detection {
-  body: String
-  createdAt: AWSDateTime
+  body: String!
+  createdAt: AWSDateTime!
   createdBy: ID
   description: String
   displayName: String
-  enabled: Boolean
+  enabled: Boolean!
   id: ID!
   lastModified: AWSDateTime
   lastModifiedBy: ID
   outputIds: [ID!]!
   reference: String
   runbook: String
-  severity: SeverityEnum
-  tags: [String!]
-  tests: [DetectionTestDefinition!]
+  severity: SeverityEnum!
+  tags: [String!]!
+  tests: [DetectionTestDefinition!]!
   versionId: ID
   analysisType: DetectionTypeEnum!
 }
 
 type Rule implements Detection {
-  body: String
-  createdAt: AWSDateTime
+  body: String!
+  createdAt: AWSDateTime!
   createdBy: ID
   dedupPeriodMinutes: Int!
   threshold: Int!
   description: String
   displayName: String
-  enabled: Boolean
+  enabled: Boolean!
   id: ID!
   lastModified: AWSDateTime
   lastModifiedBy: ID
@@ -479,9 +478,9 @@ type Rule implements Detection {
   outputIds: [ID!]!
   reference: String
   runbook: String
-  severity: SeverityEnum
-  tags: [String!]
-  tests: [DetectionTestDefinition!]
+  severity: SeverityEnum!
+  tags: [String!]!
+  tests: [DetectionTestDefinition!]!
   versionId: ID
   analysisType: DetectionTypeEnum!
 }
@@ -762,6 +761,7 @@ type Destination {
   outputConfig: DestinationConfig!
   verificationStatus: String
   defaultForSeverity: [SeverityEnum]!
+  alertTypes: [AlertTypesEnum!]!
 }
 
 type DestinationConfig {
@@ -832,6 +832,7 @@ input DestinationInput {
   outputConfig: DestinationConfigInput!
   outputType: String!
   defaultForSeverity: [SeverityEnum]!
+  alertTypes: [AlertTypesEnum]!
 }
 
 input DestinationConfigInput {
@@ -899,13 +900,13 @@ input PagerDutyConfigInput {
 type Policy implements Detection {
   autoRemediationId: ID
   autoRemediationParameters: AWSJSON
-  body: String
+  body: String!
   complianceStatus: ComplianceStatusEnum
-  createdAt: AWSDateTime
+  createdAt: AWSDateTime!
   createdBy: ID
   description: String
   displayName: String
-  enabled: Boolean
+  enabled: Boolean!
   id: ID!
   lastModified: AWSDateTime
   lastModifiedBy: ID
@@ -913,10 +914,10 @@ type Policy implements Detection {
   reference: String
   resourceTypes: [String!]
   runbook: String
-  severity: SeverityEnum
+  severity: SeverityEnum!
   suppressions: [String!]
-  tags: [String!]
-  tests: [DetectionTestDefinition!]
+  tags: [String!]!
+  tests: [DetectionTestDefinition!]!
   versionId: ID
   analysisType: DetectionTypeEnum!
 }
@@ -1011,10 +1012,6 @@ input AddGlobalPythonModuleInput {
 
 input DeleteGlobalPythonModuleInput {
   globals: [DeleteEntry!]!
-}
-
-input DeletePolicyInput {
-  policies: [DeleteEntry!]!
 }
 
 input ListPoliciesInput {

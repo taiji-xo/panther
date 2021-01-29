@@ -18,18 +18,18 @@
 
 import React from 'react';
 import { Dropdown, DropdownButton, DropdownItem, DropdownLink, DropdownMenu } from 'pouncejs';
-import { Policy } from 'Generated/schema';
+import { PolicySummary } from 'Source/graphql/fragments/PolicySummary.generated';
 import urls from 'Source/urls';
 import useModal from 'Hooks/useModal';
 import { MODALS } from 'Components/utils/Modal';
 import { Link as RRLink } from 'react-router-dom';
 import GenericItemCard from 'Components/GenericItemCard';
 
-interface RuleCardOptionsProps {
-  policy: Policy;
+interface PolicyCardOptionsProps {
+  policy: PolicySummary;
 }
 
-const RuleCardOptions: React.FC<RuleCardOptionsProps> = ({ policy }) => {
+const PolicyCardOptions: React.FC<PolicyCardOptionsProps> = ({ policy }) => {
   const { showModal } = useModal();
 
   return (
@@ -54,4 +54,4 @@ const RuleCardOptions: React.FC<RuleCardOptionsProps> = ({ policy }) => {
   );
 };
 
-export default React.memo(RuleCardOptions);
+export default React.memo(PolicyCardOptions);

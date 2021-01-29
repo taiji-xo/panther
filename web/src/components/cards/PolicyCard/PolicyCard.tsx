@@ -24,7 +24,8 @@ import SeverityBadge from 'Components/badges/SeverityBadge';
 import StatusBadge from 'Components/badges/StatusBadge';
 import BulletedValueList from 'Components/BulletedValueList';
 import urls from 'Source/urls';
-import { ComplianceStatusEnum, Policy } from 'Generated/schema';
+import { PolicySummary } from 'Source/graphql/fragments/PolicySummary.generated';
+import { ComplianceStatusEnum } from 'Generated/schema';
 import { formatDatetime } from 'Helpers/utils';
 import { SelectCheckbox } from 'Components/utils/SelectContext';
 import useDetectionDestinations from 'Hooks/useDetectionDestinations';
@@ -32,7 +33,7 @@ import RelatedDestinations from 'Components/RelatedDestinations';
 import PolicyCardOptions from './PolicyCardOptions';
 
 interface PolicyCardProps {
-  policy: Policy;
+  policy: PolicySummary;
   selectionEnabled?: boolean;
 }
 

@@ -16,4 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export { default } from './ListPoliciesTable';
+import React from 'react';
+import { Modal, ModalProps } from 'pouncejs';
+
+export interface GenericModalProps extends ModalProps {
+  title: string;
+  body: React.ReactNode;
+}
+
+const GenericModal: React.FC<GenericModalProps> = ({ body, ...rest }) => {
+  return (
+    <Modal showCloseButton {...rest}>
+      {body}
+    </Modal>
+  );
+};
+
+export default GenericModal;

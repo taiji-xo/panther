@@ -30,8 +30,8 @@ describe('PolicyCard', () => {
 
     expect(getByText(policy.displayName)).toBeInTheDocument();
     expect(getByText('Destinations')).toBeInTheDocument();
-    expect(getByText(SeverityEnum.High)).toBeInTheDocument();
-    expect(getByText('DISABLED')).toBeInTheDocument();
+    expect(getByText(SeverityEnum.Medium)).toBeInTheDocument();
+    expect(getByText(policy.enabled ? 'ENABLED' : 'DISABLED')).toBeInTheDocument();
 
     policy.resourceTypes.forEach(resourceType => {
       expect(getByText(resourceType)).toBeInTheDocument();
@@ -42,7 +42,7 @@ describe('PolicyCard', () => {
     const policy = buildPolicy();
 
     const { getByAriaLabel } = render(<PolicyCard policy={policy} />);
-    expect(getByAriaLabel('Link to Rule')).toHaveAttribute(
+    expect(getByAriaLabel('Link to Policy')).toHaveAttribute(
       'href',
       urls.compliance.policies.details(policy.id)
     );
@@ -50,7 +50,7 @@ describe('PolicyCard', () => {
 
   it('renders a checkbox when selection is enabled', () => {
     const policy = buildPolicy();
-    const { getByAriaLabel } = render(<RuleCard rule={policy} />);
+    const {getByAriaLabel} = render(<PolicyCard policy={policy}/>);
 
     expect(getByAriaLabel(`select ${policy.id}`)).toBeInTheDocument();
   });

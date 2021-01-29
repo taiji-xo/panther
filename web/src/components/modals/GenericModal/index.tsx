@@ -16,19 +16,5 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from 'react';
-import TablePlaceholder from 'Components/TablePlaceholder';
-import { Card, FadeIn } from 'pouncejs';
-
-const ListRulesPageSkeleton: React.FC = () => {
-  return (
-    <FadeIn from="bottom">
-      <TablePlaceholder rowCount={1} rowHeight={15} />
-      <Card p={6} mt={5}>
-        <TablePlaceholder />
-      </Card>
-    </FadeIn>
-  );
-};
-
-export default ListRulesPageSkeleton;
+export { default } from './GenericModal';
+export * from './GenericModal';

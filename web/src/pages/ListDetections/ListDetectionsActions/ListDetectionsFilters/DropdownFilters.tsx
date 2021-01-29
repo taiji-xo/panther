@@ -196,7 +196,7 @@ const DropdownFilters: React.FC = () => {
                           items={RESOURCE_TYPES}
                           placeholder="Select resource types to filter by..."
                         />
-                        <SimpleGrid columns={2} spacingY={5}>
+                        <SimpleGrid columns={2} spacingX={5}>
                           <Field
                             as={FormikCombobox}
                             name="initialSet"
@@ -214,7 +214,7 @@ const DropdownFilters: React.FC = () => {
                             placeholder="Filter by policy status..."
                           />
                         </SimpleGrid>
-                        <SimpleGrid columns={2} spacingY={5}>
+                        <SimpleGrid columns={2} spacingX={5}>
                           <Field
                             as={FormikCombobox}
                             name="hasRemediation"
@@ -228,7 +228,7 @@ const DropdownFilters: React.FC = () => {
                             name="enabled"
                             items={enabledFieldItems}
                             itemToString={enabledFieldItemToString}
-                            label="Enabled"
+                            label="State"
                             placeholder="Which detections should we show?"
                           />
                         </SimpleGrid>

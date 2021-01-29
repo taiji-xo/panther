@@ -1,3 +1,5 @@
+package logschema_test
+
 /**
  * Panther is a Cloud-Native SIEM for the Modern Security Team.
  * Copyright (C) 2020 Panther Labs Inc
@@ -16,4 +18,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export { default } from './Skeleton';
+import (
+	"reflect"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
+
+	"github.com/panther-labs/panther/internal/log_analysis/log_processor/logschema"
+	"github.com/panther-labs/panther/internal/log_analysis/log_processor/registry"
+)
+
+func TestExport(t *testing.T) {
+	assert := require.New(t)
+	for _, entry := range registry.NativeLogTypes().Entries() {
+		typ := reflect.TypeOf(entry.Schema())
+		schema, err := logschema.InferTypeValueSchema(typ)
+		assert.NoError(err, "schema export for %q should work", entry)
+		data, err := yaml.Marshal(schema)
+		assert.NoError(err, "schema export for %q YAML", entry)
+		println(string(data))
+	}
+}
