@@ -793,6 +793,8 @@ func testFailCreatePolicyInvalidResourceType(t *testing.T) {
 	statusCode, err := apiClient.Invoke(&input, &result)
 	assert.Equal(t, http.StatusBadRequest, statusCode)
 	assert.Error(t, err)
+
+	//nolint
 	assert.Equal(t, "panther-analysis-api: unsuccessful status code 400: Policy contains invalid resource type: AWS.Config.DuplicateRecorder", err.Error())
 }
 
@@ -1184,6 +1186,8 @@ func testFailCreateRuleInvalidLogType(t *testing.T) {
 	statusCode, err := apiClient.Invoke(&input, &result)
 	assert.Equal(t, http.StatusBadRequest, statusCode)
 	assert.Error(t, err)
+
+	//nolint
 	assert.Equal(t, "panther-analysis-api: unsuccessful status code 400: Rule contains invalid log type: AWS.CloudTrailInvalidLogtype", err.Error())
 }
 
@@ -1280,6 +1284,8 @@ func testFailCreateDataModelInvalidLogType(t *testing.T) {
 	statusCode, err := apiClient.Invoke(&input, &result)
 	assert.Equal(t, http.StatusBadRequest, statusCode)
 	assert.Error(t, err)
+
+	//nolint
 	assert.Equal(t, "panther-analysis-api: unsuccessful status code 400: DataModel contains invalid log type: OneLogin.INVALIDEvents", err.Error())
 }
 
