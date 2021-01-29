@@ -162,11 +162,11 @@ func NewFactory(resolver pantherlog.ParserResolver) Factory {
 	return func(input *common.DataStream) (*Processor, error) {
 		classificationSuccesses := logmetrics.ClassifiedEvents.
 			With(metrics.SourceIDDimension, input.Source.IntegrationID).
-			With(metrics.StatusDimension, metrics.StatusErr)
+			With(metrics.StatusDimension, logmetrics.StatusErr)
 
 		classificationFailures := logmetrics.ClassifiedEvents.
 			With(metrics.SourceIDDimension, input.Source.IntegrationID).
-			With(metrics.StatusDimension, metrics.StatusOk)
+			With(metrics.StatusDimension, logmetrics.StatusOK)
 
 		switch src := input.Source; src.IntegrationType {
 		case models.IntegrationTypeSqs:

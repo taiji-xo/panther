@@ -23,15 +23,14 @@ const (
 	// SubsystemDimension dimension
 	SubsystemDimension = "Subsystem"
 
-	// StatusDimension dimension
-	StatusDimension = "Status"
-	// StatusDimension indicating that a subsystem operation is well
-	StatusOk = "Ok"
-	// StatusDimension indicating that a subsystem is experiencing authZ/N errors
-	StatusAuthErr = "AuthErr"
-	// StatusDimension indicating some general error with the subsystem
-	StatusErr = "Err"
+	// The different subsystems available in Panther
+	SubsystemAlerting       = "Alerting"
+	SubsystemLogProcessor   = "LogProcessor"
+	SubsystemClassification = "Classification"
 
 	// SourceIDDimension dimensions
 	SourceIDDimension = "ID"
+
+	// StatusDimension dimension
+	StatusDimension = "Status"
 )

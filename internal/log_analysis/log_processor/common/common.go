@@ -81,6 +81,7 @@ func Setup() {
 	if err != nil {
 		panic(err)
 	}
+
 	metrics.Setup()
 }
 

@@ -1,5 +1,16 @@
 package resources
 
+import (
+	"context"
+	"fmt"
+
+	"github.com/aws/aws-lambda-go/cfn"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
+
+	alertdelivery "github.com/panther-labs/panther/internal/core/alert_delivery/alarms"
+	logprocessor "github.com/panther-labs/panther/internal/log_analysis/log_processor/alarms"
+)
+
 /**
  * Panther is a Cloud-Native SIEM for the Modern Security Team.
  * Copyright (C) 2020 Panther Labs Inc
@@ -18,68 +29,41 @@ package resources
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import (
-	"fmt"
+// Mapping of subsystem -> array of CW Alarms
+var systemAlerts map[string][]*cloudwatch.PutMetricAlarmInput
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
-
-	alertmetrics "github.com/panther-labs/panther/internal/core/alert_delivery/metrics"
-	"github.com/panther-labs/panther/pkg/metrics"
-)
-
-func setupClassificationAlarms() error {
-	input := &cloudwatch.PutMetricAlarmInput{
-		AlarmDescription:   aws.String("Failed to classify events"),
-		AlarmName:          aws.String(""),
-		ComparisonOperator: aws.String(cloudwatch.ComparisonOperatorGreaterThanThreshold),
-		Dimensions: []*cloudwatch.Dimension{
-			{Name: aws.String(metrics.SubsystemDimension), Value: aws.String(alertmetrics.SubsystemAlerting)},
-			{Name: aws.String(metrics.StatusDimension), Value: aws.String(metrics.StatusErr)},
-		},
-		EvaluationPeriods: aws.Int64(1),
-		MetricName:        aws.String(alertmetrics.MetricAlertDelivery),
-		Namespace:         aws.String(metrics.Namespace),
-		Period:            aws.Int64(300),
-		Statistic:         aws.String(cloudwatch.StatisticSum),
-		Threshold:         aws.Float64(0),
-		Unit:              aws.String(cloudwatch.StandardUnitCount),
-		TreatMissingData:  aws.String("notBreaching"),
-		Tags: []*cloudwatch.Tag{
-			{Key: aws.String("Application"), Value: aws.String("Panther")},
-		},
-	}
-
-	if _, err := cloudWatchClient.PutMetricAlarm(input); err != nil {
-		return fmt.Errorf("failed to put alarm %s: %v", *input.AlarmName, err)
-	}
-	return nil
+func init() {
+	registerAlarms(alertdelivery.CloudWatch())
+	registerAlarms(logprocessor.CloudWatch())
 }
 
-func setupAlertDeliveryAlarms() error {
-	input := &cloudwatch.PutMetricAlarmInput{
-		AlarmDescription:   aws.String("Failed to delivery alerts to destinations"),
-		AlarmName:          aws.String(fmt.Sprintf("Panther-SystemHealth-%s-%s", alertmetrics.SubsystemAlerting, metrics.StatusErr)),
-		ComparisonOperator: aws.String(cloudwatch.ComparisonOperatorGreaterThanThreshold),
-		Dimensions: []*cloudwatch.Dimension{
-			{Name: aws.String(metrics.SubsystemDimension), Value: aws.String(alertmetrics.SubsystemAlerting)},
-			{Name: aws.String(metrics.StatusDimension), Value: aws.String(metrics.StatusErr)},
-		},
-		EvaluationPeriods: aws.Int64(1),
-		MetricName:        aws.String(alertmetrics.MetricAlertDelivery),
-		Namespace:         aws.String(metrics.Namespace),
-		Period:            aws.Int64(300),
-		Statistic:         aws.String(cloudwatch.StatisticSum),
-		Threshold:         aws.Float64(0),
-		Unit:              aws.String(cloudwatch.StandardUnitCount),
-		TreatMissingData:  aws.String("notBreaching"),
-		Tags: []*cloudwatch.Tag{
-			{Key: aws.String("Application"), Value: aws.String("Panther")},
-		},
+func registerAlarms(input map[string][]*cloudwatch.PutMetricAlarmInput) {
+	for key, value := range input {
+		systemAlerts[key] = append(systemAlerts[key], value...)
 	}
+}
 
-	if _, err := cloudWatchClient.PutMetricAlarm(input); err != nil {
-		return fmt.Errorf("failed to put alarm %s: %v", *input.AlarmName, err)
+func systemAlarms(ctx context.Context, event cfn.Event) (string, map[string]interface{}, error) {
+	const physicalResourceID = "custom:alarms:system"
+	switch event.RequestType {
+	case cfn.RequestCreate, cfn.RequestUpdate:
+
+		var err error
+		for _, alarms := range systemAlerts {
+			for _, alarm := range alarms {
+				_, err = cloudWatchClient.PutMetricAlarmWithContext(ctx, alarm)
+				if err != nil {
+					break
+				}
+			}
+		}
+
+		return physicalResourceID, nil, err
+
+	case cfn.RequestDelete:
+		return event.PhysicalResourceID, nil, nil
+
+	default:
+		return "", nil, fmt.Errorf("unknown request type %s", event.RequestType)
 	}
-	return nil
 }

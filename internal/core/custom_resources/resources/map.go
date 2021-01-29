@@ -236,4 +236,11 @@ var CustomResources = map[string]cfn.CustomResourceFunction{
 	// Outputs: None
 	// PhysicalId: custom:alarms:sqs:$QUEUE_NAME
 	"Custom::SQSAlarms": customSQSAlarms,
+
+	// Install default Python rules/policies for a fresh deployment (singleton).
+	//
+	// Parameters:
+	// Outputs: None
+	// PhysicalId: custom:alarms:system
+	"Custom::SystemAlarms": systemAlarms,
 }

@@ -1,4 +1,4 @@
-package metrics
+package alarms
 
 /**
  * Panther is a Cloud-Native SIEM for the Modern Security Team.
@@ -19,34 +19,24 @@ package metrics
  */
 
 import (
-	"os"
+	"fmt"
 
 	"github.com/panther-labs/panther/pkg/metrics"
 )
 
 const (
-	MetricGetObject        = "GetObject"
-	MetricEventsClassified = "EventsClassified"
-
-	StatusOK      = "OK"
-	StatusErr     = "Err"
-	StatusAuthErr = "AuthErr"
+	SystemAlarmsPrefix = "System"
+	OpsAlarmPrefix     = "Ops"
 )
 
-var (
-	CWMetrics metrics.Manager
+func SystemAlarmPrefix(subsystem string) string {
+	return fmt.Sprintf("%s-%s-%s", metrics.Namespace, SystemAlarmsPrefix, subsystem)
+}
 
-	// GetObject counter for number of objects retrieved from S3
-	GetObject metrics.Counter
+func SystemAlarmName(subsystem, alarmName string) string {
+	return fmt.Sprintf("%s-%s-%s-%s", metrics.Namespace, SystemAlarmsPrefix, subsystem, alarmName)
+}
 
-	// ClassifiedEvents counter for number of events classified
-	ClassifiedEvents metrics.Counter
-)
-
-func Setup() {
-	CWMetrics = metrics.NewCWEmbeddedMetrics(os.Stdout)
-	GetObject = CWMetrics.NewCounter(MetricGetObject).
-		With(metrics.SubsystemDimension, metrics.SubsystemLogProcessor)
-	ClassifiedEvents = CWMetrics.NewCounter(MetricEventsClassified).
-		With(metrics.SubsystemDimension, metrics.SubsystemClassification)
+func OpsAlarmName(subsystem, alarmName string) string {
+	return fmt.Sprintf("%s-%s-%s", metrics.Namespace, OpsAlarmPrefix, alarmName)
 }

@@ -25,8 +25,10 @@ import (
  */
 
 const (
-	SubsystemAlerting   = "Alerting"
 	MetricAlertDelivery = "AlertDelivery"
+
+	StatusOK  = "OK"
+	StatusErr = "Err"
 )
 
 var (
@@ -37,5 +39,5 @@ var (
 func Setup() {
 	CWMetrics = metrics.NewCWEmbeddedMetrics(os.Stdout)
 	AlertDeliveryCounter = CWMetrics.NewCounter(MetricAlertDelivery).
-		With(metrics.SubsystemDimension, SubsystemAlerting)
+		With(metrics.SubsystemDimension, metrics.SubsystemAlerting)
 }

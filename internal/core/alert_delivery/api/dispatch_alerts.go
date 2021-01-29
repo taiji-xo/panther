@@ -58,8 +58,8 @@ func (API) DispatchAlerts(ctx context.Context, input []*deliverymodel.DispatchAl
 	zap.L().Debug("Deliveries that succeeded", zap.Int("num_success", len(success)))
 
 	// Report metrics
-	alertmetrics.AlertDeliveryCounter.With(metrics.StatusDimension, metrics.StatusOk).Add(float64(len(success)))
-	alertmetrics.AlertDeliveryCounter.With(metrics.StatusDimension, metrics.StatusErr).Add(float64(len(failed)))
+	alertmetrics.AlertDeliveryCounter.With(metrics.StatusDimension, alertmetrics.StatusOK).Add(float64(len(success)))
+	alertmetrics.AlertDeliveryCounter.With(metrics.StatusDimension, alertmetrics.StatusErr).Add(float64(len(failed)))
 
 	// Obtain a list of alerts that should be retried and put back on to the queue
 	alertsToRetry := getAlertsToRetry(failed, env.AlertRetryCount)

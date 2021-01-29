@@ -228,10 +228,10 @@ func readZero(r io.Reader) error {
 // Returns the correct Status dimension from the provided error
 func statusFromErr(err error) string {
 	if err == nil {
-		return metrics.StatusOk
+		return logmetrics.StatusOK
 	}
 	if awsutils.IsAnyError(err, "AccessDenied") {
-		return metrics.StatusAuthErr
+		return logmetrics.StatusAuthErr
 	}
-	return metrics.StatusErr
+	return logmetrics.StatusErr
 }
