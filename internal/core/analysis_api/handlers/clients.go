@@ -25,7 +25,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/lambda"
-	// "github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -42,9 +41,6 @@ const systemUserID = "00000000-0000-4000-8000-000000000000"
 const maxRetries = 5
 
 var (
-	// lambdaiface.LambdaAPI
-	// lambdaLogTypesClient *lambda.Lambda
-
 	env envConfig
 
 	awsSession       *session.Session
@@ -56,7 +52,7 @@ var (
 	policyEngine analysis.PolicyEngine
 	ruleEngine   analysis.RuleEngine
 
-	logtypesAPI          *logtypesapi.LogTypesAPILambdaClient
+	logtypesAPI *logtypesapi.LogTypesAPILambdaClient
 )
 
 type envConfig struct {

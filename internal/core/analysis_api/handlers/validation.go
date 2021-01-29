@@ -20,7 +20,9 @@ package handlers
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
+
 	resourceTypesProvider "github.com/panther-labs/panther/internal/compliance/snapshot_poller/models/aws"
 )
 
@@ -49,7 +51,7 @@ func validateLogtypeSet(logtypes []string) error {
 		return err
 	}
 
-	// Potential imrpovement - if you want the set of invalid log types the parameter could be used to
+	// Potential improvement - if you want the set of invalid log types the parameter could be used to
 	// build the map and we could iterate through availableLogTypes / remove the keys from the map that
 	// are found. At the end we would end up with a map of logtypes that are invalid.
 	logtypeSetMap := make(map[string]struct{})
