@@ -18,7 +18,6 @@
 
 import React from 'react';
 import { Redirect, Route, Switch } from 'react-router-dom';
-import ListPoliciesPage from 'Pages/ListPolicies';
 import OverviewPage from 'Pages/ComplianceOverview';
 import ListResourcesPage from 'Pages/ListResources';
 import ResourceDetailsPage from 'Pages/ResourceDetails';
@@ -31,7 +30,6 @@ import EditDestinationPage from 'Pages/EditDestination';
 import UsersPage from 'Pages/Users';
 import RuleDetailsPage from 'Pages/RuleDetails';
 import LandingPage from 'Pages/Landing';
-import ListRulesPage from 'Pages/ListRules';
 import EditRulePage from 'Pages/EditRule';
 import CreateDetectionPage from 'Pages/CreateDetection';
 import AlertDetailsPage from 'Pages/AlertDetails';
