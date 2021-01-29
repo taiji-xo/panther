@@ -30,8 +30,8 @@ describe('PolicyCard', () => {
 
     expect(getByText(policyData.displayName)).toBeInTheDocument();
     expect(getByText('Destinations')).toBeInTheDocument();
-    expect(getByText(SeverityEnum.High)).toBeInTheDocument();
-    expect(getByText('DISABLED')).toBeInTheDocument();
+    expect(getByText(SeverityEnum.Medium)).toBeInTheDocument();
+    expect(getByText(policyData.enabled ? 'ENABLED' : 'DISABLED')).toBeInTheDocument();
 
     policyData.resourceTypes.forEach(resourceType => {
       expect(getByText(resourceType)).toBeInTheDocument();
@@ -42,7 +42,7 @@ describe('PolicyCard', () => {
     const policyData = buildPolicy();
 
     const { getByAriaLabel } = render(<PolicyCard policy={policyData} />);
-    expect(getByAriaLabel('Link to Rule')).toHaveAttribute(
+    expect(getByAriaLabel('Link to Policy')).toHaveAttribute(
       'href',
       urls.compliance.policies.details(policyData.id)
     );

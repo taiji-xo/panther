@@ -51,7 +51,7 @@ describe('ListDetectionsFilters', () => {
     fireClickAndMouseEvents(getByAriaLabel('Detection Options'));
 
     const withinDropdown = within(getByTestId('dropdown-detections-listing-filters'));
-    expect(withinDropdown.getAllByLabelText('Status')[0]).toHaveValue('Enabled');
+    expect(withinDropdown.getAllByLabelText('State')[0]).toHaveValue('Enabled');
     expect(withinDropdown.getAllByLabelText('Policy Status')[0]).toHaveValue('Error');
     expect(withinDropdown.getAllByLabelText('Remediation Status')[0]).toHaveValue('Configured');
     expect(withinDropdown.getAllByLabelText('Created by')[0]).toHaveValue('Panther (system)');
@@ -68,17 +68,20 @@ describe('ListDetectionsFilters', () => {
       getByTestId,
     } = render(<ListDetectionsFilters />);
 
+    const dropdownTrigger = getByAriaLabel('Detection Options');
+
     fireEvent.change(getByLabelText('Filter detections by text'), { target: { value: 'AWS' } });
 
     fireClickAndMouseEvents(getAllByLabelText('Sort By')[0]);
     fireClickAndMouseEvents(getByText('Info to Critical'));
 
-    fireClickAndMouseEvents(getByAriaLabel('Detection Options'));
+    fireClickAndMouseEvents(dropdownTrigger);
 
     // wait for debounce to kick in and update some stuff and then continue
     await waitFor(() => expect(history.location.search).toContain('nameContains'));
 
-    const withinDropdown = within(getByTestId('dropdown-detections-listing-filters'));
+    const dropdown = getByTestId('dropdown-detections-listing-filters');
+    const withinDropdown = within(dropdown);
 
     fireClickAndMouseEvents(withinDropdown.getAllByLabelText('State')[0]);
     fireClickAndMouseEvents(withinDropdown.getByText('Enabled'));
@@ -100,6 +103,9 @@ describe('ListDetectionsFilters', () => {
       expect(parseParams(history.location.search)).toEqual(parseParams(filtersUrlParams))
     );
 
+    await waitFor(() => expect(dropdown).not.toBeInTheDocument());
+
+    fireClickAndMouseEvents(dropdownTrigger);
     fireClickAndMouseEvents(getByText('Clear Filters'));
     await waitFor(() => expect(parseParams(history.location.search)).toEqual('/'));
   });
