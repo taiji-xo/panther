@@ -25,6 +25,7 @@ const (
 	TypeRule      DetectionType = "RULE"
 	TypeGlobal    DetectionType = "GLOBAL"
 	TypeDataModel DetectionType = "DATAMODEL"
+	TypePack      DetectionType = "PACK"
 )
 
 type LambdaInput struct {
@@ -64,6 +65,12 @@ type LambdaInput struct {
 	GetDataModel     *GetDataModelInput     `json:"getDataModel,omitempty"`
 	ListDataModels   *ListDataModelsInput   `json:"listDataModels,omitempty"`
 	UpdateDataModel  *UpdateDataModelInput  `json:"updateDataModel,omitempty"`
+
+	// Detection Packs
+	GetPack   *GetPackInput   `json:"getPack,omitempty"`
+	ListPacks *ListPacksInput `json:"listPacks,omitempty"`
+	PatchPack *PatchPackInput `json:"patchPack,omitempty"`
+	PollPacks *PollPacksInput `json:"pollPacks,omitempty"`
 }
 
 type UnitTest struct {

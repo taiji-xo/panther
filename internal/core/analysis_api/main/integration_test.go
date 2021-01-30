@@ -47,8 +47,10 @@ import (
 
 const (
 	tableName           = "panther-analysis"
+	packTableName       = "panther-analysis-packs"
 	analysesRoot        = "./test_analyses"
 	analysesZipLocation = "./bulk_upload.zip"
+	systemUserID        = "00000000-0000-4000-8000-000000000000"
 )
 
 var (
@@ -167,6 +169,29 @@ var (
 			},
 		},
 	}
+	packOriginalRelease = &models.Pack{
+		AvailableVersions: []models.Version{
+			{ID: 35328828, Name: "v1.14.0"},
+		},
+		CreatedBy:   systemUserID,
+		Description: "This pack is an example",
+		DetectionPattern: models.DetectionPattern{
+			IDs: []string{
+				"AWS.CloudTrail.Created",
+				"AWS.Console.LoginFailed",
+				"AWS.Console.LoginWithoutMFA"},
+		},
+		DisplayName:    "A Sample Pack",
+		Enabled:        false,
+		ID:             "Sample.Pack.ID",
+		LastModifiedBy: systemUserID,
+		PackVersion: models.Version{
+			ID:   35328828,
+			Name: "v1.14.0",
+		},
+		UpdateAvailable: false,
+		DetectionTypes:  []models.DetectionType{models.TypeRule},
+	}
 )
 
 func TestMain(m *testing.M) {
@@ -210,6 +235,7 @@ func TestIntegrationAPI(t *testing.T) {
 	// Reset data stores: S3 bucket and Dynamo table
 	require.NoError(t, testutils.ClearS3Bucket(awsSession, bucketName))
 	require.NoError(t, testutils.ClearDynamoTable(awsSession, tableName))
+	require.NoError(t, testutils.ClearDynamoTable(awsSession, packTableName))
 
 	// ORDER MATTERS!
 
@@ -244,6 +270,8 @@ func TestIntegrationAPI(t *testing.T) {
 		t.Run("SaveDisabledRuleFailingTests", saveDisabledRuleFailingTests)
 		t.Run("SaveEnabledRulePassingTests", saveEnabledRulePassingTests)
 		t.Run("SaveRuleInvalidTestInputJson", saveRuleInvalidTestInputJSON)
+
+		t.Run("PollAnalysisPacks", pollPacks)
 	})
 	if t.Failed() {
 		return
@@ -257,6 +285,7 @@ func TestIntegrationAPI(t *testing.T) {
 		t.Run("GetRuleWrongType", getRuleWrongType)
 		t.Run("GetGlobal", getGlobal)
 		t.Run("GetDataModel", getDataModel)
+		t.Run("GetPack", getPack)
 	})
 
 	// NOTE! This will mutate the original policy above!
@@ -284,6 +313,7 @@ func TestIntegrationAPI(t *testing.T) {
 		t.Run("ListDetectionsComplianceProjection", listDetectionsComplianceProjection)
 		t.Run("ListDetectionsAnalysisTypeFilter", listDetectionsAnalysisTypeFilter)
 		t.Run("ListDetectionsComplianceFilter", listDetectionsComplianceFilter)
+		t.Run("ListPacks", listPacks)
 	})
 
 	t.Run("Modify", func(t *testing.T) {
@@ -293,7 +323,6 @@ func TestIntegrationAPI(t *testing.T) {
 		t.Run("ModifyGlobal", modifyGlobal)
 		t.Run("ModifyDataModel", modifyDataModel)
 	})
-
 	t.Run("Suppress", func(t *testing.T) {
 		t.Run("SuppressNotFound", suppressNotFound)
 		t.Run("SuppressSuccess", suppressSuccess)
@@ -305,6 +334,12 @@ func TestIntegrationAPI(t *testing.T) {
 		t.Run("DeleteRules", deleteRules)
 		t.Run("DeleteDataModels", deleteDataModels)
 		t.Run("DeleteGlobals", deleteGlobals)
+	})
+
+	// This ahs to run after the other detection changes since it will
+	// add/remove/update detections
+	t.Run("Patch", func(t *testing.T) {
+		t.Run("PatchPack", patchPack)
 	})
 }
 
@@ -2614,4 +2649,175 @@ func batchDeleteRules(t *testing.T, ruleID ...string) {
 	statusCode, err := apiClient.Invoke(&input, nil)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, statusCode)
+}
+
+func pollPacks(t *testing.T) {
+	// test success
+	// no packs exist yet
+	input := models.LambdaInput{
+		ListPacks: &models.ListPacksInput{},
+	}
+	var result models.ListPacksOutput
+	statusCode, err := apiClient.Invoke(&input, &result)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, statusCode)
+
+	expected := models.ListPacksOutput{
+		Paging: models.Paging{
+			ThisPage:   0,
+			TotalItems: 0,
+			TotalPages: 0,
+		},
+		Packs: []models.Pack{},
+	}
+	assert.Equal(t, expected, result)
+	assert.NoError(t, err)
+	// poll for packs from well known release version
+	input = models.LambdaInput{
+		PollPacks: &models.PollPacksInput{
+			ReleaseVersion: models.Version{
+				ID:   35328828,
+				Name: "v1.14.0",
+			},
+		},
+	}
+	statusCode, err = apiClient.Invoke(&input, nil)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, statusCode)
+	// packs should now exist and are disabled
+	input = models.LambdaInput{
+		ListPacks: &models.ListPacksInput{},
+	}
+	statusCode, err = apiClient.Invoke(&input, &result)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, statusCode)
+	packOriginalRelease.CreatedAt = result.Packs[0].CreatedAt
+	packOriginalRelease.LastModified = result.Packs[0].LastModified
+	expected = models.ListPacksOutput{
+		Paging: models.Paging{
+			ThisPage:   1,
+			TotalItems: 1,
+			TotalPages: 1,
+		},
+		Packs: []models.Pack{
+			*packOriginalRelease,
+		},
+	}
+	assert.Equal(t, expected, result)
+	assert.NoError(t, err)
+
+	// test detection removed from a pack ??
+
+	// test detection added to a pack ??
+}
+
+func getPack(t *testing.T) {
+	// success
+	input := models.LambdaInput{
+		GetPack: &models.GetPackInput{ID: packOriginalRelease.ID},
+	}
+	var result models.Pack
+	statusCode, err := apiClient.Invoke(&input, &result)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, statusCode)
+	assert.Equal(t, *packOriginalRelease, result)
+
+	// does not exist
+	input = models.LambdaInput{
+		GetPack: &models.GetPackInput{ID: "id.does.not.exist"},
+	}
+	statusCode, err = apiClient.Invoke(&input, &result)
+	require.Error(t, err)
+	assert.Equal(t, http.StatusNotFound, statusCode)
+}
+
+func listPacks(t *testing.T) {
+	// success: no filter
+	input := models.LambdaInput{
+		ListPacks: &models.ListPacksInput{},
+	}
+	var result models.ListPacksOutput
+	statusCode, err := apiClient.Invoke(&input, &result)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, statusCode)
+
+	expected := models.ListPacksOutput{
+		Paging: models.Paging{
+			ThisPage:   1,
+			TotalItems: 1,
+			TotalPages: 1,
+		},
+		Packs: []models.Pack{
+			*packOriginalRelease,
+		},
+	}
+	assert.Equal(t, expected, result)
+	// success: with PackVersion
+
+	// success: with updateAvailable
+
+	// success: with enabled
+}
+
+func patchPack(t *testing.T) {
+	// disable pack
+	var result models.Pack
+	input := models.LambdaInput{
+		PatchPack: &models.PatchPackInput{
+			ID:          packOriginalRelease.ID,
+			Enabled:     false,
+			PackVersion: packOriginalRelease.PackVersion,
+			UserID:      userID,
+		},
+	}
+	packOriginalRelease.LastModifiedBy = userID
+	packOriginalRelease.Enabled = false
+	statusCode, err := apiClient.Invoke(&input, &result)
+	packOriginalRelease.LastModified = result.LastModified
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, statusCode)
+	assert.Equal(t, *packOriginalRelease, result)
+	// TODO: lookup detection in pack and ensure enabled: false
+
+	// enable pack
+	input = models.LambdaInput{
+		PatchPack: &models.PatchPackInput{
+			ID:          packOriginalRelease.ID,
+			Enabled:     true,
+			PackVersion: packOriginalRelease.PackVersion,
+			UserID:      userID,
+		},
+	}
+	packOriginalRelease.Enabled = true
+	statusCode, err = apiClient.Invoke(&input, &result)
+	packOriginalRelease.LastModified = result.LastModified
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, statusCode)
+	assert.Equal(t, *packOriginalRelease, result)
+	// TODO: lookup detection in pack and ensure enabled:true
+
+	/*TODO
+	// upgrade to newer well known version (v1.15.0) TODO
+	input = models.PatchPackInput{
+		PackVersion: models.Version{
+			ID:   12345,
+			Name: "v1.15.0", // TODO: fill in this info
+		},
+	}
+	statusCode, err = apiClient.Invoke(&input, &result)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, statusCode)
+	//assert.Equal(t, *pack, result) // TODO: fill in with pack data; but EnabledVersion: upgraded version
+	// downgrade to older version (v1.14.0)
+	input = models.PatchPackInput{
+		PackVersion: models.Version{
+			ID:   12345,
+			Name: "v1.14.0", // TODO: fill in this info
+		},
+	}
+	statusCode, err = apiClient.Invoke(&input, &result)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, statusCode)
+	//assert.Equal(t, *pack, result) // TODO: fill in with pack data; but EnabledVersion: downgraded version
+	*/
 }
