@@ -20,7 +20,7 @@ type Mutation {
   addRule(input: AddRuleInput!): Rule!
   addGlobalPythonModule(input: AddGlobalPythonModuleInput!): GlobalPythonModule!
   deleteDataModel(input: DeleteDataModelInput!): Boolean
-  deleteDetection(id: DeleteDetectionInput!): Boolean
+  deleteDetection(input: DeleteDetectionInput!): Boolean
   deleteDestination(id: ID!): Boolean
   deleteComplianceIntegration(id: ID!): Boolean
   deleteCustomLog(input: DeleteCustomLogInput): DeleteCustomLogOutput!
@@ -71,7 +71,6 @@ type Query {
   resourcesForPolicy(input: ResourcesForPolicyInput!): ListComplianceItemsResponse
   getGlobalPythonModule(input: GetGlobalPythonModuleInput!): GlobalPythonModule!
   policy(input: GetPolicyInput!): Policy
-  policies(input: ListPoliciesInput): ListPoliciesResponse
   policiesForResource(input: PoliciesForResourceInput): ListComplianceItemsResponse
   listAvailableLogTypes: ListAvailableLogTypesResponse!
   listComplianceIntegrations: [ComplianceIntegration!]!
@@ -80,7 +79,6 @@ type Query {
   organizationStats(input: OrganizationStatsInput): OrganizationStatsResponse
   getLogAnalysisMetrics(input: LogAnalysisMetricsInput!): LogAnalysisMetricsResponse!
   rule(input: GetRuleInput!): Rule
-  rules(input: ListRulesInput): ListRulesResponse
   listGlobalPythonModules(input: ListGlobalPythonModuleInput!): ListGlobalPythonModulesResponse!
   users: [User!]!
   getCustomLog(input: GetCustomLogInput!): GetCustomLogOutput!
@@ -377,23 +375,6 @@ input SendTestAlertInput {
   outputIds: [ID!]!
 }
 
-input ListRulesInput {
-  createdBy: String
-  lastModifiedBy: String
-  initialSet: Boolean
-  nameContains: String
-  enabled: Boolean
-  logTypes: [String!]
-  severity: [SeverityEnum!]
-  tags: [String!]
-  # Sorting
-  sortBy: ListRulesSortFieldsEnum # defaults to `id`
-  sortDir: SortDirEnum # defaults to `ascending`
-  # Paging
-  pageSize: Int # defaults to `25`
-  page: Int # defaults to `1`
-}
-
 input AddRuleInput {
   body: String!
   dedupPeriodMinutes: Int!
@@ -435,11 +416,6 @@ input GetRuleInput {
 
 input DeleteDetectionInput {
   detections: [DeleteEntry!]!
-}
-
-type ListRulesResponse {
-  paging: PagingData
-  rules: [Rule!]!
 }
 
 interface Detection {
@@ -602,7 +578,10 @@ type SingleValue {
 type LogAnalysisMetricsResponse {
   eventsProcessed: LongSeriesData!
   alertsBySeverity: LongSeriesData!
+  """
+  TODO: uncomment when event latency data are fixed (PR #2509, Ticket #2492)
   eventsLatency: FloatSeriesData!
+  """
   totalAlertsDelta: [SingleValue!]!
   alertsByRuleID: [SingleValue!]!
   fromDate: AWSDateTime!
@@ -738,11 +717,6 @@ input UpdateSqsLogIntegrationInput {
   integrationId: String!
   integrationLabel: String!
   sqsConfig: SqsLogConfigInput!
-}
-
-type ListPoliciesResponse {
-  paging: PagingData
-  policies: [Policy!]!
 }
 
 type ListResourcesResponse {
@@ -1012,25 +986,6 @@ input AddGlobalPythonModuleInput {
 
 input DeleteGlobalPythonModuleInput {
   globals: [DeleteEntry!]!
-}
-
-input ListPoliciesInput {
-  createdBy: String
-  lastModifiedBy: String
-  initialSet: Boolean
-  complianceStatus: ComplianceStatusEnum
-  nameContains: String
-  enabled: Boolean
-  hasRemediation: Boolean
-  resourceTypes: [String!]
-  severity: [SeverityEnum!]
-  tags: [String!]
-  # Sorting
-  sortBy: ListPoliciesSortFieldsEnum # defaults to `id`
-  sortDir: SortDirEnum # defaults to `ascending`
-  # Paging
-  pageSize: Int # defaults to `25`
-  page: Int # defaults to `1`
 }
 
 input UploadDetectionsInput {

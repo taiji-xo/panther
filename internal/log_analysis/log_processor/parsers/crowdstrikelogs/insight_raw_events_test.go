@@ -1,3 +1,5 @@
+package crowdstrikelogs
+
 /**
  * Panther is a Cloud-Native SIEM for the Modern Security Team.
  * Copyright (C) 2020 Panther Labs Inc
@@ -16,5 +18,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export { default } from './DeletePolicyModal';
-export * from './DeletePolicyModal';
+import (
+	"testing"
+
+	"github.com/panther-labs/panther/internal/log_analysis/log_processor/logtypes/logtesting"
+)
+
+func TestInsightRawEventsParsers(t *testing.T) {
+	logtesting.RunTestsFromYAML(t, LogTypes(), "./testdata/insight_raw_events.yml")
+}

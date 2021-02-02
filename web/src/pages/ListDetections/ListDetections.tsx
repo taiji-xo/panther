@@ -28,8 +28,6 @@ import NoResultsFound from 'Components/NoResultsFound';
 import withSEO from 'Hoc/withSEO';
 import useTrackPageView from 'Hooks/useTrackPageView';
 import { PageViewEnum } from 'Helpers/analytics';
-import { compose } from 'Helpers/compose';
-import { withSelectContext } from 'Components/utils/SelectContext';
 import Panel from 'Components/Panel';
 import RuleCard from 'Components/cards/RuleCard';
 import PolicyCard from 'Components/cards/PolicyCard';
@@ -38,7 +36,7 @@ import { PolicySummary } from 'Source/graphql/fragments/PolicySummary.generated'
 import { DEFAULT_SMALL_PAGE_SIZE } from 'Source/constants';
 import ListDetectionsPageSkeleton from './Skeleton';
 import ListDetectionsPageEmptyDataFallback from './EmptyDataFallback';
-import ListDetectionsActions from './ListDetectionsActions';
+import ListDetectionsFilters from './ListDetectionsFilters';
 import { useListDetections } from './graphql/listDetections.generated';
 
 const ListDetections = () => {
@@ -84,7 +82,7 @@ const ListDetections = () => {
   //  Check how many active filters exist by checking how many columns keys exist in the URL
   return (
     <ErrorBoundary>
-      <Panel title="Detections" actions={<ListDetectionsActions />}>
+      <Panel title="Detections" actions={<ListDetectionsFilters />}>
         <Card as="section" position="relative">
           <Box position="relative">
             <Flex direction="column" spacing={2}>
@@ -119,4 +117,4 @@ const ListDetections = () => {
   );
 };
 
-export default compose(withSEO({ title: 'Detections' }), withSelectContext)(ListDetections);
+export default withSEO({ title: 'Detections' })(ListDetections);

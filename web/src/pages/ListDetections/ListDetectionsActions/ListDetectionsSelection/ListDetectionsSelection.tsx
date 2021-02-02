@@ -33,7 +33,7 @@ const ListSavedQueriesSelection: React.FC = () => {
         variantColor="red"
         onClick={() =>
           showModal({
-            modal: MODALS.DELETE,
+            modal: MODALS.DELETE_DETECTION,
             props: { ids: selection, onConfirm: resetSelection },
           })
         }

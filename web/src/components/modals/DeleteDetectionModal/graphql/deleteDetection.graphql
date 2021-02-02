@@ -1,0 +1,3 @@
+mutation DeleteDetection($input: DeleteDetectionInput!) {
+  deleteDetection(input: $input)
+}
