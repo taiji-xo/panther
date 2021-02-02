@@ -34,19 +34,6 @@ const S3SourceConfigurationPanel: React.FC = () => {
     onError: () => pushSnackbar({ title: "Couldn't fetch your available log types" }),
   });
 
-  const shouldSkipCFNUpload = React.useMemo(() => {
-    return (
-      /*
-       * If users dont change any of AWS accountId, stackName or Integration label
-       * then users dont really need to update their stack or template, so we can skip the next step
-       * or proceed to validation.
-       * This will apply only to editing since creation requires users to change those field to proceed
-       */
-      initialValues.integrationLabel === values.integrationLabel &&
-      initialValues.s3Bucket === values.s3Bucket
-    );
-  }, [initialValues, values]);
-
   // The filtering here is used to prevent users from adding the same log type with different prefixes
   const availableLogTypes = React.useMemo(() => {
     return data?.listAvailableLogTypes.logTypes ?? [];
@@ -126,7 +113,6 @@ const S3SourceConfigurationPanel: React.FC = () => {
                             size="small"
                             icon="close-outline"
                             variantColor="navyblue"
-                            variantBorderStyle="circle"
                             aria-label={`Remove prefix ${index}`}
                             onClick={() => arrayHelpers.remove(index)}
                           />
@@ -136,7 +122,6 @@ const S3SourceConfigurationPanel: React.FC = () => {
                             size="small"
                             icon="add"
                             variantColor="navyblue"
-                            variantBorderStyle="circle"
                             aria-label="Add prefix"
                             onClick={() =>
                               arrayHelpers.insert(index + 1, { prefix: '', logTypes: [] })
@@ -168,11 +153,7 @@ const S3SourceConfigurationPanel: React.FC = () => {
         </ErrorBoundary>
       </Box>
       <WizardPanel.Actions>
-        {shouldSkipCFNUpload ? (
-          <WizardPanel.ActionGoToStep disabled={!dirty || !isValid} stepIndex={2} />
-        ) : (
-          <WizardPanel.ActionNext disabled={!dirty || !isValid}>Continue</WizardPanel.ActionNext>
-        )}
+        <WizardPanel.ActionNext disabled={!dirty || !isValid}>Continue</WizardPanel.ActionNext>
       </WizardPanel.Actions>
     </WizardPanel>
   );

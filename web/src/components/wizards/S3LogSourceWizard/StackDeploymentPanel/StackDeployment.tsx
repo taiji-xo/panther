@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Text, Box, Flex, Card, Img, Heading, Button, useSnackbar } from 'pouncejs';
+import { Text, Box, Flex, Card, Img, Heading, Button, SimpleGrid, useSnackbar } from 'pouncejs';
 import React from 'react';
 import { downloadData, toStackNameFormat } from 'Helpers/utils';
 import { useFormikContext } from 'formik';
@@ -39,6 +39,7 @@ const StackDeployment: React.FC = () => {
         integrationLabel: values.integrationLabel,
         s3Bucket: values.s3Bucket,
         kmsKey: values.kmsKey || null,
+        managedBucketNotifications: values.managedBucketNotifications,
       },
     },
     onError: () => pushSnackbar({ variant: 'error', title: 'Failed to generate CFN template' }),
@@ -62,7 +63,7 @@ const StackDeployment: React.FC = () => {
         title="Deploy Panther's IAM roles"
         subtitle="These roles will allow Panther to read your logs from the S3 Bucket"
       />
-      <Flex spacing={6} px={80} mx="auto" mb={6} justify="center">
+      <SimpleGrid columns={2} gap={5} px={80} mx="auto" mb={6}>
         {!initialValues.integrationId && (
           <Card variant="dark" p={6}>
             <Flex direction="column" align="center" spacing={4}>
@@ -76,9 +77,9 @@ const StackDeployment: React.FC = () => {
                 continue with setup completion.
               </Text>
               <LinkButton
-                external
-                loading={loading}
+                loading={true}
                 disabled={!!error || loading}
+                external
                 to={cfnConsoleLink}
                 variantColor="teal"
               >
@@ -87,7 +88,7 @@ const StackDeployment: React.FC = () => {
             </Flex>
           </Card>
         )}
-        <Card variant="dark" p={6} maxWidth="50%">
+        <Card variant="dark" p={6}>
           <Flex direction="column" align="center" spacing={4}>
             <Img src={cogsIllustration} alt="Cogssn" nativeWidth={40} nativeHeight={40} />
             <Heading as="h4" size="x-small">
@@ -117,7 +118,7 @@ const StackDeployment: React.FC = () => {
             </Button>
           </Flex>
         </Card>
-      </Flex>
+      </SimpleGrid>
       <WizardPanel.Actions>
         <WizardPanel.ActionPrev />
         <Flex spacing={4} direction="column" align="center">
