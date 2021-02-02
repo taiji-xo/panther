@@ -30,7 +30,7 @@ import (
 // list of valid resource types
 //
 // CAVEAT: This method uses a hardcoded list of existing resource types. If this method is returning
-// unexpected errors the hardcoded list is up to date.
+// unexpected errors the hardcoded list may be missing new or modified resource types.
 func validResourceTypeSet(checkResourceTypeSet []string) error {
 	for _, writeResourceTypeEntry := range checkResourceTypeSet {
 		if _, exists := resourceTypesProvider.ResourceTypes[writeResourceTypeEntry]; !exists {
