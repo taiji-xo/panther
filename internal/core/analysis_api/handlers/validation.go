@@ -31,7 +31,7 @@ import (
 //
 // CAVEAT: This method uses a hardcoded list of existing resource types. If this method is returning
 // unexpected errors the hardcoded list is up to date.
-func ValidResourceTypeSet(checkResourceTypeSet []string) error {
+func validResourceTypeSet(checkResourceTypeSet []string) error {
 	for _, writeResourceTypeEntry := range checkResourceTypeSet {
 		if _, exists := resourceTypesProvider.ResourceTypes[writeResourceTypeEntry]; !exists {
 			// Found a resource type that doesnt exist

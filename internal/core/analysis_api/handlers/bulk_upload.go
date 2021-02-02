@@ -278,7 +278,7 @@ func tableItemFromConfig(config analysis.Config) (*tableItem, error) {
 			return nil, errors.Errorf("%s %s contains invalid log type: %s", itemTitle, config.DisplayName, err.Error())
 		}
 	case models.TypePolicy:
-		if err := ValidResourceTypeSet(resourceTypes); err != nil {
+		if err := validResourceTypeSet(resourceTypes); err != nil {
 			return nil, errors.Errorf("Policy %s contains invalid log type: %s", config.DisplayName, err.Error())
 		}
 	}

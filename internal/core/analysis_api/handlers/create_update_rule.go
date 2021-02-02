@@ -125,7 +125,7 @@ func writeRule(input *models.CreateRuleInput, create bool) *events.APIGatewayPro
 // Some extra validation which is not implemented in the input struct tags
 func validateUpdateRule(input *models.CreateRuleInput) error {
 	if err := validateLogtypeSet(input.LogTypes); err != nil {
-		return errors.Errorf("Rule contains invalid log type: %s", err.Error())
+		return errors.Errorf("rule contains invalid log type: %s", err.Error())
 	}
 	return nil
 }

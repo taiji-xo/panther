@@ -128,8 +128,8 @@ func writePolicy(input *models.CreatePolicyInput, create bool) *events.APIGatewa
 
 // Some extra validation which is not implemented in the input struct tags
 func validateUpdatePolicy(input *models.CreatePolicyInput) error {
-	if err := ValidResourceTypeSet(input.ResourceTypes); err != nil {
-		return errors.Errorf("Policy contains invalid resource type: %s", err.Error())
+	if err := validResourceTypeSet(input.ResourceTypes); err != nil {
+		return errors.Errorf("policy contains invalid resource type: %s", err.Error())
 	}
 	return nil
 }

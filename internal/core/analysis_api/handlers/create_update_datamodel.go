@@ -117,7 +117,7 @@ func validateUpdateDataModel(input *models.UpdateDataModelInput) error {
 	}
 
 	if err := validateLogtypeSet(input.LogTypes); err != nil {
-		return errors.Errorf("DataModel contains invalid log type: %s", err.Error())
+		return errors.Errorf("dataModel contains invalid log type: %s", err.Error())
 	}
 
 	return nil

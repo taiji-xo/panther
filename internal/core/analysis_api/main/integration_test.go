@@ -189,6 +189,19 @@ func TestIntegrationAPI(t *testing.T) {
 		t.Skip()
 	}
 
+	t.Cleanup(func () {
+		err := filepath.Walk(".", func(fPath string, info os.FileInfo, err error) error {
+			if info.IsDir() && fPath != "." {
+				return filepath.SkipDir
+			}
+			if filepath.Ext(fPath) == ".zip" {
+				assert.Nil(t, os.Remove(fPath))
+			}
+      return nil
+    })
+		assert.Nil(t, err)
+	})
+
 	awsSession := session.Must(session.NewSession())
 	apiClient = gatewayapi.NewClient(lambda.New(awsSession), "panther-analysis-api")
 
@@ -794,8 +807,9 @@ func testFailCreatePolicyInvalidResourceType(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, statusCode)
 	assert.Error(t, err)
 
-	//nolint
-	assert.Equal(t, "panther-analysis-api: unsuccessful status code 400: Policy contains invalid resource type: AWS.Config.DuplicateRecorder", err.Error())
+	errStr := "policy contains invalid resource type: AWS.Config.DuplicateRecorder"
+	errMsg := fmt.Sprintf("panther-analysis-api: unsuccessful status code 400: %s", errStr)
+	assert.Equal(t, errMsg, err.Error())
 }
 
 // Tests that a policy cannot be saved if it is enabled and its tests fail.
@@ -1187,8 +1201,9 @@ func testFailCreateRuleInvalidLogType(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, statusCode)
 	assert.Error(t, err)
 
-	//nolint
-	assert.Equal(t, "panther-analysis-api: unsuccessful status code 400: Rule contains invalid log type: AWS.CloudTrailInvalidLogtype", err.Error())
+	errStr := "rule contains invalid log type: AWS.CloudTrailInvalidLogtype"
+	errMsg := fmt.Sprintf("panther-analysis-api: unsuccessful status code 400: %s", errStr)
+	assert.Equal(t, errMsg, err.Error())
 }
 
 func createDataModel(t *testing.T) {
@@ -1285,8 +1300,9 @@ func testFailCreateDataModelInvalidLogType(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, statusCode)
 	assert.Error(t, err)
 
-	//nolint
-	assert.Equal(t, "panther-analysis-api: unsuccessful status code 400: DataModel contains invalid log type: OneLogin.INVALIDEvents", err.Error())
+	errStr := "dataModel contains invalid log type: OneLogin.INVALIDEvents"
+	errMsg := fmt.Sprintf("panther-analysis-api: unsuccessful status code 400: %s", errStr)
+	assert.Equal(t, errMsg, err.Error())
 }
 
 func createGlobalSuccess(t *testing.T) {
