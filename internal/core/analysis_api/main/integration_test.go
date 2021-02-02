@@ -189,7 +189,7 @@ func TestIntegrationAPI(t *testing.T) {
 		t.Skip()
 	}
 
-	t.Cleanup(func () {
+	t.Cleanup(func() {
 		err := filepath.Walk(".", func(fPath string, info os.FileInfo, err error) error {
 			if info.IsDir() && fPath != "." {
 				return filepath.SkipDir
@@ -197,8 +197,8 @@ func TestIntegrationAPI(t *testing.T) {
 			if filepath.Ext(fPath) == ".zip" {
 				assert.Nil(t, os.Remove(fPath))
 			}
-      return nil
-    })
+			return nil
+		})
 		assert.Nil(t, err)
 	})
 
