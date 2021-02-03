@@ -17,13 +17,14 @@
  */
 
 import React from 'react';
-import { Flex, Link, Badge } from 'pouncejs';
+import { Flex, Link, Badge, Box } from 'pouncejs';
 import { DataModel } from 'Generated/schema';
 import GenericItemCard from 'Components/GenericItemCard';
 import { Link as RRLink } from 'react-router-dom';
 import urls from 'Source/urls';
 import { formatDatetime } from 'Helpers/utils';
 import BulletedValue from 'Components/BulletedValue';
+import { SelectCheckbox } from 'Components/utils/SelectContext';
 import DataModelCardOptions from './DataModelCardOptions';
 
 interface DataModelCardProps {
@@ -33,6 +34,11 @@ interface DataModelCardProps {
 const DataModelCard: React.FC<DataModelCardProps> = ({ dataModel }) => {
   return (
     <GenericItemCard>
+      <Flex align="start" pr={2}>
+        <Box transform="translate3d(0,-8px,0)">
+          <SelectCheckbox selectionId={dataModel.id} />
+        </Box>
+      </Flex>
       <GenericItemCard.Body>
         <GenericItemCard.Header>
           <GenericItemCard.Heading>
