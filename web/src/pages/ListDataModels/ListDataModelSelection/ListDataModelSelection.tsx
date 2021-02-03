@@ -17,10 +17,45 @@
  */
 
 import React from 'react';
-import { Flex } from 'pouncejs';
+import { Button, Flex, Text } from 'pouncejs';
+import { useSelect } from 'Components/utils/SelectContext';
+import useModal from 'Hooks/useModal';
+import { MODALS } from 'Components/utils/Modal';
 
 const ListAlertSelection: React.FC = () => {
-  return <Flex justify="flex-end" align="center" />;
+  const { selection } = useSelect();
+  const { showModal } = useModal();
+
+  return (
+    <Flex justify="flex-end" align="center">
+      <Flex spacing={4} align="center">
+        <Text>{selection.length} Selected</Text>
+        <Button
+          icon="delete"
+          variantColor="red"
+          onClick={() => {
+            return showModal({
+              // TODO: add the list of data models to delete
+              modal: MODALS.DELETE_DATA_MODEL,
+              props: {
+                dataModel: {
+                  createdAt: '',
+                  displayName: '',
+                  enabled: false,
+                  id: '',
+                  lastModified: '',
+                  logTypes: [],
+                  mappings: [],
+                },
+              },
+            });
+          }}
+        >
+          Delete
+        </Button>
+      </Flex>
+    </Flex>
+  );
 };
 
 export default React.memo(ListAlertSelection);
