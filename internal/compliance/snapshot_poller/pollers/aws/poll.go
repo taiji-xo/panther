@@ -175,11 +175,17 @@ func Poll(scanRequest *pollermodels.ScanEntry) (
 		ResourceRegexIgnoreList: scanRequest.ResourceRegexIgnoreList,
 		ResourceTypeIgnoreList:  scanRequest.ResourceTypeIgnoreList,
 	}
+	err = pollerResourceInput.CompileRegex()
+	if err != nil {
+		zap.L().Error("unable to compile passed regex",
+			zap.Any("resource regex ignore list", scanRequest.ResourceRegexIgnoreList))
+		return nil, err
+	}
 
 	// Check if integration is disabled
 	if scanRequest.Enabled != nil && !*scanRequest.Enabled {
 		zap.L().Info("source integration disabled",
-			zap.String("integration id", *scanRequest.IntegrationID), zap.Time("timestamp", time.Now()))
+			zap.String("integration id", *scanRequest.IntegrationID))
 		return nil, nil
 	}
 
@@ -261,10 +267,14 @@ func multiRegionScan(
 		err = utils.Requeue(pollermodels.ScanMsg{
 			Entries: []*pollermodels.ScanEntry{
 				{
-					AWSAccountID:  scanRequest.AWSAccountID,
-					IntegrationID: scanRequest.IntegrationID,
-					Region:        region,
-					ResourceType:  scanRequest.ResourceType,
+					AWSAccountID:            scanRequest.AWSAccountID,
+					IntegrationID:           scanRequest.IntegrationID,
+					Region:                  region,
+					ResourceType:            scanRequest.ResourceType,
+					Enabled:                 scanRequest.Enabled,
+					RegionIgnoreList:        scanRequest.RegionIgnoreList,
+					ResourceRegexIgnoreList: scanRequest.ResourceRegexIgnoreList,
+					ResourceTypeIgnoreList:  scanRequest.ResourceTypeIgnoreList,
 				},
 			},
 		}, int64(pageRequeueDelayer.Intn(30)+1)) // Delay between 1 & 30 seconds to spread out region scans
@@ -352,8 +362,8 @@ func singleResourceScan(
 			return nil, nil
 		}
 		// Check if ResourceID matches the integration's regex filter
-		if ignore, err := pollerInput.ShouldIgnoreResource(*scanRequest.ResourceID); ignore || err != nil {
-			return nil, err
+		if pollerInput.ShouldIgnoreResource(*scanRequest.ResourceID) {
+			return nil, nil
 		}
 		resource, err = pollFunction(pollerInput, resourceARN, scanRequest)
 	} else {

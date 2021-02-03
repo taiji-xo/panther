@@ -22,6 +22,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import * as Yup from 'yup';
 import {
   ActiveSuppressCount,
+  AlertTypesEnum,
   ComplianceIntegration,
   ComplianceStatusCounts,
   OrganizationReportBySeverity,
@@ -106,6 +107,26 @@ export const isHash = (str: string) => CHECK_IF_HASH_REGEX.test(str);
 /** Converts minutes integer to representative string i.e. 15 -> 15min,  120 -> 2h */
 export const minutesToString = (minutes: number) =>
   minutes < 60 ? `${minutes}min` : `${minutes / 60}h`;
+
+/** Converts seconds number to representative string i.e. 15 -> 15sec,  7200 -> 2 hours */
+export const secondsToString = (seconds: number) => {
+  if (seconds > 60 * 60 * 24 * 30 * 12) {
+    return `${(seconds / (60 * 60 * 24 * 30 * 12)).toLocaleString()} years`;
+  }
+  if (seconds > 60 * 60 * 24 * 30) {
+    return `${(seconds / (60 * 60 * 24 * 30)).toLocaleString()} months`;
+  }
+  if (seconds > 60 * 60 * 24) {
+    return `${(seconds / (60 * 60 * 24)).toLocaleString()} days`;
+  }
+  if (seconds > 60 * 60) {
+    return `${(seconds / (60 * 60)).toLocaleString()} hours`;
+  }
+  if (seconds > 60) {
+    return `${(seconds / 60).toLocaleString()} min`;
+  }
+  return `${seconds.toLocaleString()} sec`;
+};
 
 /**
  * Given a server-received DateTime string, creates a proper time-ago display text for it.
@@ -377,6 +398,31 @@ export const downloadData = (data: string, filename: string) => {
 };
 
 /**
+ * Helper function that return key from Enumaration value
+ * @param object
+ * @param value
+ */
+export function getEnumKeyByValue(object: { [key: string]: string }, value: string) {
+  return Object.keys(object).find(key => object[key] === value);
+}
+
+/**
+ * Helper function that returns proper text for Alert Type
+ * @param item AlertTypesEnum
+ */
+export const alertTypeToString = (item: AlertTypesEnum) => {
+  switch (item) {
+    case AlertTypesEnum.Rule:
+      return 'Rule Matches';
+    case AlertTypesEnum.RuleError:
+      return 'Rule Errors';
+    case AlertTypesEnum.Policy:
+    default:
+      return 'Policy Failures';
+  }
+};
+
+/**
  * Converts a word to its plural form
  *
  * @returns {String} pluralized word
@@ -399,5 +445,4 @@ function toPlural(word: string, pluralFormOrCount?: number | string, count?: num
 
   return cnt === 1 ? word : pluralForm;
 }
-
-export default toPlural;
+export { toPlural };
