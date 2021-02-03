@@ -46,6 +46,8 @@ type writeResult struct {
 	err        error
 }
 
+var logtypes map[string]struct{}
+
 // BulkUpload uploads multiple analysis items from a zipfile.
 func (API) BulkUpload(input *models.BulkUploadInput) *events.APIGatewayProxyResponse {
 	policies, err := extractZipFile(input)
@@ -167,6 +169,11 @@ func extractZipFile(input *models.BulkUploadInput) (map[string]*tableItem, error
 	policyBodies := make(map[string]string) // map base file name to contents
 	result := make(map[string]*tableItem)
 
+	logtypes, err = getLogTypesSet()
+	if err != nil {
+		return nil, errors.Wrap(err, "BulkUpload extractZipFile getLogTypesSet")
+	}
+
 	// Process each file
 	for _, zipFile := range zipReader.File {
 		if strings.HasSuffix(zipFile.Name, "/") {
@@ -260,6 +267,52 @@ func extractZipFile(input *models.BulkUploadInput) (map[string]*tableItem, error
 	return result, nil
 }
 
+func buildMapping(mapping analysis.Mapping) (models.DataModelMapping, error) {
+	var result models.DataModelMapping
+	if mapping.Path != "" && mapping.Method != "" {
+		return result, errMappingTooManyOptions
+	}
+	if mapping.Path == "" && mapping.Method == "" {
+		return result, errPathOrMethodMissing
+	}
+	return models.DataModelMapping{
+		Name:   mapping.Name,
+		Path:   mapping.Path,
+		Method: mapping.Method,
+	}, nil
+}
+
+func buildPolicyTest(test analysis.Test) (models.UnitTest, error) {
+	resource, err := jsoniter.MarshalToString(test.Resource)
+	return models.UnitTest{
+		ExpectedResult: test.ExpectedResult,
+		Name:           test.Name,
+		Resource:       resource,
+	}, err
+}
+
+func buildRuleTest(test analysis.Test) (models.UnitTest, error) {
+	log, err := jsoniter.MarshalToString(test.Log)
+	return models.UnitTest{
+		ExpectedResult: test.ExpectedResult,
+		Name:           test.Name,
+		Resource:       log,
+	}, err
+}
+
+func readZipFile(zf *zip.File) ([]byte, error) {
+	f, err := zf.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			zap.L().Error("error closing zip file", zap.Error(err))
+		}
+	}()
+	return ioutil.ReadAll(f)
+}
+
 func tableItemFromConfig(config analysis.Config) (*tableItem, error) {
 	itemType := models.DetectionType(strings.ToUpper(config.AnalysisType))
 	var resourceTypes []string = config.ResourceTypes
@@ -270,12 +323,18 @@ func tableItemFromConfig(config analysis.Config) (*tableItem, error) {
 		if len(resourceTypes) == 0 {
 			resourceTypes = config.LogTypes
 		}
-		if err := validateLogtypeSet(resourceTypes); err != nil {
-			itemTitle := "DataModel"
-			if itemType == models.TypeRule {
-				itemTitle = "Rule"
+
+		// This is essentially a duplicate of the validateLogtypeSet method in validations.go
+		// In bulk upload we only refresh the set of logtypes once. Otherwise we would refresh the set
+		// for each log type in the bulk set.
+		for _, rscType := range resourceTypes {
+			if _, found := logtypes[rscType]; !found {
+				itemTitle := "DataModel"
+				if itemType == models.TypeRule {
+					itemTitle = "Rule"
+				}
+				return nil, errors.Errorf("%s %s contains invalid log type: %s", itemTitle, config.DisplayName, rscType)
 			}
-			return nil, errors.Errorf("%s %s contains invalid log type: %s", itemTitle, config.DisplayName, err.Error())
 		}
 	case models.TypePolicy:
 		if err := validResourceTypeSet(resourceTypes); err != nil {
@@ -335,52 +394,6 @@ func tableItemFromConfig(config analysis.Config) (*tableItem, error) {
 	}
 
 	return &item, nil
-}
-
-func buildRuleTest(test analysis.Test) (models.UnitTest, error) {
-	log, err := jsoniter.MarshalToString(test.Log)
-	return models.UnitTest{
-		ExpectedResult: test.ExpectedResult,
-		Name:           test.Name,
-		Resource:       log,
-	}, err
-}
-
-func buildPolicyTest(test analysis.Test) (models.UnitTest, error) {
-	resource, err := jsoniter.MarshalToString(test.Resource)
-	return models.UnitTest{
-		ExpectedResult: test.ExpectedResult,
-		Name:           test.Name,
-		Resource:       resource,
-	}, err
-}
-
-func buildMapping(mapping analysis.Mapping) (models.DataModelMapping, error) {
-	var result models.DataModelMapping
-	if mapping.Path != "" && mapping.Method != "" {
-		return result, errMappingTooManyOptions
-	}
-	if mapping.Path == "" && mapping.Method == "" {
-		return result, errPathOrMethodMissing
-	}
-	return models.DataModelMapping{
-		Name:   mapping.Name,
-		Path:   mapping.Path,
-		Method: mapping.Method,
-	}, nil
-}
-
-func readZipFile(zf *zip.File) ([]byte, error) {
-	f, err := zf.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			zap.L().Error("error closing zip file", zap.Error(err))
-		}
-	}()
-	return ioutil.ReadAll(f)
 }
 
 // Data Model Validations: len(ResourceTypes) <= 1, Single Model Enabled

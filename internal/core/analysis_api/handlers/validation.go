@@ -41,22 +41,26 @@ func validResourceTypeSet(checkResourceTypeSet []string) error {
 	return nil
 }
 
+func getLogTypesSet() (map[string]struct{}, error) {
+	availableLogTypes, err := logtypesAPI.ListAvailableLogTypes(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+	logTypes := make(map[string]struct{})
+	for _, logtype := range availableLogTypes.LogTypes {
+		logTypes[logtype] = struct{}{}
+	}
+	return logTypes, nil
+}
+
 // Retrieve a set of log types from the logtypes api and validate every entry in the passed set
 // is a value found in the logtypes-api returned set
 //
 // CAVEAT: This method will trigger a request to the log-types api EVERY time it is called.
 func validateLogtypeSet(logtypes []string) error {
-	availableLogTypes, err := logtypesAPI.ListAvailableLogTypes(context.TODO())
+	logtypeSetMap, err := getLogTypesSet()
 	if err != nil {
 		return err
-	}
-
-	// Potential improvement - if you want the set of invalid log types the parameter could be used to
-	// build the map and we could iterate through availableLogTypes / remove the keys from the map that
-	// are found. At the end we would end up with a map of logtypes that are invalid.
-	logtypeSetMap := make(map[string]struct{})
-	for _, logtype := range availableLogTypes.LogTypes {
-		logtypeSetMap[logtype] = struct{}{}
 	}
 	for _, lt := range logtypes {
 		if _, found := logtypeSetMap[lt]; !found {
