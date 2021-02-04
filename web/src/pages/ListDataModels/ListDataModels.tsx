@@ -50,7 +50,7 @@ const ListDataModels = () => {
 
   useEffect(() => {
     resetSelection();
-  }, [dataModels]);
+  }, [dataModels.length]);
 
   const dataModelIds = React.useMemo(() => dataModels.map(dm => dm.id), [dataModels]);
 

@@ -33,6 +33,7 @@ const ListAlertSelection: React.FC = () => {
         <Button
           icon="delete"
           variantColor="red"
+          aria-label="Delete selected Data Models"
           onClick={() => {
             return showModal({
               modal: MODALS.DELETE_DATA_MODEL,
