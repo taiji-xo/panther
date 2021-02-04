@@ -36,15 +36,7 @@ const DeleteDetectionModal: React.FC<DeleteDetectionModalProps> = ({ detection, 
   const detectionDisplayName = detection.displayName || detection.id;
 
   const [confirmDeletion] = useDeleteDetection({
-    variables: {
-      input: {
-        detections: [
-          {
-            id: detection.id,
-          },
-        ],
-      },
-    },
+    variables: { id: detection.id },
     optimisticResponse: {
       deleteDetection: true,
     },

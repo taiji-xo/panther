@@ -76,6 +76,7 @@ export enum EventEnum {
   AddedDataModel = 'Added Data Model',
   UpdatedDataModel = 'Updated Data Model',
   DeletedCustomLog = 'Deleted Custom Log',
+  DeletedDetection = 'Deleted Detection',
   DeletedDataModel = 'Deleted Data Model',
   UpdatedCustomLog = 'Update Custom Log',
   AddedRule = 'Added Rule',
@@ -97,8 +98,7 @@ export enum EventEnum {
 
 export enum SrcEnum {
   Destinations = 'destinations',
-  Rules = 'rules',
-  Policies = 'policies',
+  Detections = 'detections',
   Auth = 'auth',
   Users = 'users',
   Alerts = 'alerts',
@@ -113,6 +113,12 @@ type LogSources = 'S3' | 'SQS';
 interface SignInEvent {
   event: EventEnum.SignedIn;
   src: SrcEnum.Auth;
+}
+
+interface DeletedDetectionEvent {
+  event: EventEnum.DeletedDetection;
+  src: SrcEnum.Detections;
+  ctx?: { isMultiple: boolean };
 }
 
 interface AddedCustomLogEvent {
@@ -146,12 +152,12 @@ interface DeletedCustomLogEvent {
 
 interface AddedRuleEvent {
   event: EventEnum.AddedRule;
-  src: SrcEnum.Rules;
+  src: SrcEnum.Detections;
 }
 
 interface AddedPolicyEvent {
   event: EventEnum.AddedPolicy;
-  src: SrcEnum.Policies;
+  src: SrcEnum.Detections;
 }
 
 interface DestinationEvent {
@@ -236,6 +242,7 @@ type TrackEvent =
   | AddedDataModelEvent
   | UpdatedDataModelEvent
   | DeleteDataModelEvent
+  | DeletedDetection
   | SignInEvent
   | AddedRuleEvent
   | AddedPolicyEvent
@@ -329,12 +336,12 @@ interface UpdateComplianceSourceError {
 
 interface AddRuleError {
   event: TrackErrorEnum.FailedToAddRule;
-  src: SrcEnum.Rules;
+  src: SrcEnum.Detections;
 }
 
 interface AddPolicyError {
   event: TrackErrorEnum.FailedToAddPolicy;
-  src: SrcEnum.Policies;
+  src: SrcEnum.Detections;
 }
 
 interface MfaError {

@@ -20,7 +20,7 @@ type Mutation {
   addRule(input: AddRuleInput!): Rule!
   addGlobalPythonModule(input: AddGlobalPythonModuleInput!): GlobalPythonModule!
   deleteDataModel(input: DeleteDataModelInput!): Boolean
-  deleteDetection(input: DeleteDetectionInput!): Boolean
+  deleteDetections(input: DeleteDetectionInput!): Boolean
   deleteDestination(id: ID!): Boolean
   deleteComplianceIntegration(id: ID!): Boolean
   deleteCustomLog(input: DeleteCustomLogInput): DeleteCustomLogOutput!
