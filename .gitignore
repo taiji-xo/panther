@@ -1,3 +1,4 @@
+deployments/root_config.yml
 out/
 .setup/
 venv/
@@ -25,7 +26,7 @@ keys/
 .icloud
 
 # Terraform
-.terraform
+.terraform*
 terraform.tfstate*
 
 # Omit mage temporary file that can be left at root path if mage does not exit gracefully.
