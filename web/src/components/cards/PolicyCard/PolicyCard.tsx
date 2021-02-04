@@ -47,7 +47,7 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ policy, selectionEnabled = fals
       {selectionEnabled && (
         <Flex align="start" pr={2}>
           <Box transform="translate3d(0,-8px,0)">
-            <SelectCheckbox selectionId={policy.id} />
+            <SelectCheckbox selectionItem={policy.id} />
           </Box>
         </Flex>
       )}

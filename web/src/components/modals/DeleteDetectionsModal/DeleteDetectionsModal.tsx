@@ -8,83 +8,117 @@
  */
 
 import React from 'react';
-import { SavedQuery } from 'Generated/schema';
-import differenceBy from 'lodash/differenceBy';
+import { Reference } from '@apollo/client';
+import { DetectionTypeEnum } from 'Generated/schema';
+import { RuleSummary } from 'Source/graphql/fragments/RuleSummary.generated';
+import { PolicySummary } from 'Source/graphql/fragments/PolicySummary.generated';
 import OptimisticConfirmModal from 'Components/modals/OptimisticConfirmModal';
 import { ModalProps, useSnackbar } from 'pouncejs';
-import { useDeleteDetections } from 'Source/graphql/queries';
-import { EventEnum, SrcEnum, trackError, TrackErrorEnum, trackEvent } from 'Helpers/analytics';
-import { extractErrorMessage } from 'Helpers/utils';
+import useRouter from 'Hooks/useRouter';
+import urls from 'Source/urls';
+import differenceBy from 'lodash/differenceBy';
+import { toPlural } from 'Helpers/utils';
+import { useDeleteDetections } from './graphql/deleteDetections.generated';
 
 export interface DeleteDetectionsModalProps extends ModalProps {
-  ids: SavedQuery['id'][];
-  onConfirm?: () => void;
+  detections: (RuleSummary | PolicySummary)[];
+  onSuccess?: () => void;
 }
 
 const DeleteDetectionsModal: React.FC<DeleteDetectionsModalProps> = ({
-  ids,
-  onConfirm = () => {},
+  detections,
+  onSuccess = () => {},
   ...rest
 }) => {
+  const { location, history } = useRouter<{ id?: string }>();
   const { pushSnackbar } = useSnackbar();
-  const [deleteDetections] = useDeleteDetections({
-    update: cache => {
+
+  const isMultiDelete = detections.length > 1;
+  const modalTitle = isMultiDelete ? `Delete ${detections.length} Detections` : `Delete Detection`;
+  const modalDescription = `Are you sure you want to delete ${
+    isMultiDelete
+      ? `all ${detections.length} detections`
+      : detections[0].displayName || detections[0].id
+  }?`;
+
+  const [confirmDeletion] = useDeleteDetections({
+    variables: {
+      input: {
+        detections,
+      },
+    },
+    optimisticResponse: {
+      deleteDetections: true,
+    },
+    update: async cache => {
       cache.modify('ROOT_QUERY', {
-        listDetections: (savedQueryCacheData, { toReference }) => {
-          const deletedQueriesRefs = ids.map(id => toReference({ __typename: 'SavedQuery', id }));
+        detections: (data, helpers) => {
+          const detectionRefs = detections.map(detection =>
+            helpers.toReference({
+              __typename: detection.analysisType === DetectionTypeEnum.Policy ? 'Policy' : 'Rule',
+              id: detection.id,
+            })
+          );
+
           return {
-            ...savedQueryCacheData,
-            savedQueries: differenceBy(
-              savedQueryCacheData.savedQueries,
-              deletedQueriesRefs,
-              '__ref'
-            ),
+            ...data,
+            detections: differenceBy(data.detections, detectionRefs, d => (d as Reference).__ref),
           };
         },
+        // rule: (data, helpers) => {
+        //   const ruleRef = helpers.toReference({ __typename: 'Rule', id: detection.id });
+        //   if (ruleRef.__ref !== data.__ref) {
+        //     return data;
+        //   }
+        //   return helpers.DELETE;
+        // },
+        // policy: (data, helpers) => {
+        //   const policyRef = helpers.toReference({ __typename: 'Policy', id: detection.id });
+        //   if (policyRef.__ref !== data.__ref) {
+        //     return data;
+        //   }
+        //   return helpers.DELETE;
+        // },
       });
       cache.gc();
     },
     onCompleted: () => {
-      trackEvent({
-        event: EventEnum.DeletedDetections,
-        src: SrcEnum.Detections,
-        data: { length: ids.length },
-      });
-      onConfirm();
       pushSnackbar({
         variant: 'success',
-        title: `${
-          ids.length === 1 ? 'Saved Query ' : `${ids.length} Saved queries`
-        } deleted successfully`,
+        title: `Successfully deleted ${toPlural(
+          'detection',
+          `${detections.length} detectioons`,
+          detections.length
+        )}`,
       });
     },
-    onError: error => {
+    onError: () => {
       pushSnackbar({
         variant: 'error',
-        title: `Failed delete saved queries`,
-        description: extractErrorMessage(error),
+        title: `Failed to delete ${toPlural(
+          'detection',
+          `${detections.length} detectioons`,
+          detections.length
+        )}`,
       });
-      trackError({ event: TrackErrorEnum.FailedToDeleteDetections, src: SrcEnum.Detections });
     },
   });
 
-  const onDelete = React.useCallback(
-    () =>
-      deleteDetections({
-        variables: { input: { ids } },
-      }),
-    [ids]
-  );
+  const handleConfirm = React.useCallback(() => {
+    if (!isMultiDelete && location.pathname.includes(detections[0].id)) {
+      // if we were on the particular detection's details page or edit page --> redirect on delete
+      history.push(urls.detections.list());
+    }
+
+    confirmDeletion();
+    onSuccess();
+  }, []);
 
   return (
     <OptimisticConfirmModal
-      title="Attention!"
-      subtitle={`Are you sure you want to delete ${
-        ids.length === 1
-          ? 'the selected Saved Query?'
-          : `these (${ids.length}) selected Saved Queries`
-      }`}
-      onConfirm={onDelete}
+      title={modalTitle}
+      subtitle={modalDescription}
+      onConfirm={handleConfirm}
       {...rest}
     />
   );

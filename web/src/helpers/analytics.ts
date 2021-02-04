@@ -242,7 +242,7 @@ type TrackEvent =
   | AddedDataModelEvent
   | UpdatedDataModelEvent
   | DeleteDataModelEvent
-  | DeletedDetection
+  | DeletedDetectionEvent
   | SignInEvent
   | AddedRuleEvent
   | AddedPolicyEvent

@@ -54,8 +54,8 @@ const PolicyDetailsBanner: React.FC<ResourceDetailsBannerProps> = ({ policy }) =
             icon="trash"
             onClick={() =>
               showModal({
-                modal: MODALS.DELETE_DETECTION,
-                props: { detection: policy },
+                modal: MODALS.DELETE_DETECTIONS,
+                props: { detections: [policy] },
               })
             }
           >

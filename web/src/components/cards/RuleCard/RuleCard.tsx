@@ -47,7 +47,7 @@ const RuleCard: React.FC<RuleCardProps> = ({ rule, selectionEnabled = false }) =
       {selectionEnabled && (
         <Flex align="start" pr={2}>
           <Box transform="translate3d(0,-8px,0)">
-            <SelectCheckbox selectionId={rule.id} />
+            <SelectCheckbox selectionItem={rule.id} />
           </Box>
         </Flex>
       )}

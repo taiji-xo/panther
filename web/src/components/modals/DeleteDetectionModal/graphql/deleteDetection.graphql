@@ -1,3 +1,0 @@
-mutation DeleteDetection($id: ID!) {
-  deleteDetections(input: { detections: [{ id: $id }] })
-}

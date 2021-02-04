@@ -22,11 +22,12 @@ import useModal from 'Hooks/useModal';
 import { MODALS } from 'Components/utils/Modal';
 import DeleteUserModal from 'Components/modals/DeleteUserModal';
 import ResetUserPasswordModal from 'Components/modals/ResetUserPasswordModal';
+import ReinviteUserModal from 'Components/modals/ReinviteUserModal';
 import DeleteComplianceSourceModal from 'Components/modals/DeleteComplianceSourceModal';
 import DeleteLogSourceModal from 'Components/modals/DeleteLogSourceModal';
 import DeleteDestinationModal from 'Components/modals/DeleteDestinationModal';
 import GenericModal from 'Components/modals/GenericModal';
-import DeleteDetectionModal from 'Components/modals/DeleteDetectionModal';
+import DeleteDetectionsModal from 'Components/modals/DeleteDetectionsModal';
 import NetworkErrorModal from 'Components/modals/NetworkErrorModal';
 import AnalyticsConsentModal from 'Components/modals/AnalyticsConsentModal';
 import DeleteTestModal from 'Components/modals/DeleteTestModal';
@@ -58,8 +59,11 @@ const ModalManager: React.FC = () => {
     case MODALS.RESET_USER_PASS:
       Component = ResetUserPasswordModal;
       break;
-    case MODALS.DELETE_DETECTION:
-      Component = DeleteDetectionModal;
+    case MODALS.REINVITE_USER:
+      Component = ReinviteUserModal;
+      break;
+    case MODALS.DELETE_DETECTIONS:
+      Component = DeleteDetectionsModal;
       break;
     case MODALS.DELETE_DESTINATION:
       Component = DeleteDestinationModal;

@@ -42,8 +42,8 @@ const RuleCardOptions: React.FC<RuleCardOptionsProps> = ({ rule }) => {
         <DropdownItem
           onSelect={() =>
             showModal({
-              modal: MODALS.DELETE_DETECTION,
-              props: { detection: rule },
+              modal: MODALS.DELETE_DETECTIONS,
+              props: { detections: [rule] },
             })
           }
         >

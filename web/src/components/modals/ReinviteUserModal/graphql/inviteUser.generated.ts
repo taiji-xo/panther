@@ -18,69 +18,73 @@
 
 import * as Types from '../../../../../__generated__/schema';
 
+import { UserDetails } from '../../../../graphql/fragments/UserDetails.generated';
 import { GraphQLError } from 'graphql';
 import gql from 'graphql-tag';
 import * as ApolloReactCommon from '@apollo/client';
 import * as ApolloReactHooks from '@apollo/client';
 
-export type DeleteDetectionVariables = {
-  id: Types.Scalars['ID'];
+export type InviteUserVariables = {
+  input: Types.InviteUserInput;
 };
 
-export type DeleteDetection = Pick<Types.Mutation, 'deleteDetections'>;
+export type InviteUser = { inviteUser: UserDetails };
 
-export const DeleteDetectionDocument = gql`
-  mutation DeleteDetection($id: ID!) {
-    deleteDetections(input: { detections: [{ id: $id }] })
+export const InviteUserDocument = gql`
+  mutation InviteUser($input: InviteUserInput!) {
+    inviteUser(input: $input) {
+      ...UserDetails
+    }
   }
+  ${UserDetails}
 `;
-export type DeleteDetectionMutationFn = ApolloReactCommon.MutationFunction<
-  DeleteDetection,
-  DeleteDetectionVariables
+export type InviteUserMutationFn = ApolloReactCommon.MutationFunction<
+  InviteUser,
+  InviteUserVariables
 >;
 
 /**
- * __useDeleteDetection__
+ * __useInviteUser__
  *
- * To run a mutation, you first call `useDeleteDetection` within a React component and pass it any options that fit your needs.
- * When your component renders, `useDeleteDetection` returns a tuple that includes:
+ * To run a mutation, you first call `useInviteUser` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useInviteUser` returns a tuple that includes:
  * - A mutate function that you can call at any time to execute the mutation
  * - An object with fields that represent the current status of the mutation's execution
  *
  * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
  *
  * @example
- * const [deleteDetection, { data, loading, error }] = useDeleteDetection({
+ * const [inviteUser, { data, loading, error }] = useInviteUser({
  *   variables: {
- *      id: // value for 'id'
+ *      input: // value for 'input'
  *   },
  * });
  */
-export function useDeleteDetection(
-  baseOptions?: ApolloReactHooks.MutationHookOptions<DeleteDetection, DeleteDetectionVariables>
+export function useInviteUser(
+  baseOptions?: ApolloReactHooks.MutationHookOptions<InviteUser, InviteUserVariables>
 ) {
-  return ApolloReactHooks.useMutation<DeleteDetection, DeleteDetectionVariables>(
-    DeleteDetectionDocument,
+  return ApolloReactHooks.useMutation<InviteUser, InviteUserVariables>(
+    InviteUserDocument,
     baseOptions
   );
 }
-export type DeleteDetectionHookResult = ReturnType<typeof useDeleteDetection>;
-export type DeleteDetectionMutationResult = ApolloReactCommon.MutationResult<DeleteDetection>;
-export type DeleteDetectionMutationOptions = ApolloReactCommon.BaseMutationOptions<
-  DeleteDetection,
-  DeleteDetectionVariables
+export type InviteUserHookResult = ReturnType<typeof useInviteUser>;
+export type InviteUserMutationResult = ApolloReactCommon.MutationResult<InviteUser>;
+export type InviteUserMutationOptions = ApolloReactCommon.BaseMutationOptions<
+  InviteUser,
+  InviteUserVariables
 >;
-export function mockDeleteDetection({
+export function mockInviteUser({
   data,
   variables,
   errors,
 }: {
-  data: DeleteDetection;
-  variables?: DeleteDetectionVariables;
+  data: InviteUser;
+  variables?: InviteUserVariables;
   errors?: GraphQLError[];
 }) {
   return {
-    request: { query: DeleteDetectionDocument, variables },
+    request: { query: InviteUserDocument, variables },
     result: { data, errors },
   };
 }
