@@ -35,18 +35,9 @@ const ListAlertSelection: React.FC = () => {
           variantColor="red"
           onClick={() => {
             return showModal({
-              // TODO: add the list of data models to delete
               modal: MODALS.DELETE_DATA_MODEL,
               props: {
-                dataModel: {
-                  createdAt: '',
-                  displayName: '',
-                  enabled: false,
-                  id: '',
-                  lastModified: '',
-                  logTypes: [],
-                  mappings: [],
-                },
+                dataModelIds: selection,
               },
             });
           }}
