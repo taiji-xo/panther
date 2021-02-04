@@ -59,7 +59,7 @@ func main() {
 		TableName:                 aws.String(tableName),
 	}
 
-  // Scan for deleted entries
+	// Scan for deleted entries
 	err = client.ScanPages(input, func(page *dynamodb.ScanOutput, lastPage bool) bool {
 		for _, item := range page.Items {
 			fmt.Printf("%v\n", item)
