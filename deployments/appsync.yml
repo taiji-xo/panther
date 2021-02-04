@@ -1214,7 +1214,7 @@ Resources:
     Properties:
       ApiId: !Ref ApiId
       TypeName: Mutation
-      FieldName: deleteDetection
+      FieldName: deleteDetections
       DataSourceName: !GetAtt AnalysisAPILambdaDataSource.Name
       RequestMappingTemplate: |
         {
