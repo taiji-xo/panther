@@ -63,6 +63,8 @@ func ManageBucketNotifications(pantherSess *session.Session, source *models.Sour
 		return errors.Wrap(err, "failed to get bucket location")
 	}
 
+	// Create the topic if it wasn't created previously. This saves some API requests during
+	// source updates.
 	if managed.TopicARN == nil {
 		topicARN, err := createSNSResources(pantherSess, stsSess, bucketRegion)
 		if err != nil {
@@ -116,17 +118,21 @@ func createSNSResources(pantherSess, stsSess *session.Session, bucketRegion *str
 	return topicARN, nil
 }
 
-func RemoveBucketNotifications(sess *session.Session, source *models.SourceIntegration) error {
+func RemoveBucketNotifications(pantherSess *session.Session, source *models.SourceIntegration) error {
 	if source.ManagedS3Resources.TopicARN == nil {
 		// If Panther didn't manage to create a topic, it didn't configure any bucket notifications either.
 		return nil
 	}
 
-	bucketRegion, err := getBucketLocation(sess, source.S3Bucket)
+	stsSess := session.Must(session.NewSession(&aws.Config{
+		Credentials: stscreds.NewCredentials(pantherSess, source.RequiredLogProcessingRole()),
+	}))
+
+	bucketRegion, err := getBucketLocation(stsSess, source.S3Bucket)
 	if err != nil {
 		return errors.Wrap(err, "failed to get bucket location")
 	}
-	s3Client := s3.New(sess, &aws.Config{Region: bucketRegion})
+	s3Client := s3.New(stsSess, &aws.Config{Region: bucketRegion})
 
 	var prefixes []string = nil // Will remove any Panther-managed notifications
 	_, err = updateBucketTopicConfigurations(s3Client,
@@ -174,7 +180,7 @@ func createTopic(snsClient *sns.SNS, pantherARN arn.ARN) (*string, error) {
 				Effect: "Allow",
 				Action: "sns:Subscribe",
 				Principal: awsutils.Principal{
-					AWS: fmt.Sprintf("arn:aws:iam::%s:root", pantherARN.AccountID),
+					AWS: fmt.Sprintf("arn:%s:iam::%s:root", pantherARN.Partition, pantherARN.AccountID),
 				},
 				Resource: *topic.TopicArn,
 			},
