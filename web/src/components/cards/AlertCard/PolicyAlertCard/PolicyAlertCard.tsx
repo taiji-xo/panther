@@ -54,7 +54,6 @@ const PolicyAlertCard: React.FC<PolicyAlertCardProps> = ({
   const source = complianceSourceData?.listComplianceIntegrations?.find(
     s => s.integrationId === detectionData.policySourceId
   );
-
   return (
     <GenericItemCard>
       <Flex align="start" pr={2}>
@@ -75,6 +74,7 @@ const PolicyAlertCard: React.FC<PolicyAlertCardProps> = ({
               {alert.title}
             </Link>
           </GenericItemCard.Heading>
+          {source && <GenericItemCard.HeadingValue value={source.integrationLabel} />}
           <GenericItemCard.Date
             aria-label={`Creation time for ${alert.alertId}`}
             date={formatDatetime(alert.creationTime)}
@@ -100,7 +100,6 @@ const PolicyAlertCard: React.FC<PolicyAlertCardProps> = ({
               }
             />
           )}
-          <GenericItemCard.Value label="Source" value={source ? source.integrationLabel : null} />
           <GenericItemCard.Value
             label="Destinations"
             value={
