@@ -30,7 +30,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 
 	"github.com/panther-labs/panther/pkg/awsbatch/dynamodbbatch"
-
 )
 
 // Explicitely delete columns in the panther-resources table where the table entry deleted is equal
@@ -72,7 +71,7 @@ func main() {
 
 	var deleteRequests []*dynamodb.WriteRequest
 
-  // Scan for deleted entries
+	// Scan for deleted entries
 	err = client.ScanPages(input, func(page *dynamodb.ScanOutput, lastPage bool) bool {
 		for _, item := range page.Items {
 			// Useful for troubleshooting:
