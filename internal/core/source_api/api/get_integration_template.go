@@ -108,7 +108,7 @@ func (api *API) GetIntegrationTemplate(input *models.GetIntegrationTemplateInput
 
 		if input.ManagedBucketNotifications {
 			formattedTemplate = strings.Replace(formattedTemplate, managedNotificationsFind,
-				fmt.Sprintf(managedNotificationsReplace, "Yes"), 1)
+				fmt.Sprintf(managedNotificationsReplace, "true"), 1)
 		}
 	}
 
