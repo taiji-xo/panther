@@ -93,7 +93,7 @@ func main() {
 	err = dynamodbbatch.BatchWriteItem(client, maxBackoff, &dynamodb.BatchWriteItemInput{
 		RequestItems: map[string][]*dynamodb.WriteRequest{tableName: deleteRequests},
 	})
-	
+
 	// Batch Write Error
 	if err != nil {
 		log.Fatalf("BatchWriteItem error: %s", err)
