@@ -31,18 +31,19 @@ import { ApolloError } from '@apollo/client';
 import { LOG_ONBOARDING_SNS_DOC_URL } from 'Source/constants';
 import { AddS3LogSource } from 'Pages/CreateLogSource/CreateS3LogSource/graphql/addS3LogSource.generated';
 import { UpdateS3LogSource } from 'Pages/EditS3LogSource/graphql/updateS3LogSource.generated';
+import { S3LogIntegrationDetails } from 'Source/graphql/fragments/S3LogIntegrationDetails.generated';
 import { S3LogSourceWizardValues } from '../S3LogSourceWizard';
 
 type SubmitResult = {
   data: AddS3LogSource & UpdateS3LogSource;
 };
 
-function getResponseData(result: SubmitResult) {
+function getResponseData(result: SubmitResult): S3LogIntegrationDetails {
   let castedResult;
   if (result?.data.addS3LogIntegration) {
-    castedResult = result as { data: AddS3LogSource };
+    castedResult = result.data.addS3LogIntegration as S3LogIntegrationDetails;
   } else {
-    castedResult = result as { data: UpdateS3LogSource };
+    castedResult = result.data.updateS3LogIntegration as S3LogIntegrationDetails;
   }
   return castedResult;
 }
@@ -63,7 +64,6 @@ const ValidationPanel: React.FC = () => {
     (async () => {
       try {
         const result = ((await submitForm()) as unknown) as SubmitResult;
-
         const { managedBucketNotifications, notificationsConfigurationSucceeded } = getResponseData(
           result
         );
