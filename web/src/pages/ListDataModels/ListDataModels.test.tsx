@@ -497,9 +497,12 @@ describe('ListDataModels', () => {
       }),
     ];
 
-    const { getByText, findByAriaLabel, getByAriaLabel, queryByText } = render(<ListDataModels />, {
-      mocks,
-    });
+    const { getByText, findByAriaLabel, getAllByAriaLabel, getByAriaLabel, queryByText } = render(
+      <ListDataModels />,
+      {
+        mocks,
+      }
+    );
 
     // Check that select all checkbox is present
     expect(await findByAriaLabel('select all')).toBeInTheDocument();
@@ -507,20 +510,17 @@ describe('ListDataModels', () => {
     // Check that data models and checkboxes are rendered
     dataModels.forEach(dm => {
       expect(getByText(dm.displayName)).toBeInTheDocument();
-      expect(getByAriaLabel(`select ${dm.id}`)).toBeInTheDocument();
     });
+    expect(getAllByAriaLabel(`select item`)).toHaveLength(dataModels.length);
 
     // Single select all 3 Data Models
-    dataModels.forEach((dm, index) => {
-      const checkboxForDataModel = getByAriaLabel(`select ${dm.id}`);
-      fireClickAndMouseEvents(checkboxForDataModel);
-      expect(getByText(`${index + 1} Selected`)).toBeInTheDocument();
-    });
+    getAllByAriaLabel(`select item`).forEach(dm => fireClickAndMouseEvents(dm));
 
     // Deselect third data model
-    const checkedCheckboxForDataModel = getByAriaLabel(`unselect ${dataModels[2].id}`);
+    const checkedCheckboxForDataModel = getAllByAriaLabel(`unselect item`)[2];
     fireClickAndMouseEvents(checkedCheckboxForDataModel);
     expect(getByText('2 Selected')).toBeInTheDocument();
+    expect(getAllByAriaLabel(`unselect item`)).toHaveLength(2);
 
     const massDeleteButton = getByAriaLabel('Delete selected Data Models');
 
@@ -558,9 +558,12 @@ describe('ListDataModels', () => {
       }),
     ];
 
-    const { getByText, findByAriaLabel, getByAriaLabel, queryByText } = render(<ListDataModels />, {
-      mocks,
-    });
+    const { getByText, findByAriaLabel, getAllByAriaLabel, getByAriaLabel, queryByText } = render(
+      <ListDataModels />,
+      {
+        mocks,
+      }
+    );
 
     // Check that select all checkbox is present
     const selectAll = await findByAriaLabel('select all');
@@ -568,17 +571,15 @@ describe('ListDataModels', () => {
     // Check that data models and checkboxes are rendered
     dataModels.forEach(dm => {
       expect(getByText(dm.displayName)).toBeInTheDocument();
-      expect(getByAriaLabel(`select ${dm.id}`)).toBeInTheDocument();
     });
+    expect(getAllByAriaLabel(`select item`)).toHaveLength(dataModels.length);
 
     // Select all data models
     fireClickAndMouseEvents(selectAll);
     expect(getByText('3 Selected')).toBeInTheDocument();
 
     // Check that all data models are selected
-    dataModels.forEach(dm => {
-      expect(getByAriaLabel(`unselect ${dm.id}`)).toBeInTheDocument();
-    });
+    expect(getAllByAriaLabel(`unselect item`)).toHaveLength(dataModels.length);
 
     const massDeleteButton = getByAriaLabel('Delete selected Data Models');
 
