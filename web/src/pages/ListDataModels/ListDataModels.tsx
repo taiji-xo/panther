@@ -25,7 +25,7 @@ import { extractErrorMessage } from 'Helpers/utils';
 import withSEO from 'Hoc/withSEO';
 import useTrackPageView from 'Hooks/useTrackPageView';
 import useRequestParamsWithoutPagination from 'Hooks/useRequestParamsWithoutPagination';
-import { ListDataModelsInput } from 'Generated/schema';
+import { DataModel, ListDataModelsInput } from 'Generated/schema';
 import { PageViewEnum } from 'Helpers/analytics';
 import { compose } from 'Helpers/compose';
 import EmptyDataFallback from './EmptyDataFallback';
@@ -38,7 +38,7 @@ const ListDataModels = () => {
   useTrackPageView(PageViewEnum.ListDataModels);
 
   const { requestParams } = useRequestParamsWithoutPagination<ListDataModelsInput>();
-  const { resetSelection } = useSelect();
+  const { resetSelection } = useSelect<DataModel>();
 
   const { loading, error, data } = useListDataModels({
     fetchPolicy: 'cache-and-network',
@@ -52,8 +52,6 @@ const ListDataModels = () => {
     resetSelection();
   }, [dataModels.length]);
 
-  const dataModelIds = React.useMemo(() => dataModels.map(dm => dm.id), [dataModels]);
-
   if (loading && !data) {
     return <ListDataModelsSkeleton />;
   }
@@ -64,7 +62,7 @@ const ListDataModels = () => {
         <Panel
           title={
             <Flex align="center" spacing={2} ml={4}>
-              {dataModels.length > 0 && <SelectAllCheckbox selectionIds={dataModelIds} />}
+              {dataModels.length > 0 && <SelectAllCheckbox selectionItems={dataModels} />}
               <Text>Data Models</Text>
             </Flex>
           }
@@ -95,4 +93,7 @@ const ListDataModels = () => {
   );
 };
 
-export default compose(withSEO({ title: 'Data Models' }), withSelectContext)(ListDataModels);
+export default compose(
+  withSEO({ title: 'Data Models' }),
+  withSelectContext({ getItemKey: (item: DataModel) => item.id })
+)(ListDataModels);

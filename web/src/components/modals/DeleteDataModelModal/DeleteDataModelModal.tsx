@@ -17,7 +17,7 @@
  */
 
 import React from 'react';
-import { ModalProps, useSnackbar } from 'pouncejs';
+import { Text, ModalProps, useSnackbar } from 'pouncejs';
 import { DataModel } from 'Generated/schema';
 import { extractErrorMessage, toPlural } from 'Helpers/utils';
 import { EventEnum, SrcEnum, trackError, TrackErrorEnum, trackEvent } from 'Helpers/analytics';
@@ -25,32 +25,24 @@ import OptimisticConfirmModal from 'Components/modals/OptimisticConfirmModal';
 import { useDeleteDataModel } from './graphql/deleteDataModel.generated';
 
 export interface DeleteDataModelModalProps extends ModalProps {
-  dataModel?: DataModel;
-  dataModelIds?: string[];
+  dataModels: DataModel[];
 }
 
-const DeleteDataModelModal: React.FC<DeleteDataModelModalProps> = ({
-  dataModel,
-  dataModelIds,
-  ...rest
-}) => {
-  const deleteMultiple = !!dataModelIds;
-  const ids = deleteMultiple ? dataModelIds : [dataModel.id];
-  const dataModelToString = toPlural('Data Model', ids.length);
-
+const DeleteDataModelModal: React.FC<DeleteDataModelModalProps> = ({ dataModels, ...rest }) => {
+  const dataModelToString = toPlural('Data Model', dataModels.length);
   const { pushSnackbar } = useSnackbar();
   const [deleteDataModel] = useDeleteDataModel({
-    variables: { input: { dataModels: ids.map(m => ({ id: m })) } },
+    variables: { input: { dataModels: dataModels.map(m => ({ id: m.id })) } },
     // FIXME: issue: https://github.com/apollographql/apollo-client/issues/5790
     update: cache => {
       cache.modify('ROOT_QUERY', {
-        listDataModels(dataModels, { toReference }) {
-          const deletedDataModels = ids.map(
-            id => toReference({ __typename: 'DataModel', id }).__ref
+        listDataModels(data, { toReference }) {
+          const deletedDataModels = dataModels.map(
+            dm => toReference({ __typename: 'DataModel', id: dm.id }).__ref
           );
           return {
-            ...dataModels,
-            models: dataModels.models.filter(d => !deletedDataModels.includes(d.__ref)),
+            ...data,
+            models: data.models.filter(d => !deletedDataModels.includes(d.__ref)),
           };
         },
       });
@@ -74,10 +66,22 @@ const DeleteDataModelModal: React.FC<DeleteDataModelModalProps> = ({
       onConfirm={deleteDataModel}
       title={`Delete ${dataModelToString}`}
       subtitle={[
-        `Are you sure you want to delete `,
-        <b key={0}>
-          {deleteMultiple ? `${dataModelIds.length} ${dataModelToString}` : dataModel.displayName}?
-        </b>,
+        <Text key={0} maxWidth={480}>
+          Are you sure you want to delete{' '}
+          <b>
+            {dataModels.map((dm, i) => {
+              const dataModel = dm.displayName || dm.id;
+              if (i === 0) {
+                return dataModel;
+              }
+              if (i === dataModels.length - 1) {
+                return ` and ${dataModel}`;
+              }
+              return `, ${dataModel}`;
+            })}
+          </b>
+          ?
+        </Text>,
       ]}
       {...rest}
     />

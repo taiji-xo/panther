@@ -36,7 +36,7 @@ const DataModelCard: React.FC<DataModelCardProps> = ({ dataModel }) => {
     <GenericItemCard>
       <Flex align="start" pr={2}>
         <Box transform="translate3d(0,-8px,0)">
-          <SelectCheckbox selectionId={dataModel.id} />
+          <SelectCheckbox selectionItem={dataModel} />
         </Box>
       </Flex>
       <GenericItemCard.Body>

@@ -21,9 +21,10 @@ import { Button, Flex, Text } from 'pouncejs';
 import { useSelect } from 'Components/utils/SelectContext';
 import useModal from 'Hooks/useModal';
 import { MODALS } from 'Components/utils/Modal';
+import { DataModel } from 'Generated/schema';
 
-const ListAlertSelection: React.FC = () => {
-  const { selection } = useSelect();
+const ListDataModelSelection: React.FC = () => {
+  const { selection } = useSelect<DataModel>();
   const { showModal } = useModal();
 
   return (
@@ -38,7 +39,7 @@ const ListAlertSelection: React.FC = () => {
             return showModal({
               modal: MODALS.DELETE_DATA_MODEL,
               props: {
-                dataModelIds: selection,
+                dataModels: selection,
               },
             });
           }}
@@ -50,4 +51,4 @@ const ListAlertSelection: React.FC = () => {
   );
 };
 
-export default React.memo(ListAlertSelection);
+export default React.memo(ListDataModelSelection);
