@@ -80,13 +80,18 @@ const RuleAlertCard: React.FC<RuleAlertCardProps> = ({
             date={formatDatetime(alert.creationTime)}
           />
         </GenericItemCard.Header>
-        <Text
+        <Box
+          backgroundColor="navyblue-700"
+          borderRadius="small"
+          p={1}
+          mr="auto"
           fontSize="small"
           as="span"
           color={alert.type === AlertTypesEnum.Rule ? 'red-300' : 'teal-500'}
+          textTransform="capitalize"
         >
           {alert.type === AlertTypesEnum.Rule ? 'Rule Match' : 'Rule Error'}
-        </Text>
+        </Box>
         <GenericItemCard.ValuesGroup>
           {!hideRuleButton && (
             <GenericItemCard.Value

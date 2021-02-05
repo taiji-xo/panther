@@ -80,9 +80,18 @@ const PolicyAlertCard: React.FC<PolicyAlertCardProps> = ({
             date={formatDatetime(alert.creationTime)}
           />
         </GenericItemCard.Header>
-        <Text fontSize="small" as="span" color="cyan-400">
+        <Box
+          backgroundColor="navyblue-700"
+          borderRadius="small"
+          p={1}
+          mr="auto"
+          fontSize="small"
+          as="span"
+          color="cyan-400"
+          textTransform="capitalize"
+        >
           Policy Fail
-        </Text>
+        </Box>
         <GenericItemCard.ValuesGroup>
           {!hidePolicyButton && (
             <GenericItemCard.Value
