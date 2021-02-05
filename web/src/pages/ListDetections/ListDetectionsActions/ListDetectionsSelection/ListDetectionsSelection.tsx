@@ -17,28 +17,42 @@
  */
 
 import React from 'react';
-import { Button, Flex, Text } from 'pouncejs';
+import { Box, Button, Flex, Text, Combobox } from 'pouncejs';
+import { Detection } from 'Generated/schema';
 import { useSelect } from 'Components/utils/SelectContext';
 import useModal from 'Hooks/useModal';
 import { MODALS } from 'Components/utils/Modal';
 
+const massActions = ['Delete'] as const;
+type MassActions = typeof massActions[number];
+
 const ListSavedQueriesSelection: React.FC = () => {
-  const { selection, resetSelection } = useSelect();
+  const { selection, resetSelection } = useSelect<Detection>();
+  const [selectedMassAction, setSelectedMassAction] = React.useState<MassActions>(massActions[0]);
   const { showModal } = useModal();
+
+  const handleActionApplication = React.useCallback(() => {
+    if (selectedMassAction === 'Delete') {
+      showModal({
+        modal: MODALS.DELETE_DETECTIONS,
+        props: { detections: selection, onSuccess: resetSelection },
+      });
+    }
+  }, [selectedMassAction]);
 
   return (
     <Flex justify="flex-end" align="center" spacing={4}>
       <Text>{selection.length} Selected</Text>
-      <Button
-        variantColor="red"
-        onClick={() =>
-          showModal({
-            modal: MODALS.DELETE_DETECTION,
-            props: { ids: selection, onConfirm: resetSelection },
-          })
-        }
-      >
-        Delete
+      <Box width={150}>
+        <Combobox
+          onChange={setSelectedMassAction}
+          items={(massActions as unknown) as MassActions[]}
+          value={selectedMassAction}
+          label="Mass Action"
+        />
+      </Box>
+      <Button variantColor="violet" onClick={handleActionApplication}>
+        Apply
       </Button>
     </Flex>
   );

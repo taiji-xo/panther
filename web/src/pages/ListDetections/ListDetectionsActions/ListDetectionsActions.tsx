@@ -17,11 +17,12 @@
  */
 import React from 'react';
 import { useSelect } from 'Components/utils/SelectContext';
+import { Detection } from 'Generated/schema';
 import ListDetectionsSelection from './ListDetectionsSelection';
 import ListDetectionsFilters from './ListDetectionsFilters';
 
 const ListDetectionsActions: React.FC = () => {
-  const { selection } = useSelect();
+  const { selection } = useSelect<Detection>();
   return selection.length ? <ListDetectionsSelection /> : <ListDetectionsFilters />;
 };
 
