@@ -38,6 +38,12 @@ interface GenericItemCardLinkProps {
   to: string;
 }
 
+interface GenericItemCardHeadingValueProps {
+  value: string | number;
+  label?: string;
+  withDivider?: boolean;
+}
+
 interface GenericItemCardComposition {
   Logo: React.FC<GenericItemCardLogoProps>;
   Header: React.FC;
@@ -48,6 +54,7 @@ interface GenericItemCardComposition {
   Value: React.FC<GenericItemCardValueProps>;
   ValuesGroup: React.FC;
   Date: React.FC<GenericItemCardDate>;
+  HeadingValue: React.FC<GenericItemCardHeadingValueProps>;
   LineBreak: React.FC;
 }
 
@@ -76,6 +83,30 @@ const GenericItemCardHeading: React.FC<TextProps> = ({ children, ...rest }) => {
     <Text as="h4" fontWeight="medium" mr="auto" maxWidth="70%" wordBreak="break-word" {...rest}>
       {children}
     </Text>
+  );
+};
+
+const GenericItemCardHeadingValue: React.FC<GenericItemCardHeadingValueProps> = ({
+  value,
+  label,
+  withDivider = true,
+}) => {
+  return (
+    <>
+      <Box fontSize="small" maxWidth="15%" truncated>
+        <Text as="span">{value}</Text>
+        {label && (
+          <Text ml={1} as="span" color="navyblue-100">
+            {label}
+          </Text>
+        )}
+      </Box>
+      {withDivider && (
+        <Text px={2} fontSize="small" as="span" color="navyblue-100">
+          &bull;
+        </Text>
+      )}
+    </>
   );
 };
 
@@ -159,6 +190,7 @@ const GenericItemCardValue: React.FC<GenericItemCardValueProps> = ({ label, valu
     </Flex>
   );
 };
+
 const GenericItemCardLink: React.FC<GenericItemCardLinkProps> = ({ to, ...rest }) => {
   return (
     <RRLink to={to} {...rest}>
@@ -190,5 +222,6 @@ GenericItemCard.Value = GenericItemCardValue;
 GenericItemCard.ValuesGroup = GenericItemCardValuesGroup;
 GenericItemCard.Date = GenericItemCardDate;
 GenericItemCard.LineBreak = GenericItemCardLineBreak;
+GenericItemCard.HeadingValue = GenericItemCardHeadingValue;
 
 export default GenericItemCard;

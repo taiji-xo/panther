@@ -69,6 +69,12 @@ const RuleAlertCard: React.FC<RuleAlertCardProps> = ({
               {alert.title}
             </Link>
           </GenericItemCard.Heading>
+          <GenericItemCard.HeadingValue
+            value={
+              detectionData?.eventsMatched ? detectionData?.eventsMatched.toLocaleString() : '0'
+            }
+            label="Events"
+          />
           <GenericItemCard.Date
             aria-label={`Creation time for ${alert.alertId}`}
             date={formatDatetime(alert.creationTime)}
@@ -107,12 +113,6 @@ const RuleAlertCard: React.FC<RuleAlertCardProps> = ({
           <GenericItemCard.Value
             label="Log Types"
             value={<BulletedValueList values={detectionData.logTypes} limit={2} />}
-          />
-          <GenericItemCard.Value
-            label="Events"
-            value={
-              detectionData?.eventsMatched ? detectionData?.eventsMatched.toLocaleString() : '0'
-            }
           />
           <Flex ml="auto" mr={0} align="flex-end" spacing={2}>
             <SeverityBadge severity={alert.severity} />
