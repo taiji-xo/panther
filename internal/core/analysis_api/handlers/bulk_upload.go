@@ -46,8 +46,6 @@ type writeResult struct {
 	err        error
 }
 
-var logtypes map[string]struct{}
-
 // BulkUpload uploads multiple analysis items from a zipfile.
 func (API) BulkUpload(input *models.BulkUploadInput) *events.APIGatewayProxyResponse {
 	policies, err := extractZipFile(input)
@@ -169,7 +167,7 @@ func extractZipFile(input *models.BulkUploadInput) (map[string]*tableItem, error
 	policyBodies := make(map[string]string) // map base file name to contents
 	result := make(map[string]*tableItem)
 
-	logtypes, err = getLogTypesSet()
+	logtypes, err := getLogTypesSet()
 	if err != nil {
 		return nil, errors.Wrap(err, "BulkUpload extractZipFile getLogTypesSet")
 	}
@@ -203,9 +201,24 @@ func extractZipFile(input *models.BulkUploadInput) (map[string]*tableItem, error
 		default:
 			zap.L().Debug("skipped unsupported file", zap.String("fileName", zipFile.Name))
 		}
-
 		if err != nil {
 			return nil, err
+		}
+
+		itemType := models.DetectionType(strings.ToUpper(config.AnalysisType))
+		if itemType == models.TypeDataModel || itemType == models.TypeRule {
+			resourceTypes := config.ResourceTypes
+			if len(resourceTypes) == 0 {
+				resourceTypes = config.LogTypes
+			}
+			invalidRsc := FirstSetItemNotInMapKeys(resourceTypes, logtypes)
+			if invalidRsc != nil && len(*invalidRsc) > 0 {
+				itemTitle := "DataModel"
+				if itemType == models.TypeRule {
+					itemTitle = "Rule"
+				}
+				return nil, errors.Errorf("%s %s contains invalid log type: %s", itemTitle, config.DisplayName, *invalidRsc)
+			}
 		}
 
 		// Map the Config struct fields over to the fields we need to store in Dynamo
@@ -323,19 +336,6 @@ func tableItemFromConfig(config analysis.Config) (*tableItem, error) {
 		if len(resourceTypes) == 0 {
 			resourceTypes = config.LogTypes
 		}
-
-		// This is essentially a duplicate of the validateLogtypeSet method in validations.go
-		// In bulk upload we only refresh the set of logtypes once. Otherwise we would refresh the set
-		// for each log type in the bulk set.
-		for _, rscType := range resourceTypes {
-			if _, found := logtypes[rscType]; !found {
-				itemTitle := "DataModel"
-				if itemType == models.TypeRule {
-					itemTitle = "Rule"
-				}
-				return nil, errors.Errorf("%s %s contains invalid log type: %s", itemTitle, config.DisplayName, rscType)
-			}
-		}
 	case models.TypePolicy:
 		if err := validResourceTypeSet(resourceTypes); err != nil {
 			return nil, errors.Errorf("Policy %s contains invalid log type: %s", config.DisplayName, err.Error())
@@ -431,3 +431,54 @@ func validateUploadedPolicy(item *tableItem) error {
 	}
 	return nil
 }
+
+
+/*
+itemType := models.DetectionType(strings.ToUpper(config.AnalysisType))
+var resourceTypes []string = config.ResourceTypes
+
+// Validations for valid log and resource types
+switch itemType {
+case models.TypeDataModel, models.TypeRule:
+	if len(resourceTypes) == 0 {
+		resourceTypes = config.LogTypes
+	}
+
+	// This is essentially a duplicate of the validateLogtypeSet method in validations.go
+	// In bulk upload we only refresh the set of logtypes once. Otherwise we would refresh the set
+	// for each log type in the bulk set.
+	for _, rscType := range resourceTypes {
+		if _, found := logtypes[rscType]; !found {
+			itemTitle := "DataModel"
+			if itemType == models.TypeRule {
+				itemTitle = "Rule"
+			}
+			return nil, errors.Errorf("%s %s contains invalid log type: %s", itemTitle, config.DisplayName, rscType)
+		}
+	}
+case models.TypePolicy:
+	if err := validResourceTypeSet(resourceTypes); err != nil {
+		return nil, errors.Errorf("Policy %s contains invalid log type: %s", config.DisplayName, err.Error())
+	}
+}
+
+// var logtypes map[string]struct{}
+
+for _, lt := range logtypes {
+	if _, found := logtypeSetMap[lt]; !found {
+		return errors.Errorf("%s", lt)
+	}
+}
+// This is essentially a duplicate of the validateLogtypeSet method in validations.go
+// In bulk upload we only refresh the set of logtypes once. Otherwise we would refresh the set
+// for each log type in the bulk set.
+for _, rscType := range resourceTypes {
+	if _, found := logtypes[rscType]; !found {
+		itemTitle := "DataModel"
+		if itemType == models.TypeRule {
+			itemTitle = "Rule"
+		}
+		return nil, errors.Errorf("%s %s contains invalid log type: %s", itemTitle, config.DisplayName, rscType)
+	}
+}
+*/

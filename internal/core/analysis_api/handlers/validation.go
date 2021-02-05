@@ -62,9 +62,18 @@ func validateLogtypeSet(logtypes []string) error {
 	if err != nil {
 		return err
 	}
-	for _, lt := range logtypes {
-		if _, found := logtypeSetMap[lt]; !found {
-			return errors.Errorf("%s", lt)
+	firstMissing := FirstSetItemNotInMapKeys(logtypes, logtypeSetMap)
+	if firstMissing != nil && len(*firstMissing) > 0 {
+		return errors.Errorf("%s", *firstMissing)
+	}
+	return nil
+}
+
+// Returns the first set entry not found as a key in the searchMap
+func FirstSetItemNotInMapKeys(itemSet []string, searchMap map[string]struct{}) *string {
+	for _, item := range itemSet {
+		if _, found := searchMap[item]; !found {
+			return &item
 		}
 	}
 	return nil
