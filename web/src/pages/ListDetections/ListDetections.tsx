@@ -36,7 +36,7 @@ import { PolicySummary } from 'Source/graphql/fragments/PolicySummary.generated'
 import { DEFAULT_SMALL_PAGE_SIZE } from 'Source/constants';
 import ListDetectionsPageSkeleton from './Skeleton';
 import ListDetectionsPageEmptyDataFallback from './EmptyDataFallback';
-import ListDetectionsFilters from './ListDetectionsFilters';
+import ListDetectionsActions from './ListDetectionsActions';
 import { useListDetections } from './graphql/listDetections.generated';
 
 const ListDetections = () => {
@@ -82,7 +82,7 @@ const ListDetections = () => {
   //  Check how many active filters exist by checking how many columns keys exist in the URL
   return (
     <ErrorBoundary>
-      <Panel title="Detections" actions={<ListDetectionsFilters />}>
+      <Panel title="Detections" actions={<ListDetectionsActions />}>
         <Card as="section" position="relative">
           <Box position="relative">
             <Flex direction="column" spacing={2}>
