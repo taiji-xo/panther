@@ -89,6 +89,9 @@ type SourceIntegrationMetadata struct {
 }
 
 type ManagedS3Resources struct {
+	// Storing the topic's ARN
+	// - saves us from an extra network call when checking whether Panther managed to create the topic
+	// - we don't ever delete it from AWS, so we need to show to the user the exact resource that will be kept.
 	TopicARN *string `json:"topicARN"`
 	// Only the IDs from configurations that Panther manages. The bucket may have
 	// other user-created topic configurations as well.
