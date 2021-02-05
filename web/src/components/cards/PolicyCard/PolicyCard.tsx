@@ -35,21 +35,24 @@ import PolicyCardOptions from './PolicyCardOptions';
 interface PolicyCardProps {
   policy: PolicySummary;
   selectionEnabled?: boolean;
+  isSelected?: boolean;
 }
 
-const PolicyCard: React.FC<PolicyCardProps> = ({ policy, selectionEnabled = false }) => {
+const PolicyCard: React.FC<PolicyCardProps> = ({
+  policy,
+  selectionEnabled = false,
+  isSelected = false,
+}) => {
   const {
     detectionDestinations,
     loading: loadingDetectionDestinations,
   } = useDetectionDestinations({ detection: policy });
   return (
-    <GenericItemCard>
+    <GenericItemCard isHighlighted={isSelected}>
       {selectionEnabled && (
-        <Flex align="start" pr={2}>
-          <Box transform="translate3d(0,-8px,0)">
-            <SelectCheckbox selectionItem={policy.id} />
-          </Box>
-        </Flex>
+        <Box transform="translate3d(-12px,-12px,0)">
+          <SelectCheckbox selectionItem={policy} />
+        </Box>
       )}
       <GenericItemCard.Body>
         <GenericItemCard.Header>

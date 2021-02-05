@@ -35,21 +35,24 @@ import RuleCardOptions from './RuleCardOptions';
 interface RuleCardProps {
   rule: RuleSummary;
   selectionEnabled?: boolean;
+  isSelected?: boolean;
 }
 
-const RuleCard: React.FC<RuleCardProps> = ({ rule, selectionEnabled = false }) => {
+const RuleCard: React.FC<RuleCardProps> = ({
+  rule,
+  selectionEnabled = false,
+  isSelected = false,
+}) => {
   const {
     detectionDestinations,
     loading: loadingDetectionDestinations,
   } = useDetectionDestinations({ detection: rule });
   return (
-    <GenericItemCard>
+    <GenericItemCard isHighlighted={isSelected}>
       {selectionEnabled && (
-        <Flex align="start" pr={2}>
-          <Box transform="translate3d(0,-8px,0)">
-            <SelectCheckbox selectionItem={rule.id} />
-          </Box>
-        </Flex>
+        <Box transform="translate3d(-12px,-12px,0)">
+          <SelectCheckbox selectionItem={rule} />
+        </Box>
       )}
       <GenericItemCard.Body>
         <GenericItemCard.Header>
