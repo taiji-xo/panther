@@ -20,8 +20,6 @@ package api
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
@@ -72,10 +70,7 @@ func (api *API) DeleteIntegration(input *models.DeleteIntegrationInput) error {
 
 		if integrationItem.ManagedBucketNotifications {
 			source := itemToIntegration(integrationItem)
-			stsSess := session.Must(session.NewSession(&aws.Config{
-				Credentials: stscreds.NewCredentials(api.AwsSession, source.RequiredLogProcessingRole()),
-			}))
-			err = RemoveBucketNotifications(stsSess, source)
+			err = RemoveBucketNotifications(api.AwsSession, source)
 			if err != nil {
 				zap.L().Error("failed to remove bucket notifications",
 					zap.Error(err), zap.String("integrationId", input.IntegrationID))
