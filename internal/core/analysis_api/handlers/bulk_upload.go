@@ -205,27 +205,14 @@ func extractZipFile(input *models.BulkUploadInput) (map[string]*tableItem, error
 			return nil, err
 		}
 
-		itemType := models.DetectionType(strings.ToUpper(config.AnalysisType))
-		if itemType == models.TypeDataModel || itemType == models.TypeRule {
-			resourceTypes := config.ResourceTypes
-			if len(resourceTypes) == 0 {
-				resourceTypes = config.LogTypes
-			}
-			invalidRsc := FirstSetItemNotInMapKeys(resourceTypes, logtypes)
-			if invalidRsc != nil && len(*invalidRsc) > 0 {
-				itemTitle := "DataModel"
-				if itemType == models.TypeRule {
-					itemTitle = "Rule"
-				}
-				return nil, errors.Errorf("%s %s contains invalid log type: %s", itemTitle, config.DisplayName, *invalidRsc)
-			}
-		}
-
-		// Map the Config struct fields over to the fields we need to store in Dynamo
-		analysisItem, err := tableItemFromConfig(config)
+		// Check for invalid log or resource types
+		err = bulkValidateLogAndResourceTypes(config, logtypes)
 		if err != nil {
 			return nil, err
 		}
+
+		// Map the Config struct fields over to the fields we need to store in Dynamo
+		analysisItem := tableItemFromConfig(config)
 
 		if analysisItem.Type == models.TypeDataModel {
 			// ensure Mappings are nil rather than an empty slice
@@ -313,6 +300,32 @@ func buildRuleTest(test analysis.Test) (models.UnitTest, error) {
 	}, err
 }
 
+// Validate the analysis item's Resource type or Log type depending on the config AnalysisType.
+// Passing the logtypes allows us to retrieve the set of valid log types once for a set of validations
+func bulkValidateLogAndResourceTypes(config analysis.Config, logtypes map[string]struct{}) error {
+	itemType := models.DetectionType(strings.ToUpper(config.AnalysisType))
+	resourceTypes := config.ResourceTypes
+	switch itemType {
+	case models.TypeDataModel, models.TypeRule:
+		if len(resourceTypes) == 0 {
+			resourceTypes = config.LogTypes
+		}
+		invalidRsc := FirstSetItemNotInMapKeys(resourceTypes, logtypes)
+		if invalidRsc != nil && len(*invalidRsc) > 0 {
+			itemTitle := "DataModel"
+			if itemType == models.TypeRule {
+				itemTitle = "Rule"
+			}
+			return errors.Errorf("%s %s contains invalid log type: %s", itemTitle, config.DisplayName, *invalidRsc)
+		}
+	case models.TypePolicy:
+		if err := validResourceTypeSet(resourceTypes); err != nil {
+			return errors.Errorf("Policy %s contains invalid log type: %s", config.DisplayName, err.Error())
+		}
+	}
+	return nil
+}
+
 func readZipFile(zf *zip.File) ([]byte, error) {
 	f, err := zf.Open()
 	if err != nil {
@@ -326,22 +339,7 @@ func readZipFile(zf *zip.File) ([]byte, error) {
 	return ioutil.ReadAll(f)
 }
 
-func tableItemFromConfig(config analysis.Config) (*tableItem, error) {
-	itemType := models.DetectionType(strings.ToUpper(config.AnalysisType))
-	var resourceTypes []string = config.ResourceTypes
-
-	// Validations for valid log and resource types
-	switch itemType {
-	case models.TypeDataModel, models.TypeRule:
-		if len(resourceTypes) == 0 {
-			resourceTypes = config.LogTypes
-		}
-	case models.TypePolicy:
-		if err := validResourceTypeSet(resourceTypes); err != nil {
-			return nil, errors.Errorf("Policy %s contains invalid log type: %s", config.DisplayName, err.Error())
-		}
-	}
-
+func tableItemFromConfig(config analysis.Config) *tableItem {
 	item := tableItem{
 		AutoRemediationID:         config.AutoRemediationID,
 		AutoRemediationParameters: config.AutoRemediationParameters,
@@ -355,13 +353,13 @@ func tableItemFromConfig(config analysis.Config) (*tableItem, error) {
 		ID:            config.PolicyID,
 		OutputIDs:     config.OutputIds,
 		Reference:     config.Reference,
-		ResourceTypes: resourceTypes,
+		ResourceTypes: config.ResourceTypes,
 		Runbook:       config.Runbook,
 		Severity:      compliancemodels.Severity(strings.ToUpper(config.Severity)),
 		Suppressions:  config.Suppressions,
 		Tags:          config.Tags,
 		Tests:         make([]models.UnitTest, len(config.Tests)),
-		Type:          itemType,
+		Type:          models.DetectionType(strings.ToUpper(config.AnalysisType)),
 		Reports:       config.Reports,
 		Threshold:     config.Threshold,
 	}
@@ -374,26 +372,37 @@ func tableItemFromConfig(config analysis.Config) (*tableItem, error) {
 		} else {
 			item.DedupPeriodMinutes = config.DedupPeriodMinutes
 		}
+
 		// If there is no value set, default to 1
 		if config.Threshold == 0 {
 			item.Threshold = defaultRuleThreshold
 		} else {
 			item.Threshold = config.Threshold
 		}
+
 		// These "syntax sugar" re-mappings are to make managing rules from the CLI more intuitive
 		if config.PolicyID == "" {
 			item.ID = config.RuleID
 		}
+		if len(config.ResourceTypes) == 0 {
+			item.ResourceTypes = config.LogTypes
+		}
+
 	case models.TypeGlobal:
 		item.ID = config.GlobalID
+		// Support non-ID'd globals as the 'panther' global
 		if item.ID == "" {
 			item.ID = "panther"
 		}
+
 	case models.TypeDataModel:
 		item.ID = config.DataModelID
+		if len(config.ResourceTypes) == 0 {
+			item.ResourceTypes = config.LogTypes
+		}
 	}
 
-	return &item, nil
+	return &item
 }
 
 // Data Model Validations: len(ResourceTypes) <= 1, Single Model Enabled
