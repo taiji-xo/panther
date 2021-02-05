@@ -23,35 +23,47 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
+
+	"github.com/panther-labs/panther/pkg/awsbatch/dynamodbbatch"
+
 )
 
+// Explicitely delete columns in the panther-resources table where the table entry deleted is equal
+// to the entrydeleted contant
 const tableName = "panther-resources"
-const delVal = true
+const entrydeleted = true
+
+// Max Back Off is used in the request dynamodb batch write items
+const maxBackoff = 10 * time.Second
 
 func main() {
-
 	// AWS Session construction
 	sessOpts := session.Options{SharedConfigState: session.SharedConfigEnable}
 	awsSession := session.Must(session.NewSessionWithOptions(sessOpts))
 	client := dynamodb.New(awsSession)
 
 	// Query expression
-	proj := expression.NamesList(expression.Name("id"), expression.Name("deleted"))
-	filt := expression.Name("deleted").Equal(expression.Value(delVal))
+	proj := expression.NamesList(expression.Name("id"))
+
+	// If you would like to see the value of deleted (or any other field) add it to the projection
+	// names set.
+	// proj := expression.NamesList(expression.Name("id"), expression.Name("deleted"))
+
+	filt := expression.Name("deleted").Equal(expression.Value(entrydeleted))
 	expr, err := expression.NewBuilder().WithFilter(filt).WithProjection(proj).Build()
 	if err != nil {
-		fmt.Println("Got error building expression:")
-		log.Fatal(err)
+		log.Fatalf("Got error building expression: %s", err)
 	}
 
-	// Query Input
+	// Scan entries with the specified expression above
+	// https://docs.aws.amazon.com/sdk-for-go/api/service/dynamodb/#ScanInput
 	input := &dynamodb.ScanInput{
-		// ConsistentRead:       aws.Bool(true),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 		FilterExpression:          expr.Filter(),
@@ -59,25 +71,31 @@ func main() {
 		TableName:                 aws.String(tableName),
 	}
 
+	var deleteRequests []*dynamodb.WriteRequest
+
   // Scan for deleted entries
 	err = client.ScanPages(input, func(page *dynamodb.ScanOutput, lastPage bool) bool {
 		for _, item := range page.Items {
-			fmt.Printf("%v\n", item)
-			_, err := client.DeleteItem(&dynamodb.DeleteItemInput{
-				Key: map[string]*dynamodb.AttributeValue{
-					"id": item["id"],
-				},
-				TableName: aws.String(tableName),
+			// Useful for troubleshooting:
+			// fmt.Printf("%v\n", item)
+			deleteRequests = append(deleteRequests, &dynamodb.WriteRequest{
+				DeleteRequest: &dynamodb.DeleteRequest{Key: item},
 			})
-			if err != nil {
-				log.Fatal(err)
-			}
 		}
 		return true
 	})
 
 	if err != nil {
-		fmt.Println("Got error Scanning Pages:")
-		log.Fatal(err)
+		log.Fatalf("Scan pages error: %s", err)
+	}
+
+	// Batch delete all items
+	err = dynamodbbatch.BatchWriteItem(client, maxBackoff, &dynamodb.BatchWriteItemInput{
+		RequestItems: map[string][]*dynamodb.WriteRequest{tableName: deleteRequests},
+	})
+	
+	// Batch Write Error
+	if err != nil {
+		log.Fatalf("BatchWriteItem error: %s", err)
 	}
 }
