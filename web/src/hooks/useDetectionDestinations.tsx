@@ -20,7 +20,7 @@ import { Destination, Policy, Rule } from 'Generated/schema';
 import { useListDestinations } from 'Source/graphql/queries';
 
 interface UseDetectionDestinationsProps {
-  detection: Rule | Policy;
+  detection: Pick<Rule | Policy, 'severity' | 'outputIds'>;
 }
 
 interface UseDetectionDestinationsResponse {
@@ -42,9 +42,11 @@ const useDetectionDestinations = ({
     }
 
     if (detection.outputIds.length) {
-      return detection.outputIds.map(outputId => {
-        return destinations.destinations.find(dest => dest.outputId === outputId);
-      });
+      return detection.outputIds
+        .map(outputId => {
+          return destinations.destinations.find(dest => dest.outputId === outputId);
+        })
+        .filter(Boolean);
     }
     return destinations.destinations.filter(dest => {
       return dest.defaultForSeverity.some(sev => sev === detection.severity);
