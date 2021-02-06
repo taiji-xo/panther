@@ -71,26 +71,26 @@ type PollPacksInput struct {
 }
 
 type Pack struct {
-	Enabled           bool             `json:"enabled"`
-	UpdateAvailable   bool             `json:"updateAvailable"`
-	CreatedBy         string           `json:"createdBy"`
-	Description       string           `json:"description"`
-	DisplayName       string           `json:"displayName"`
-	PackVersion       Version          `json:"packVersion"`
-	ID                string           `json:"id" validate:"required,max=1000,excludesall='<>&\""`
-	LastModifiedBy    string           `json:"lastModifiedBy"`
-	CreatedAt         time.Time        `json:"createdAt"`
-	LastModified      time.Time        `json:"lastModified"`
-	AvailableVersions []Version        `json:"availableVersions"`
-	DetectionPattern  DetectionPattern `json:"detectionPatterns"`
-	DetectionTypes    []DetectionType  `json:"detectionTypes"`
+	Enabled           bool                  `json:"enabled"`
+	UpdateAvailable   bool                  `json:"updateAvailable"`
+	CreatedBy         string                `json:"createdBy"`
+	Description       string                `json:"description"`
+	DisplayName       string                `json:"displayName"`
+	PackVersion       Version               `json:"packVersion"`
+	ID                string                `json:"id" validate:"required,max=1000,excludesall='<>&\""`
+	LastModifiedBy    string                `json:"lastModifiedBy"`
+	CreatedAt         time.Time             `json:"createdAt"`
+	LastModified      time.Time             `json:"lastModified"`
+	AvailableVersions []Version             `json:"availableVersions"`
+	PackDefinition    PackDefinition        `json:"packDefinition"`
+	PackTypes         map[DetectionType]int `json:"packTypes"`
 }
 
-type DetectionPattern struct {
+type PackDefinition struct {
 	IDs []string `json:"IDs"`
 }
 
 type Version struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
+	ID     int64  `json:"id"`
+	SemVer string `json:"semVer"`
 }

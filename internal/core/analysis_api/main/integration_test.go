@@ -171,11 +171,11 @@ var (
 	}
 	packOriginalRelease = &models.Pack{
 		AvailableVersions: []models.Version{
-			{ID: 35328828, Name: "v1.14.0"},
+			{ID: 35328828, SemVer: "v1.14.0"},
 		},
 		CreatedBy:   systemUserID,
 		Description: "This pack is an example",
-		DetectionPattern: models.DetectionPattern{
+		PackDefinition: models.PackDefinition{
 			IDs: []string{
 				"AWS.CloudTrail.Created",
 				"AWS.Console.LoginFailed",
@@ -186,11 +186,13 @@ var (
 		ID:             "Sample.Pack.ID",
 		LastModifiedBy: systemUserID,
 		PackVersion: models.Version{
-			ID:   35328828,
-			Name: "v1.14.0",
+			ID:     35328828,
+			SemVer: "v1.14.0",
 		},
 		UpdateAvailable: false,
-		DetectionTypes:  []models.DetectionType{models.TypeRule},
+		PackTypes: map[models.DetectionType]int{
+			models.TypeRule: 3,
+		},
 	}
 )
 
@@ -2723,8 +2725,8 @@ func pollPacks(t *testing.T) {
 	input = models.LambdaInput{
 		PollPacks: &models.PollPacksInput{
 			ReleaseVersion: models.Version{
-				ID:   35328828,
-				Name: "v1.14.0",
+				ID:     35328828,
+				SemVer: "v1.14.0",
 			},
 		},
 	}

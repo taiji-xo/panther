@@ -123,8 +123,8 @@ func listAvailableGithubReleases(config githubwrapper.Config) ([]models.Version,
 		}
 		if version.GreaterThanOrEqual(minimumVersion) {
 			newVersion := models.Version{
-				ID:   *release.ID,
-				Name: *release.TagName,
+				ID:     *release.ID,
+				SemVer: *release.TagName,
 			}
 			availableVersions = append(availableVersions, newVersion)
 		}
@@ -137,7 +137,7 @@ func validateGithubVersion(config githubwrapper.Config, version models.Version) 
 	versionName, err := githubClient.GetReleaseTagName(context.TODO(), config, version.ID)
 	if err != nil {
 		return err
-	} else if versionName != version.Name {
+	} else if versionName != version.SemVer {
 		return errInvalidVersion
 	}
 	return nil

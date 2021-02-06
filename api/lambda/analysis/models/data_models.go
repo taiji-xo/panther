@@ -34,6 +34,9 @@ type ListDataModelsInput struct {
 	// Only include data models which are enabled or disabled
 	Enabled *bool `json:"enabled"`
 
+	// Only include data models with the following ids
+	IDs []string `json:"ids" validate:"max=1000"`
+
 	// Only include data models whose ID contains this substring (case-insensitive)
 	NameContains string `json:"nameContains"`
 

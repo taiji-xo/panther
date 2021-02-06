@@ -88,6 +88,14 @@ func dataModelScanInput(input *models.ListDataModelsInput) (*dynamodb.ScanInput,
 			expression.Name("enabled"), expression.Value(*input.Enabled)))
 	}
 
+	if len(input.IDs) > 0 {
+		idFilter := expression.Contains(expression.Name("lowerId"), strings.ToLower(input.IDs[0]))
+		for _, id := range input.IDs[1:] {
+			idFilter = idFilter.Or(expression.Contains(expression.Name("lowerId"), strings.ToLower(id)))
+		}
+		filters = append(filters, idFilter)
+	}
+
 	if input.NameContains != "" {
 		filters = append(filters, expression.Contains(expression.Name("lowerId"), input.NameContains).
 			Or(expression.Contains(expression.Name("lowerDisplayName"), input.NameContains)))

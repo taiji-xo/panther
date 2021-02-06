@@ -157,6 +157,7 @@ func detectionScanInput(input *models.ListDetectionsInput) (*dynamodb.ScanInput,
 	listFilters := pythonFilters{
 		CreatedBy:      input.CreatedBy,
 		Enabled:        input.Enabled,
+		IDs:            input.IDs,
 		InitialSet:     input.InitialSet,
 		LastModifiedBy: input.LastModifiedBy,
 		NameContains:   input.NameContains,
