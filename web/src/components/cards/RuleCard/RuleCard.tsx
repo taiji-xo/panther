@@ -18,7 +18,7 @@
 
 import React from 'react';
 import GenericItemCard from 'Components/GenericItemCard';
-import { Flex, Link, SimpleGrid, Text } from 'pouncejs';
+import { Box, Divider, Flex, Link, SimpleGrid } from 'pouncejs';
 import { Link as RRLink } from 'react-router-dom';
 import SeverityBadge from 'Components/badges/SeverityBadge';
 import StatusBadge from 'Components/badges/StatusBadge';
@@ -56,34 +56,38 @@ const RuleCard: React.FC<RuleCardProps> = ({ rule }) => {
           <GenericItemCard.Date date={formatDatetime(rule.lastModified)} />
           <RuleCardOptions rule={rule} />
         </GenericItemCard.Header>
-        <Text fontSize="small" as="span" color="cyan-500">
+        <Box
+          backgroundColor="navyblue-700"
+          borderRadius="small"
+          p={1}
+          mr="auto"
+          fontSize="small"
+          as="span"
+          color="cyan-500"
+          textTransform="capitalize"
+        >
           Rule
-        </Text>
+        </Box>
         <SimpleGrid gap={2} columns={2}>
-          <GenericItemCard.ValuesGroup>
-            <GenericItemCard.Value
-              label="Log Types"
-              value={<BulletedValueList values={rule.logTypes} limit={2} />}
-            />
-            <GenericItemCard.Value
-              label="Destinations"
-              value={
-                <RelatedDestinations
-                  destinations={detectionDestinations}
-                  loading={loadingDetectionDestinations}
-                />
-              }
-            />
-          </GenericItemCard.ValuesGroup>
-          <GenericItemCard.ValuesGroup>
-            <Flex ml="auto" mr={0} align="flex-end" spacing={4}>
+          <GenericItemCard.Value
+            label="Log Types"
+            value={<BulletedValueList values={rule.logTypes} limit={3} />}
+          />
+          <Flex align="flex-end">
+            <Flex spacing={2} align="center" width="100%" justify="flex-end">
+              <RelatedDestinations
+                destinations={detectionDestinations}
+                loading={loadingDetectionDestinations}
+                limit={3}
+              />
+              <Divider mx={0} alignSelf="stretch" orientation="vertical"></Divider>
               <StatusBadge
                 status={rule.enabled ? 'ENABLED' : ComplianceStatusEnum.Error}
                 disabled={!rule.enabled}
               />
               <SeverityBadge severity={rule.severity} />
             </Flex>
-          </GenericItemCard.ValuesGroup>
+          </Flex>
         </SimpleGrid>
       </GenericItemCard.Body>
     </GenericItemCard>

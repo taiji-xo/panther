@@ -18,7 +18,7 @@
 
 import React from 'react';
 import GenericItemCard from 'Components/GenericItemCard';
-import { Flex, Link, SimpleGrid, Text } from 'pouncejs';
+import { Box, Divider, Flex, Link, SimpleGrid } from 'pouncejs';
 import { Link as RRLink } from 'react-router-dom';
 import SeverityBadge from 'Components/badges/SeverityBadge';
 import StatusBadge from 'Components/badges/StatusBadge';
@@ -56,27 +56,31 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ policy }) => {
           <GenericItemCard.Date date={formatDatetime(policy.lastModified)} />
           <PolicyCardOptions policy={policy} />
         </GenericItemCard.Header>
-        <Text fontSize="small" as="span" color="indigo-300">
+        <Box
+          backgroundColor="navyblue-700"
+          borderRadius="small"
+          p={1}
+          mr="auto"
+          fontSize="small"
+          as="span"
+          color="indigo-300"
+          textTransform="capitalize"
+        >
           Policy
-        </Text>
+        </Box>
         <SimpleGrid gap={2} columns={2}>
-          <GenericItemCard.ValuesGroup>
-            <GenericItemCard.Value
-              label="Resource Types"
-              value={<BulletedValueList values={policy.resourceTypes} limit={2} />}
-            />
-            <GenericItemCard.Value
-              label="Destinations"
-              value={
-                <RelatedDestinations
-                  destinations={detectionDestinations}
-                  loading={loadingDetectionDestinations}
-                />
-              }
-            />
-          </GenericItemCard.ValuesGroup>
-          <GenericItemCard.ValuesGroup>
-            <Flex ml="auto" mr={0} align="flex-end" spacing={4}>
+          <GenericItemCard.Value
+            label="Resource Types"
+            value={<BulletedValueList values={policy.resourceTypes} limit={3} />}
+          />
+          <Flex align="flex-end">
+            <Flex spacing={2} align="center" width="100%" justify="flex-end">
+              <RelatedDestinations
+                destinations={detectionDestinations}
+                loading={loadingDetectionDestinations}
+                limit={3}
+              />
+              <Divider mx={0} alignSelf="stretch" orientation="vertical"></Divider>
               <StatusBadge status={policy.complianceStatus} />
               <StatusBadge
                 status={policy.enabled ? 'ENABLED' : ComplianceStatusEnum.Error}
@@ -84,7 +88,7 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ policy }) => {
               />
               <SeverityBadge severity={policy.severity} />
             </Flex>
-          </GenericItemCard.ValuesGroup>
+          </Flex>
         </SimpleGrid>
       </GenericItemCard.Body>
     </GenericItemCard>

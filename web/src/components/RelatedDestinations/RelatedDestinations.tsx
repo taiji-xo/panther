@@ -92,7 +92,7 @@ const RelatedDestinations: React.FC<RelatedDestinationsSectionProps> = ({
   }
 
   return (
-    <Flex align="center" minWidth={85} spacing={2}>
+    <Flex align="center" spacing={2}>
       <LimitItemDisplay limit={limit}>{sortedDestinations.map(getLogo)}</LimitItemDisplay>
     </Flex>
   );

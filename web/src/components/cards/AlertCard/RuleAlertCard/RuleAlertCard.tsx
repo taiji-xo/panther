@@ -17,7 +17,7 @@
  */
 
 import GenericItemCard from 'Components/GenericItemCard';
-import { Flex, Icon, Link, Text, Box } from 'pouncejs';
+import { Flex, Icon, Link, Text, Box, Divider, SimpleGrid } from 'pouncejs';
 import { AlertSummaryRuleInfo, AlertTypesEnum } from 'Generated/schema';
 import { Link as RRLink } from 'react-router-dom';
 import SeverityBadge from 'Components/badges/SeverityBadge';
@@ -92,38 +92,38 @@ const RuleAlertCard: React.FC<RuleAlertCardProps> = ({
         >
           {alert.type === AlertTypesEnum.Rule ? 'Rule Match' : 'Rule Error'}
         </Box>
-        <GenericItemCard.ValuesGroup>
-          {!hideRuleButton && (
-            <GenericItemCard.Value
-              label="Rule"
-              value={
-                <Flex spacing={2}>
-                  <Text display="inline-flex" alignItems="center" as="span">
-                    {detectionData.ruleId}
-                  </Text>
-                  <GenericItemCard.Link
-                    aria-label={`Link to rule ${detectionData.ruleId}`}
-                    to={urls.logAnalysis.rules.details(detectionData.ruleId)}
-                  />
-                </Flex>
-              }
-            />
-          )}
-          <GenericItemCard.Value
-            label="Destinations"
-            value={
-              <RelatedDestinations destinations={alertDestinations} loading={loadingDestinations} />
-            }
-          />
+        <SimpleGrid gap={2} columns={3}>
+          <Box>
+            {!hideRuleButton && (
+              <GenericItemCard.Value
+                label="Rule"
+                value={
+                  <Flex spacing={2}>
+                    <Text display="inline-flex" alignItems="center" as="span">
+                      {detectionData.ruleId}
+                    </Text>
+                    <GenericItemCard.Link
+                      aria-label={`Link to rule ${detectionData.ruleId}`}
+                      to={urls.logAnalysis.rules.details(detectionData.ruleId)}
+                    />
+                  </Flex>
+                }
+              />
+            )}
+          </Box>
           <GenericItemCard.Value
             label="Log Types"
             value={<BulletedValueList values={detectionData.logTypes} limit={2} />}
           />
-          <Flex ml="auto" mr={0} align="flex-end" spacing={2}>
-            <SeverityBadge severity={alert.severity} />
-            <UpdateAlertDropdown alert={alert} />
+          <Flex align="flex-end">
+            <Flex spacing={2} align="center" width="100%" justify="flex-end">
+              <RelatedDestinations destinations={alertDestinations} loading={loadingDestinations} />
+              <Divider mx={0} alignSelf="stretch" orientation="vertical"></Divider>
+              <SeverityBadge severity={alert.severity} />
+              <UpdateAlertDropdown alert={alert} />
+            </Flex>
           </Flex>
-        </GenericItemCard.ValuesGroup>
+        </SimpleGrid>
         {!loading && !allDestinationDeliveredSuccessfully && (
           <Flex
             as="section"
