@@ -21,47 +21,46 @@ package main
  */
 
 import (
-	"time"
-	"os"
 	"log"
+	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
-
-	"github.com/panther-labs/panther/pkg/awsbatch/dynamodbbatch"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/panther-labs/panther/pkg/awsbatch/dynamodbbatch"
 )
 
-// Explicitely delete columns in the panther-resources table where the table entry deleted is equal
-// to the entrydeleted contant
+// Flush table
 const tableName = "panther-resources"
-const entrydeleted = true
 
-// Max Back Off is used in the request dynamodb batch write items
-const maxBackoff = 10 * time.Second
+// Explicitly delete columns in the panther-resources table where the table entry deleted is equal
+// to the entrydeleted contant
+const entrydeleted = true
 
 var awsSession *session.Session
 var sugar *zap.SugaredLogger
 
+// Init creates the aws session and script logger
 func init() {
 	awsSession = session.Must(session.NewSession())
 	logger, err := zap.Config{
-		Encoding: "console",
-		Level: zap.NewAtomicLevelAt(zapcore.DebugLevel),
+		Encoding:    "console",
+		Level:       zap.NewAtomicLevelAt(zapcore.DebugLevel),
 		OutputPaths: []string{"stdout"},
 		EncoderConfig: zapcore.EncoderConfig{
-				MessageKey:   "message",
-				// Useful for debugging:
-				// LevelKey:     "level",
-				// EncodeLevel:  zapcore.CapitalLevelEncoder,
-				// TimeKey:      "time",
-				// EncodeTime:   zapcore.ISO8601TimeEncoder,
-				// CallerKey:    "caller",
-				// EncodeCaller: zapcore.ShortCallerEncoder,
+			MessageKey: "message",
+			// Useful for debugging:
+			// LevelKey:     "level",
+			// EncodeLevel:  zapcore.CapitalLevelEncoder,
+			// TimeKey:      "time",
+			// EncodeTime:   zapcore.ISO8601TimeEncoder,
+			// CallerKey:    "caller",
+			// EncodeCaller: zapcore.ShortCallerEncoder,
 		},
 	}.Build()
 	if err != nil {
@@ -70,12 +69,11 @@ func init() {
 	sugar = logger.Sugar()
 }
 
-
 func main() {
-
 	sugar.Info("\nFlush Resource Table entries where deleted=true")
 	sugar.Infof("AWS_REGION=%v", *awsSession.Config.Region)
 
+	// init dynamodb svc client
 	client := dynamodb.New(awsSession)
 
 	// Dynamdb scan expression If you would like to see the value of deleted (or any other field) add
@@ -132,6 +130,7 @@ func main() {
 	}
 
 	// Execute the batch deletions
+	maxBackoff := 10 * time.Second
 	if err = dynamodbbatch.BatchWriteItem(client, maxBackoff, batchWriteInput); err != nil {
 		sugar.Errorf("BatchWriteItem error: %s\n", err)
 		os.Exit(1)
@@ -140,3 +139,5 @@ func main() {
 	sugar.Infof("Flushed %v deleted entries\n", len(deleteRequests))
 	os.Exit(0)
 }
+
+// Max Back Off is used in the request dynamodb batch write items
