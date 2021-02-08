@@ -49,7 +49,6 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, logo, ch
           />
           <DestinationCardOptions destination={destination} />
         </GenericItemCard.Header>
-
         <GenericItemCard.ValuesGroup>
           <GenericItemCard.Value
             label="Alert Types"
