@@ -7,7 +7,11 @@ Parameters:
     Description: Enter the 12 Digit AWS Panther Master AccountID located in Panther under General > Settings.
   PantherRulesEngineRoleName:
     Type: String
-    Description: Enter the name of the Panther Rules Engine Role Name which can be found under IAM by searching "rules" in the Panther Master Account.
+    Description: Enter the name of the Panther Rules Engine Role name which can be found in the AWS Console under IAM by searching "rules" in the Panther Master Account.
+  SecretName:
+    Type: String
+    Default: NoSecret
+    Description: Enter the name of the Secret in Secrets Manger that will be accessible from the Panther Rules Engine.
   TargetBucketName:
     Type: String
     Description: Enter the S3 Bucket that the Panther Rules Engine can Read from.
@@ -33,18 +37,23 @@ Resources:
                 Action:
                   - s3:Get*
                   - s3:List*
-                Resource: !Sub arn:aws:s3:::${TargetBucketName}/*
+                Resource:
+                  - !Sub arn:aws:s3:::${TargetBucketName}
+                  - !Sub arn:aws:s3:::${TargetBucketName}/*
               - Effect: Allow
                 Action:
                   - secretsmanager:GetResourcePolicy
                   - secretsmanager:GetSecretValue
                   - secretsmanager:DescribeSecret
                   - secretsmanager:ListSecretVersionIds
-                Resource: arn:aws:secretsmanager:*
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${SecretName}
 
-      RoleName: PantherRulesEngineCrossAccountReadOnlyRole
+      RoleName: !Sub PantherRulesEngineCrossAccountReadOnlyRole-${AWS::Region}
 
 Outputs:
-  PantherRulesEngineIamRole:
+  PantherRulesEngineCrossAccountIamRoleName:
+    Description: Panther Rules Engine Read-only IAM Role Name
+    Value: !Ref PantherRulesEngineIamRole
+  PantherRulesEngineCrossAccountIamRoleARN:
     Description: Panther Rules Engine Read-only IAM Role ARN
     Value: !GetAtt PantherRulesEngineIamRole.Arn

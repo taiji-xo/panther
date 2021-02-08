@@ -7,7 +7,7 @@ Parameters:
     Description: Enter the AWS Account number where the resources are located
   PantherRulesEngineRoleName:
     Type: String
-    Description: Enter the name of the Panther Rules Engine Role Name which can be found under IAM by searching "rules" in the Panther Master Account.
+    Description: Enter the name of the Panther Rules Engine Role name which can be found under IAM by searching "rules" in the Panther Master Account.
 
 Resources:
   RulesEngineAssumeReadOnlyPolicy:
@@ -21,13 +21,6 @@ Resources:
           - Effect: Allow
             Action: sts:AssumeRole
             Resource: !Sub arn:aws:iam::${TargetAccountID}:role/PantherRulesEngineCrossAccountReadOnlyRole
-          - Effect: Allow
-            Action:
-              - secretsmanager:GetResourcePolicy
-              - secretsmanager:GetSecretValue
-              - secretsmanager:DescribeSecret
-              - secretsmanager:ListSecretVersionIds
-            Resource: arn:aws:secretsmanager:*
       Roles:
         - !Ref PantherRulesEngineRoleName
 
