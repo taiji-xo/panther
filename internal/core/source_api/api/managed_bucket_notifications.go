@@ -29,7 +29,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
@@ -47,7 +46,12 @@ import (
 // The source.ManagedS3Resources field is mutated to contain the managed resources.
 // Even if this function returns an error, source.ManagedS3Resources is updated with the resources that
 // were created before the error occurred.
-func ManageBucketNotifications(pantherSess *session.Session, source *models.SourceIntegration) error {
+func ManageBucketNotifications(
+	pantherSess *session.Session,
+	pantherAccountID,
+	pantherPartition string,
+	source *models.SourceIntegration) error {
+
 	managed := &source.ManagedS3Resources
 
 	stsSess, err := session.NewSession(&aws.Config{
@@ -66,7 +70,7 @@ func ManageBucketNotifications(pantherSess *session.Session, source *models.Sour
 	// Create the topic if it wasn't created previously. This saves some API requests during
 	// source updates.
 	if managed.TopicARN == nil {
-		topicARN, err := createSNSResources(pantherSess, stsSess, bucketRegion)
+		topicARN, err := createSNSResources(pantherSess, stsSess, bucketRegion, pantherAccountID, pantherPartition)
 		if err != nil {
 			return err
 		}
@@ -88,25 +92,27 @@ func ManageBucketNotifications(pantherSess *session.Session, source *models.Sour
 	return nil
 }
 
-func createSNSResources(pantherSess, stsSess *session.Session, bucketRegion *string) (*string, error) {
+func createSNSResources(
+	pantherSess,
+	stsSess *session.Session,
+	bucketRegion *string,
+	pantherAccountID,
+	pantherPartition string) (*string, error) {
+
 	// Create the topic with policy and subscribe to Panther input data queue.
 	snsClient := sns.New(stsSess, &aws.Config{Region: bucketRegion})
 
-	pantherARN, err := getPantherDeploymentIAM(pantherSess)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get Panther deployment IAM info")
-	}
-	topicARN, err := createTopic(snsClient, pantherARN)
+	topicARN, err := createTopic(snsClient, pantherAccountID, pantherPartition)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create topic")
 	}
 	zap.S().Debugf("created topic %s", *topicARN)
 
 	queueARN := arn.ARN{
-		Partition: pantherARN.Partition,
+		Partition: pantherPartition,
 		Service:   "sqs",
 		Region:    aws.StringValue(pantherSess.Config.Region),
-		AccountID: pantherARN.AccountID,
+		AccountID: pantherAccountID,
 		Resource:  "panther-input-data-notifications-queue",
 	}
 	err = subscribeTopicToQueue(snsClient, topicARN, queueARN)
@@ -148,7 +154,7 @@ func RemoveBucketNotifications(pantherSess *session.Session, source *models.Sour
 	return nil
 }
 
-func createTopic(snsClient *sns.SNS, pantherARN arn.ARN) (*string, error) {
+func createTopic(snsClient *sns.SNS, pantherAccountID, pantherPartition string) (*string, error) {
 	topic, err := snsClient.CreateTopic(&sns.CreateTopicInput{
 		Name: aws.String("panther-notifications-topic"),
 	})
@@ -180,7 +186,7 @@ func createTopic(snsClient *sns.SNS, pantherARN arn.ARN) (*string, error) {
 				Effect: "Allow",
 				Action: "sns:Subscribe",
 				Principal: awsutils.Principal{
-					AWS: fmt.Sprintf("arn:%s:iam::%s:root", pantherARN.Partition, pantherARN.AccountID),
+					AWS: fmt.Sprintf("arn:%s:iam::%s:root", pantherPartition, pantherAccountID),
 				},
 				Resource: *topic.TopicArn,
 			},
@@ -317,16 +323,4 @@ func getBucketLocation(stsSess *session.Session, bucket string) (*string, error)
 		return aws.String(endpoints.UsEast1RegionID), nil
 	}
 	return bucketLoc.LocationConstraint, nil
-}
-
-func getPantherDeploymentIAM(sess *session.Session) (arn.ARN, error) {
-	output, err := sts.New(sess).GetCallerIdentity(&sts.GetCallerIdentityInput{})
-	if err != nil {
-		return arn.ARN{}, errors.Wrap(err, "failed to get Panther AWS identity ")
-	}
-	pantherARN, err := arn.Parse(aws.StringValue(output.Arn))
-	if err != nil {
-		return arn.ARN{}, errors.Wrap(err, "failed to parse Panther ARN")
-	}
-	return pantherARN, nil
 }

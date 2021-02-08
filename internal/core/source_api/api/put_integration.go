@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
@@ -75,7 +74,7 @@ func (api *API) PutIntegration(input *models.PutIntegrationInput) (newIntegratio
 	}
 
 	if newIntegration.ManagedBucketNotifications {
-		handleManagedBucketNotifications(api.AwsSession, newIntegration)
+		api.handleManagedBucketNotifications(newIntegration)
 	}
 
 	// Write to DynamoDB
@@ -96,8 +95,8 @@ func (api *API) PutIntegration(input *models.PutIntegrationInput) (newIntegratio
 	return newIntegration, nil
 }
 
-func handleManagedBucketNotifications(sess *session.Session, source *models.SourceIntegration) {
-	err := ManageBucketNotifications(sess, source)
+func (api *API) handleManagedBucketNotifications(source *models.SourceIntegration) {
+	err := ManageBucketNotifications(api.AwsSession, api.Config.AccountID, api.Config.AWSPartition, source)
 	source.NotificationsConfigurationSucceeded = err == nil
 	if err != nil {
 		zap.L().Error("failed to manage bucket notifications", zap.Error(err))

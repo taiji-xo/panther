@@ -156,13 +156,7 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - sns:CreateTopic
-              - sns:SetTopicAttributes
-              - sns:GetTopicAttributes
-              - sns:AddPermission
-              - sns:Subscribe
-              - sns:ListSubscriptionsByTopic
-              - sns:DeleteTopic
+              - sns:*
             Resource: !Sub 'arn:${AWS::Partition}:sns:*:${AWS::AccountId}:panther-notifications-topic'
   GetPutBucketNotifications:
     Type: AWS::IAM::Policy
