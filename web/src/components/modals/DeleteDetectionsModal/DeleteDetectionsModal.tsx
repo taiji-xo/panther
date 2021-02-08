@@ -44,7 +44,7 @@ const DeleteDetectionsModal: React.FC<DeleteDetectionsModalProps> = ({
   const [confirmDeletion] = useDeleteDetections({
     variables: {
       input: {
-        detections,
+        detections: detections.map(detection => ({ id: detection.id })),
       },
     },
     optimisticResponse: {
@@ -65,20 +65,38 @@ const DeleteDetectionsModal: React.FC<DeleteDetectionsModalProps> = ({
             detections: differenceBy(data.detections, detectionRefs, d => (d as Reference).__ref),
           };
         },
-        // rule: (data, helpers) => {
-        //   const ruleRef = helpers.toReference({ __typename: 'Rule', id: detection.id });
-        //   if (ruleRef.__ref !== data.__ref) {
-        //     return data;
-        //   }
-        //   return helpers.DELETE;
-        // },
-        // policy: (data, helpers) => {
-        //   const policyRef = helpers.toReference({ __typename: 'Policy', id: detection.id });
-        //   if (policyRef.__ref !== data.__ref) {
-        //     return data;
-        //   }
-        //   return helpers.DELETE;
-        // },
+        rule: (data, helpers) => {
+          const ruleRefs = detections
+            .filter(detection => detection.analysisType !== DetectionTypeEnum.Policy)
+            .map(detection =>
+              helpers.toReference({
+                __typename: 'Rule',
+                id: detection.id,
+              })
+            );
+
+          const deletedRuleExistsInCache = ruleRefs.find(policy => policy.__ref === data.__ref);
+          if (deletedRuleExistsInCache) {
+            return helpers.DELETE;
+          }
+          return data;
+        },
+        policy: (data, helpers) => {
+          const policyRefs = detections
+            .filter(detection => detection.analysisType === DetectionTypeEnum.Policy)
+            .map(detection =>
+              helpers.toReference({
+                __typename: 'Policy',
+                id: detection.id,
+              })
+            );
+
+          const deletedPolicyExistsInCache = policyRefs.find(policy => policy.__ref === data.__ref);
+          if (deletedPolicyExistsInCache) {
+            return helpers.DELETE;
+          }
+          return data;
+        },
       });
       cache.gc();
     },
