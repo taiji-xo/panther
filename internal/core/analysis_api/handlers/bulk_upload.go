@@ -311,12 +311,12 @@ func bulkValidateLogAndResourceTypes(config analysis.Config, logtypes map[string
 			resourceTypes = config.LogTypes
 		}
 		invalidRsc := FirstSetItemNotInMapKeys(resourceTypes, logtypes)
-		if invalidRsc != nil && len(*invalidRsc) > 0 {
+		if len(invalidRsc) > 0 {
 			itemTitle := "DataModel"
 			if itemType == models.TypeRule {
 				itemTitle = "Rule"
 			}
-			return errors.Errorf("%s %s contains invalid log type: %s", itemTitle, config.DisplayName, *invalidRsc)
+			return errors.Errorf("%s %s contains invalid log type: %s", itemTitle, config.DisplayName, invalidRsc)
 		}
 	case models.TypePolicy:
 		if err := validResourceTypeSet(resourceTypes); err != nil {
@@ -333,7 +333,7 @@ func readZipFile(zf *zip.File) ([]byte, error) {
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
-			zap.L().Error("error closing zip file", zap.Error(err))
+			zap.L().Info("error closing zip file", zap.Error(err))
 		}
 	}()
 	return ioutil.ReadAll(f)
