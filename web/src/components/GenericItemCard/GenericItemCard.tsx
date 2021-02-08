@@ -33,6 +33,7 @@ interface GenericItemCardValueProps {
 
 interface GenericItemCardDate {
   date: string;
+  label?: string;
 }
 interface GenericItemCardLinkProps {
   to: string;
@@ -40,7 +41,8 @@ interface GenericItemCardLinkProps {
 
 interface GenericItemCardHeadingValueProps {
   value: string | number;
-  label?: string;
+  label: string;
+  labelFirst?: boolean;
   withDivider?: boolean;
 }
 
@@ -80,7 +82,7 @@ const GenericItemCardHeader: React.FC = ({ children }) => {
 
 const GenericItemCardHeading: React.FC<TextProps> = ({ children, ...rest }) => {
   return (
-    <Text as="h4" fontWeight="medium" mr="auto" maxWidth="70%" wordBreak="break-word" {...rest}>
+    <Text as="h4" fontWeight="medium" mr="auto" maxWidth="60%" wordBreak="break-word" {...rest}>
       {children}
     </Text>
   );
@@ -89,13 +91,19 @@ const GenericItemCardHeading: React.FC<TextProps> = ({ children, ...rest }) => {
 const GenericItemCardHeadingValue: React.FC<GenericItemCardHeadingValueProps> = ({
   value,
   label,
+  labelFirst,
   withDivider = true,
 }) => {
   return (
     <>
-      <Box fontSize="small" maxWidth="15%" truncated>
+      <Box fontSize="small" maxWidth="20%" truncated>
+        {labelFirst && (
+          <Text mr={1} as="span" color="navyblue-100">
+            {label}
+          </Text>
+        )}
         <Text as="span">{value}</Text>
-        {label && (
+        {!labelFirst && (
           <Text ml={1} as="span" color="navyblue-100">
             {label}
           </Text>
@@ -150,11 +158,18 @@ const GenericItemCardOptionsButton = React.forwardRef<HTMLButtonElement>(functio
   );
 });
 
-const GenericItemCardDate: React.FC<GenericItemCardDate> = ({ date, ...rest }) => {
+const GenericItemCardDate: React.FC<GenericItemCardDate> = ({ date, label, ...rest }) => {
   return (
-    <Text fontSize="small" as="span" color="navyblue-100" {...rest}>
-      {date}
-    </Text>
+    <Box fontSize="small">
+      {label && (
+        <Text pr={1} color="navyblue-100" as="span" {...rest}>
+          {label}
+        </Text>
+      )}
+      <Text as="span" {...rest}>
+        {date}
+      </Text>
+    </Box>
   );
 };
 

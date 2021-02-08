@@ -65,8 +65,7 @@ const LogSourceCard: React.FC<LogSourceCardProps> = ({ source, children, logo })
 
   const lastReceivedMessage = React.useMemo(() => {
     return source.lastEventReceived
-      ? `
-  Last Received Data ${getElapsedTime(new Date(source.lastEventReceived).getTime() / 1000)}`
+      ? `${getElapsedTime(new Date(source.lastEventReceived).getTime() / 1000)}`
       : 'No Data Received yet';
   }, [source.lastEventReceived]);
 
@@ -92,7 +91,10 @@ const LogSourceCard: React.FC<LogSourceCardProps> = ({ source, children, logo })
               </Tooltip>
             )}
           </GenericItemCard.Heading>
-          <GenericItemCard.Date date={lastReceivedMessage} />
+          <GenericItemCard.Date
+            date={lastReceivedMessage}
+            label={source.lastEventReceived ? 'Last Received Data' : null}
+          />
           {!isCreatedByPanther && <LogSourceCardOptions source={source} />}
         </GenericItemCard.Header>
         <GenericItemCard.ValuesGroup>

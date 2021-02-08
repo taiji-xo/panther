@@ -78,6 +78,7 @@ const RuleAlertCard: React.FC<RuleAlertCardProps> = ({
           <GenericItemCard.Date
             aria-label={`Creation time for ${alert.alertId}`}
             date={formatDatetime(alert.creationTime)}
+            label="Created"
           />
         </GenericItemCard.Header>
         <Box

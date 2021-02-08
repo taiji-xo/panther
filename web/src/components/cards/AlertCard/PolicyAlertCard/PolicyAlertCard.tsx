@@ -74,10 +74,17 @@ const PolicyAlertCard: React.FC<PolicyAlertCardProps> = ({
               {alert.title}
             </Link>
           </GenericItemCard.Heading>
-          {source && <GenericItemCard.HeadingValue value={source.integrationLabel} />}
+          {source && (
+            <GenericItemCard.HeadingValue
+              value={source.integrationLabel}
+              label="Source"
+              labelFirst
+            />
+          )}
           <GenericItemCard.Date
             aria-label={`Creation time for ${alert.alertId}`}
             date={formatDatetime(alert.creationTime)}
+            label="Created"
           />
         </GenericItemCard.Header>
         <Box
