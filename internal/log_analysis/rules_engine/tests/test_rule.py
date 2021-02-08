@@ -370,7 +370,6 @@ class TestRule(TestCase):  # pylint: disable=too-many-public-methods
                     'from boto3 import client\n' \
                     'from unittest.mock import MagicMock\n' \
                     'def rule(event):\n\t' \
-                    'print(boto3)\n\tprint(client)\n\tprint(boto3.client)\n\t' \
                     'assert isinstance(boto3, MagicMock)\n\t' \
                     'assert isinstance(client, MagicMock)\n\t' \
                     'assert isinstance(boto3.client, MagicMock)\n\t' \
