@@ -45,7 +45,7 @@ const entrydeleted = true
 var awsSession *session.Session
 var sugar *zap.SugaredLogger
 
-// Init creates the aws session and script logger
+// Init - create the aws session and script logger
 func init() {
 	awsSession = session.Must(session.NewSession())
 	logger, err := zap.Config{
@@ -69,6 +69,8 @@ func init() {
 	sugar = logger.Sugar()
 }
 
+// Main executes the batch delete on the tableName table where entries in the dynamodb table have
+// the deleted field equal to constant entrydeleted
 func main() {
 	sugar.Info("\nFlush Resource Table entries where deleted=true")
 	sugar.Infof("AWS_REGION=%v", *awsSession.Config.Region)
@@ -139,5 +141,3 @@ func main() {
 	sugar.Infof("Flushed %v deleted entries\n", len(deleteRequests))
 	os.Exit(0)
 }
-
-// Max Back Off is used in the request dynamodb batch write items
