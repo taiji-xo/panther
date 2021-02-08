@@ -85,6 +85,7 @@ def dedup(e):
 				Name:           "This will be True",
 				ExpectedResult: true,
 				Resource:       `{}`,
+				Mock:           `{}`,
 			},
 		},
 	}

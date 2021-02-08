@@ -364,3 +364,31 @@ class TestRule(TestCase):  # pylint: disable=too-many-public-methods
         )
         result = rule.run(PantherEvent({}, None))
         self.assertEqual(expected_result, result)
+
+    def test_rule_with_mocking(self) -> None:
+        rule_body = 'import boto3\n' \
+                    'from boto3 import client\n' \
+                    'from unittest.mock import MagicMock\n' \
+                    'def rule(event):\n\t' \
+                    'print(boto3)\n\tprint(client)\n\tprint(boto3.client)\n\t' \
+                    'assert isinstance(boto3, MagicMock)\n\t' \
+                    'assert isinstance(client, MagicMock)\n\t' \
+                    'assert isinstance(boto3.client, MagicMock)\n\t' \
+                    'return True\n' \
+                    'def alert_context(event):\n\treturn {}\n' \
+                    'def title(event):\n\treturn "test_rule_with_mocking"\n'
+        rule = Rule({'id': 'test_rule_with_mocking', 'body': rule_body, 'versionId': 'versionId'})
+
+        mocks = {
+            'boto3': 'boto3_return_value',
+            'client': 'client_return_value',
+        }
+
+        expected_result = RuleResult(
+            matched=True,
+            alert_context='{}',
+            title_output='test_rule_with_mocking',
+            dedup_output='test_rule_with_mocking',
+        )
+        result = rule.run(PantherEvent({}, None), event_mocks=mocks, batch_mode=False)
+        self.assertEqual(expected_result, result)

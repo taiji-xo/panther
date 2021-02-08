@@ -51,13 +51,17 @@ class Engine:
         raw_rule['versionId'] = 'default'
         rule = Rule(raw_rule)
         event = test_spec['data']
+        if 'mocks' not in test_spec:
+            event_mocks = dict()
+        else:
+            event_mocks = test_spec['mocks']
         log_type = event.get('p_log_type', 'default')
 
         # enrich the event to have access to field by standard field name
         #  via the `udm` method
         event = PantherEvent(event, self.log_type_to_data_models.get(log_type))
 
-        rule_result = rule.run(event, batch_mode=False)
+        rule_result = rule.run(event, event_mocks, batch_mode=False)
         format_exception = lambda exc: '{}: {}'.format(type(exc).__name__, exc) if exc else exc
         # for tests against rules using the `udm` method, you must specify `p_log_type`
         # field in each test definition
