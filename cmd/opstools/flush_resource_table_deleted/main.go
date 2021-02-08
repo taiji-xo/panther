@@ -21,19 +21,18 @@ package main
  */
 
 import (
-	"time"
-	"os"
 	"log"
+	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
-
-	"github.com/panther-labs/panther/pkg/awsbatch/dynamodbbatch"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/panther-labs/panther/pkg/awsbatch/dynamodbbatch"
 )
 
 // Explicitely delete columns in the panther-resources table where the table entry deleted is equal
@@ -50,18 +49,18 @@ var sugar *zap.SugaredLogger
 func init() {
 	awsSession = session.Must(session.NewSession())
 	logger, err := zap.Config{
-		Encoding: "console",
-		Level: zap.NewAtomicLevelAt(zapcore.DebugLevel),
+		Encoding:    "console",
+		Level:       zap.NewAtomicLevelAt(zapcore.DebugLevel),
 		OutputPaths: []string{"stdout"},
 		EncoderConfig: zapcore.EncoderConfig{
-				MessageKey:   "message",
-				// Useful for debugging:
-				// LevelKey:     "level",
-				// EncodeLevel:  zapcore.CapitalLevelEncoder,
-				// TimeKey:      "time",
-				// EncodeTime:   zapcore.ISO8601TimeEncoder,
-				// CallerKey:    "caller",
-				// EncodeCaller: zapcore.ShortCallerEncoder,
+			MessageKey: "message",
+			// Useful for debugging:
+			// LevelKey:     "level",
+			// EncodeLevel:  zapcore.CapitalLevelEncoder,
+			// TimeKey:      "time",
+			// EncodeTime:   zapcore.ISO8601TimeEncoder,
+			// CallerKey:    "caller",
+			// EncodeCaller: zapcore.ShortCallerEncoder,
 		},
 	}.Build()
 	if err != nil {
@@ -69,7 +68,6 @@ func init() {
 	}
 	sugar = logger.Sugar()
 }
-
 
 func main() {
 
