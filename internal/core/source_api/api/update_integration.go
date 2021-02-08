@@ -82,7 +82,7 @@ func (api *API) UpdateIntegrationSettings(input *models.UpdateIntegrationSetting
 	if existingIntegration.IntegrationType == models.IntegrationTypeAWS3 &&
 		existingIntegration.ManagedBucketNotifications {
 
-		handleManagedBucketNotifications(api.AwsSession, existingIntegration)
+		api.handleManagedBucketNotifications(existingIntegration)
 	}
 
 	item := integrationToItem(existingIntegration)
