@@ -18,20 +18,16 @@
 
 import React from 'react';
 import { ModalProps, Text, useSnackbar } from 'pouncejs';
-import { LogIntegration } from 'Generated/schema';
+import { LogIntegration, S3LogIntegration } from 'Generated/schema';
 import { useDeleteLogSource } from './graphql/deleteLogSource.generated';
 import OptimisticConfirmModal from '../OptimisticConfirmModal';
+import { LogIntegrationsEnum } from 'Source/constants';
 
 export interface DeleteLogSourceModalProps extends ModalProps {
   source: LogIntegration;
-  description: string;
 }
 
-const DeleteLogSourceModal: React.FC<DeleteLogSourceModalProps> = ({
-  source,
-  description,
-  ...rest
-}) => {
+const DeleteLogSourceModal: React.FC<DeleteLogSourceModalProps> = ({ source, ...rest }) => {
   const sourceDisplayName = source.integrationLabel;
   const { pushSnackbar } = useSnackbar();
   const [deleteLogSource] = useDeleteLogSource({
@@ -60,6 +56,15 @@ const DeleteLogSourceModal: React.FC<DeleteLogSourceModalProps> = ({
       });
     },
   });
+
+  let description;
+  if (source.integrationType === LogIntegrationsEnum.s3) {
+    const s = source as S3LogIntegration;
+    description = `Deleting this source will not delete the associated Cloudformation stack on the AWS Account ${s.awsAccountId} (the default stack name would be ${s.stackName}).`;
+    if (s.managedS3Resources && s.managedS3Resources.topicARN) {
+      description += `<br/> The SNS topic created by Panther will also be kept (${s.managedS3Resources.topicARN})`;
+    }
+  }
 
   return (
     <OptimisticConfirmModal

@@ -800,6 +800,12 @@ export type LongSeriesData = {
   series: Array<LongSeries>;
 };
 
+export type ManagedS3Resources = {
+  __typename?: 'ManagedS3Resources';
+  topicARN?: Maybe<Scalars['String']>;
+  topicConfigurationIds?: Maybe<Array<Scalars['String']>>;
+};
+
 export enum MessageActionEnum {
   Resend = 'RESEND',
   Suppress = 'SUPPRESS',
@@ -1305,6 +1311,7 @@ export type S3LogIntegration = {
   notificationsConfigurationSucceeded: Scalars['Boolean'];
   health: S3LogIntegrationHealth;
   stackName: Scalars['String'];
+  managedS3Resources?: Maybe<ManagedS3Resources>;
 };
 
 export type S3LogIntegrationHealth = {
@@ -1758,6 +1765,7 @@ export type ResolversTypes = {
   S3LogIntegration: ResolverTypeWrapper<S3LogIntegration>;
   S3PrefixLogTypes: ResolverTypeWrapper<S3PrefixLogTypes>;
   S3LogIntegrationHealth: ResolverTypeWrapper<S3LogIntegrationHealth>;
+  ManagedS3Resources: ResolverTypeWrapper<ManagedS3Resources>;
   GetS3LogIntegrationTemplateInput: GetS3LogIntegrationTemplateInput;
   SqsLogSourceIntegration: ResolverTypeWrapper<SqsLogSourceIntegration>;
   SqsConfig: ResolverTypeWrapper<SqsConfig>;
@@ -1941,6 +1949,7 @@ export type ResolversParentTypes = {
   S3LogIntegration: S3LogIntegration;
   S3PrefixLogTypes: S3PrefixLogTypes;
   S3LogIntegrationHealth: S3LogIntegrationHealth;
+  ManagedS3Resources: ManagedS3Resources;
   GetS3LogIntegrationTemplateInput: GetS3LogIntegrationTemplateInput;
   SqsLogSourceIntegration: SqsLogSourceIntegration;
   SqsConfig: SqsConfig;
@@ -2654,6 +2663,15 @@ export type LongSeriesDataResolvers<
   __isTypeOf?: IsTypeOfResolverFn<ParentType>;
 };
 
+export type ManagedS3ResourcesResolvers<
+  ContextType = any,
+  ParentType extends ResolversParentTypes['ManagedS3Resources'] = ResolversParentTypes['ManagedS3Resources']
+> = {
+  topicARN?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  topicConfigurationIds?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType>;
+};
+
 export type MsTeamsConfigResolvers<
   ContextType = any,
   ParentType extends ResolversParentTypes['MsTeamsConfig'] = ResolversParentTypes['MsTeamsConfig']
@@ -3233,6 +3251,11 @@ export type S3LogIntegrationResolvers<
   >;
   health?: Resolver<ResolversTypes['S3LogIntegrationHealth'], ParentType, ContextType>;
   stackName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  managedS3Resources?: Resolver<
+    Maybe<ResolversTypes['ManagedS3Resources']>,
+    ParentType,
+    ContextType
+  >;
   __isTypeOf?: IsTypeOfResolverFn<ParentType>;
 };
 
@@ -3559,6 +3582,7 @@ export type Resolvers<ContextType = any> = {
   Long?: GraphQLScalarType;
   LongSeries?: LongSeriesResolvers<ContextType>;
   LongSeriesData?: LongSeriesDataResolvers<ContextType>;
+  ManagedS3Resources?: ManagedS3ResourcesResolvers<ContextType>;
   MsTeamsConfig?: MsTeamsConfigResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   OpsgenieConfig?: OpsgenieConfigResolvers<ContextType>;

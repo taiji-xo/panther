@@ -43,6 +43,7 @@ export type S3LogIntegrationDetails = Pick<
     s3BucketStatus: IntegrationItemHealthDetails;
     kmsKeyStatus: IntegrationItemHealthDetails;
   };
+  managedS3Resources?: Types.Maybe<Pick<Types.ManagedS3Resources, 'topicARN'>>;
 };
 
 export const S3LogIntegrationDetails = gql`
@@ -73,6 +74,9 @@ export const S3LogIntegrationDetails = gql`
       kmsKeyStatus {
         ...IntegrationItemHealthDetails
       }
+    }
+    managedS3Resources {
+      topicARN
     }
   }
   ${IntegrationItemHealthDetails}

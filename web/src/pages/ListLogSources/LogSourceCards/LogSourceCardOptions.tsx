@@ -33,7 +33,6 @@ interface LogSourceCardOptionsProps {
 const LogSourceCardOptions: React.FC<LogSourceCardOptionsProps> = ({ source }) => {
   const { showModal } = useModal();
 
-  let description;
   let castedSource;
   let logSourceEditUrl;
 
@@ -45,7 +44,6 @@ const LogSourceCardOptions: React.FC<LogSourceCardOptionsProps> = ({ source }) =
     case LogIntegrationsEnum.s3:
     default:
       castedSource = source as S3LogIntegration;
-      description = `Deleting this source will not delete the associated Cloudformation stack. You will need to manually delete the stack ${castedSource.stackName} from the AWS Account ${castedSource.awsAccountId}`;
       logSourceEditUrl = urls.logAnalysis.sources.edit(source.integrationId, 's3');
   }
 
@@ -60,7 +58,7 @@ const LogSourceCardOptions: React.FC<LogSourceCardOptionsProps> = ({ source }) =
           onSelect={() => {
             return showModal({
               modal: MODALS.DELETE_LOG_SOURCE,
-              props: { source: castedSource, description },
+              props: { source: castedSource },
             });
           }}
         >
