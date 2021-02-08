@@ -53,8 +53,7 @@ const StackDeployment: React.FC = () => {
     `&param_MasterAccountId=${pantherConfig.AWS_ACCOUNT_ID}` +
     `&param_RoleSuffix=${toStackNameFormat(values.integrationLabel)}` +
     `&param_S3Bucket=${values.s3Bucket}` +
-    // FIXME: TBD How this will be implemented
-    // `&param_S3Prefix=${values.s3Prefix}` +
+    `&param_ManagedBucketNotifications=${values.managedBucketNotifications}` +
     `&param_KmsKey=${values.kmsKey}`;
 
   return (
