@@ -19,6 +19,7 @@ package api
  */
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -89,6 +90,37 @@ func Test_updateTopicConfigs(t *testing.T) {
 		require.Equal(t, expected, topicConfigs)
 		require.Len(t, newManagedConfigIDs, 0)
 	})
+}
+
+func Test_reduceNoPrefixes(t *testing.T) {
+	test := func(input, expected []string) {
+		actual := reduceNoPrefixStrings(input)
+		sort.Strings(actual)
+		sort.Strings(expected)
+		require.Equal(t, expected, actual)
+	}
+	{
+		input := []string{"abc", "", "prefix"}
+		expected := []string{""}
+		test(input, expected)
+	}
+	{
+		input := []string{"abc", "abcd"}
+		expected := []string{"abc"}
+		test(input, expected)
+	}
+	{
+		input := []string{
+			"prefix", "abcc", "abc", "abc", "abcd", "b", "xy", "xyz", "abc123", "xyz123", "pref", "prefi",
+		}
+		expected := []string{"pref", "xy", "abc", "b"}
+		test(input, expected)
+	}
+	{
+		input := []string{"a", "a", "aaa", "ab", "ba", "aaaaa", "aa"}
+		expected := []string{"a", "ba"}
+		test(input, expected)
+	}
 }
 
 func topicConfig(events []*string, filterType, filterValue, id string, topicARN *string) *s3.TopicConfiguration {
