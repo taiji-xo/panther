@@ -39,6 +39,10 @@ import (
 	"github.com/panther-labs/panther/pkg/stringset"
 )
 
+// The name of the topic that Panther will manage. S3 notifications for new objects will be sent
+// to this topic.
+const pantherNotificationsTopic = "panther-notifications-topic"
+
 // Creates the necessary AWS resources (topic, subscription to Panther queue) and configures the
 // topic notifications for the source's bucket.
 //
@@ -81,6 +85,7 @@ func ManageBucketNotifications(
 	s3Client := s3.New(stsSess, &aws.Config{Region: bucketRegion})
 
 	bucket, prefixes := source.S3Info()
+	prefixes = reduceNoPrefixStrings(prefixes)
 	managedTopicConfigIDs, err := updateBucketTopicConfigurations(
 		s3Client, bucket, source.AWSAccountID, source.ManagedS3Resources.TopicConfigurationIDs, prefixes, managed.TopicARN)
 	if err != nil {
@@ -90,6 +95,25 @@ func ManageBucketNotifications(
 	zap.S().Debugf("replaced bucket topic configurations for %s", source.S3Bucket)
 
 	return nil
+}
+
+// reduceNoPrefixStrings reduces a list of strings to a list where no string is a prefix of another.
+// e.g [pref, prefi, prefix, abc] -> [pref, abc]
+func reduceNoPrefixStrings(strs []string) (reduced []string) {
+	uniques := make(map[string]struct{})
+	for i := 0; i < len(strs); i++ {
+		smallestPrefix := strs[i]
+		for j := 0; j < len(strs); j++ {
+			if strings.HasPrefix(smallestPrefix, strs[j]) {
+				smallestPrefix = strs[j]
+			}
+		}
+		uniques[smallestPrefix] = struct{}{}
+	}
+	for k := range uniques {
+		reduced = append(reduced, k)
+	}
+	return
 }
 
 func createSNSResources(
@@ -140,7 +164,7 @@ func RemoveBucketNotifications(pantherSess *session.Session, source *models.Sour
 	}
 	s3Client := s3.New(stsSess, &aws.Config{Region: bucketRegion})
 
-	var prefixes []string = nil // Will remove any Panther-managed notifications
+	var prefixes []string // No Panther-managed notifications should be kept in the bucket
 	_, err = updateBucketTopicConfigurations(s3Client,
 		source.S3Bucket,
 		source.AWSAccountID,
@@ -156,7 +180,7 @@ func RemoveBucketNotifications(pantherSess *session.Session, source *models.Sour
 
 func createTopic(snsClient *sns.SNS, pantherAccountID, pantherPartition string) (*string, error) {
 	topic, err := snsClient.CreateTopic(&sns.CreateTopicInput{
-		Name: aws.String("panther-notifications-topic"),
+		Name: aws.String(pantherNotificationsTopic),
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create topic")
@@ -256,9 +280,9 @@ func updateBucketTopicConfigurations(s3Client *s3.S3, bucket, bucketOwner string
 }
 
 // updateTopicConfigs returns a new s3.TopicConfiguration slice given an existing s3.TopicConfiguration,
-// the managedConfigIDs and the newPrefixes that should be part of the result. Any non Panther-managed
+// the managedConfigIDs and the prefixes that should be part of the result. Any non Panther-managed
 // configuration that exists in bucketTopicConfigs should also be returned in the result.
-func updateTopicConfigs(bucketTopicConfigs []*s3.TopicConfiguration, managedConfigIDs, newPrefixes []string, topicARN *string) (
+func updateTopicConfigs(bucketTopicConfigs []*s3.TopicConfiguration, managedConfigIDs, prefixes []string, topicARN *string) (
 	[]*s3.TopicConfiguration, []string) {
 
 	var newConfigs []*s3.TopicConfiguration
@@ -267,9 +291,9 @@ func updateTopicConfigs(bucketTopicConfigs []*s3.TopicConfiguration, managedConf
 	added := make(map[string]struct{})
 	for _, c := range bucketTopicConfigs {
 		if stringset.Contains(managedConfigIDs, *c.Id) {
-			// Panther-created. Keep it only if its prefix is included in newPrefixes.
+			// Panther-created. Keep it only if its prefix is included in prefixes.
 			pref := prefixFromFilterRules(c.Filter.Key.FilterRules)
-			if pref != nil && stringset.Contains(newPrefixes, *pref) {
+			if pref != nil && stringset.Contains(prefixes, *pref) {
 				newConfigs = append(newConfigs, c)
 				added[*pref] = struct{}{}
 				newManagedConfigIDs = append(newManagedConfigIDs, *c.Id)
@@ -280,7 +304,7 @@ func updateTopicConfigs(bucketTopicConfigs []*s3.TopicConfiguration, managedConf
 		}
 	}
 
-	for _, p := range newPrefixes {
+	for _, p := range prefixes {
 		if _, ok := added[p]; ok {
 			continue
 		}
