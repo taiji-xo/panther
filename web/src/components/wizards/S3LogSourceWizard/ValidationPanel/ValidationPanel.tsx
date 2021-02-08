@@ -52,9 +52,7 @@ const ValidationPanel: React.FC = () => {
   const [errorMessage, setErrorMessage] = React.useState('');
   const { reset: resetWizard, currentStepStatus, setCurrentStepStatus } = useWizardContext();
   const { initialValues, submitForm, resetForm } = useFormikContext<S3LogSourceWizardValues>();
-  const [shouldShowNotificationsScreen, setNotificationScreenVisibility] = React.useState<boolean>(
-    !initialValues.integrationId
-  );
+  const [shouldShowNotificationsScreen, setNotificationScreenVisibility] = React.useState(true);
 
   const [showManagedNotificationsWarning, setShowManagedNotificationsWarning] = React.useState(
     false
