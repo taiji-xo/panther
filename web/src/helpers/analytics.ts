@@ -277,6 +277,7 @@ export enum TrackErrorEnum {
   FailedToAddPolicy = 'Failed to create Policy',
   FailedToAddCustomLog = 'Failed to create a Custom Log',
   FailedToAddDataModel = 'Failed to create a Data Model',
+  FailedToDeleteDetection = 'Failed to delete one or multiple detections',
   FailedToUpdateDataModel = 'Failed to update a Data Model',
   FailedToEditCustomLog = 'Failed to edit a Custom Log',
   FailedToDeleteCustomLog = 'Failed to delete a Custom Log',
@@ -301,6 +302,11 @@ interface AddDestinationError extends DestinationError {
 
 interface TestDestinationError extends DestinationError {
   event: TrackErrorEnum.FailedDestinationTest;
+}
+
+interface DeleteDetectionError {
+  event: TrackErrorEnum.FailedToDeleteDetection;
+  src: SrcEnum.Detections;
 }
 
 interface UpdateLogSourceError {
@@ -378,6 +384,7 @@ type TrackError =
   | AddDataModelError
   | UpdateDataModelError
   | DeleteDataModelError
+  | DeleteDetectionError
   | TestDestinationError
   | AddRuleError
   | AddPolicyError

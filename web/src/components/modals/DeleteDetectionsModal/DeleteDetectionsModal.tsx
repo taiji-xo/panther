@@ -17,7 +17,8 @@ import { ModalProps, useSnackbar } from 'pouncejs';
 import useRouter from 'Hooks/useRouter';
 import urls from 'Source/urls';
 import differenceBy from 'lodash/differenceBy';
-import { toPlural } from 'Helpers/utils';
+import { extractErrorMessage, toPlural } from 'Helpers/utils';
+import { EventEnum, SrcEnum, trackError, TrackErrorEnum, trackEvent } from 'Helpers/analytics';
 import { useDeleteDetections } from './graphql/deleteDetections.generated';
 
 export interface DeleteDetectionsModalProps extends ModalProps {
@@ -37,7 +38,7 @@ const DeleteDetectionsModal: React.FC<DeleteDetectionsModalProps> = ({
   const modalTitle = isMultiDelete ? `Delete ${detections.length} Detections` : `Delete Detection`;
   const modalDescription = `Are you sure you want to delete ${
     isMultiDelete
-      ? `all ${detections.length} detections`
+      ? `${detections.length} detections`
       : detections[0].displayName || detections[0].id
   }?`;
 
@@ -101,16 +102,26 @@ const DeleteDetectionsModal: React.FC<DeleteDetectionsModalProps> = ({
       cache.gc();
     },
     onCompleted: () => {
+      trackEvent({
+        event: EventEnum.DeletedDetection,
+        src: SrcEnum.Detections,
+      });
+
       pushSnackbar({
         variant: 'success',
         title: `Successfully deleted ${toPlural(
           'detection',
-          `${detections.length} detectioons`,
+          `${detections.length} detections`,
           detections.length
         )}`,
       });
     },
-    onError: () => {
+    onError: error => {
+      trackError({
+        event: TrackErrorEnum.FailedToDeleteDetection,
+        src: SrcEnum.Detections,
+      });
+
       pushSnackbar({
         variant: 'error',
         title: `Failed to delete ${toPlural(
@@ -118,6 +129,7 @@ const DeleteDetectionsModal: React.FC<DeleteDetectionsModalProps> = ({
           `${detections.length} detectioons`,
           detections.length
         )}`,
+        description: extractErrorMessage(error),
       });
     },
   });
