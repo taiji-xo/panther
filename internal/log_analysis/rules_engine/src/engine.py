@@ -51,10 +51,7 @@ class Engine:
         raw_rule['versionId'] = 'default'
         rule = Rule(raw_rule)
         event = test_spec['data']
-        if 'mocks' not in test_spec:
-            event_mocks = dict()
-        else:
-            event_mocks = test_spec['mocks']
+        event_mocks = test_spec.get('mocks', dict())
         log_type = event.get('p_log_type', 'default')
 
         # enrich the event to have access to field by standard field name
