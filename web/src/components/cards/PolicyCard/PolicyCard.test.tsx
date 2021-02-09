@@ -50,7 +50,7 @@ describe('PolicyCard', () => {
 
   it('renders a checkbox when selection is enabled', () => {
     const policy = buildPolicy();
-    const {getByAriaLabel} = render(<PolicyCard policy={policy}/>);
+    const { getByAriaLabel } = render(<PolicyCard policy={policy} />);
 
     expect(getByAriaLabel(`select ${policy.id}`)).toBeInTheDocument();
   });
