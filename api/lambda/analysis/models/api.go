@@ -68,10 +68,10 @@ type LambdaInput struct {
 }
 
 type UnitTest struct {
-	ExpectedResult bool   `json:"expectedResult"`
-	Mock           string `json:"mock"`
-	Name           string `json:"name" validate:"required"`
-	Resource       string `json:"resource" validate:"required"`
+	ExpectedResult bool        `json:"expectedResult"`
+	Mocks          interface{} `json:"mocks"`
+	Name           string      `json:"name" validate:"required"`
+	Resource       string      `json:"resource" validate:"required"`
 }
 
 type BulkUploadInput struct {

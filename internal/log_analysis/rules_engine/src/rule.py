@@ -225,11 +225,10 @@ class Rule:
         except Exception as err:  # pylint: disable=broad-except
             rule_result.rule_exception = err
 
-        # Stop the mock patching
-        if len(mock_methods) != 0:
-            mock_patcher.stop()
-
         if batch_mode and not rule_result.matched:
+            # Stop the mock patching
+            if len(mock_methods) != 0:
+                mock_patcher.stop()
             # In batch mode (log analysis), there is no need to run the title/dedup functions
             # if the rule isn't going to trigger an alert
             return rule_result
@@ -273,6 +272,10 @@ class Rule:
             rule_result.alert_context = self._get_alert_context(event, use_default_on_exception=batch_mode)
         except Exception as err:  # pylint: disable=broad-except
             rule_result.alert_context_exception = err
+
+        # Stop the mock patching
+        if len(mock_methods) != 0:
+            mock_patcher.stop()
 
         return rule_result
 

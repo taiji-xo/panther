@@ -373,6 +373,12 @@ class TestRule(TestCase):  # pylint: disable=too-many-public-methods
                     'assert isinstance(boto3, MagicMock)\n\t' \
                     'assert isinstance(client, MagicMock)\n\t' \
                     'assert isinstance(boto3.client, MagicMock)\n\t' \
+                    's3_client = boto3.client("s3")\n\t' \
+                    'assert isinstance(s3_client, MagicMock)\n\t' \
+                    'boto3.client.assert_called_once_with("s3")\n\t' \
+                    's3_client = client("s3")\n\t' \
+                    'assert s3_client == "client_return_value"\n\t' \
+                    'client.assert_called_once_with("s3")\n\t' \
                     'return True\n' \
                     'def alert_context(event):\n\treturn {}\n' \
                     'def title(event):\n\treturn "test_rule_with_mocking"\n'
