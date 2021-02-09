@@ -32,6 +32,10 @@ import (
 )
 
 func (API) ListDetections(input *models.ListDetectionsInput) *events.APIGatewayProxyResponse {
+	return handleListItems(input)
+}
+
+func handleListItems(input *models.ListDetectionsInput) *events.APIGatewayProxyResponse {
 	projectComplianceStatus := stdDetectionListInput(input)
 
 	// Scan dynamo

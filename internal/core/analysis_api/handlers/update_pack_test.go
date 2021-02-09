@@ -257,20 +257,20 @@ func TestSetupUpdatePackToVersion(t *testing.T) {
 		},
 	}
 	input := &models.PatchPackInput{
-		PackVersion: newVersion,
-		ID:          "pack.id.1",
-		Enabled:     false,
+		VersionID: newVersion.ID,
+		ID:        "pack.id.1",
+		Enabled:   false,
 	}
 	packOne := oldPackOne
 	// Test: success, no update to enabled status
-	item := setupUpdatePackToVersion(input, oldPackOne, packOne, detectionsAtVersion)
+	item := setupUpdatePackToVersion(input, newVersion, oldPackOne, packOne, detectionsAtVersion)
 	assert.Equal(t, newVersion, item.PackVersion)
 	assert.False(t, item.Enabled)
 	// Test: success, update enabled status
 	input = &models.PatchPackInput{
-		PackVersion: newVersion,
-		ID:          "pack.id.1",
-		Enabled:     true,
+		VersionID: newVersion.ID,
+		ID:        "pack.id.1",
+		Enabled:   true,
 	}
 	packOne = &packTableItem{
 		ID:                "pack.id.1",
@@ -278,14 +278,14 @@ func TestSetupUpdatePackToVersion(t *testing.T) {
 		Enabled:           false,
 		Description:       "new description",
 	}
-	item = setupUpdatePackToVersion(input, oldPackOne, packOne, detectionsAtVersion)
+	item = setupUpdatePackToVersion(input, newVersion, oldPackOne, packOne, detectionsAtVersion)
 	assert.Equal(t, newVersion, item.PackVersion)
 	assert.True(t, item.Enabled)
 	// Test: success, update detection type in pack
 	input = &models.PatchPackInput{
-		PackVersion: newVersion,
-		ID:          "pack.id.1",
-		Enabled:     true,
+		VersionID: newVersion.ID,
+		ID:        "pack.id.1",
+		Enabled:   true,
 	}
 	packOne = &packTableItem{
 		ID:                "pack.id.1",
@@ -299,7 +299,7 @@ func TestSetupUpdatePackToVersion(t *testing.T) {
 			models.TypePolicy: 1,
 		},
 	}
-	item = setupUpdatePackToVersion(input, oldPackOne, packOne, detectionsAtVersion)
+	item = setupUpdatePackToVersion(input, newVersion, oldPackOne, packOne, detectionsAtVersion)
 	assert.Equal(t, newVersion, item.PackVersion)
 	assert.True(t, item.Enabled)
 	assert.Equal(t, packOne.PackDefinition, item.PackDefinition)
@@ -317,9 +317,9 @@ func TestSetupUpdatePackToVersionOnDowngrade(t *testing.T) {
 		{ID: 2222, SemVer: "v1.2.0"},
 	}
 	input := &models.PatchPackInput{
-		PackVersion: newVersion,
-		ID:          "pack.id.1",
-		Enabled:     true,
+		VersionID: newVersion.ID,
+		ID:        "pack.id.1",
+		Enabled:   true,
 	}
 	oldPackOne := &packTableItem{
 		ID:                "pack.id.1",
@@ -333,7 +333,7 @@ func TestSetupUpdatePackToVersionOnDowngrade(t *testing.T) {
 		Enabled:           false,
 		Description:       "original description",
 	}
-	item := setupUpdatePackToVersion(input, oldPackOne, packOne, detectionsAtVersion)
+	item := setupUpdatePackToVersion(input, newVersion, oldPackOne, packOne, detectionsAtVersion)
 	assert.Equal(t, newVersion, item.PackVersion)
 	assert.True(t, item.Enabled)
 	assert.Equal(t, 2, len(item.AvailableVersions)) // ensure even though we are downgrading, the available versions stays the same

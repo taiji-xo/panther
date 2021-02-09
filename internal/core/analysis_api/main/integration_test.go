@@ -2724,10 +2724,7 @@ func pollPacks(t *testing.T) {
 	// poll for packs from well known release version
 	input = models.LambdaInput{
 		PollPacks: &models.PollPacksInput{
-			ReleaseVersion: models.Version{
-				ID:     35328828,
-				SemVer: "v1.14.0",
-			},
+			VersionID: 35328828,
 		},
 	}
 	statusCode, err = apiClient.Invoke(&input, nil)
@@ -2813,10 +2810,10 @@ func patchPack(t *testing.T) {
 	var result models.Pack
 	input := models.LambdaInput{
 		PatchPack: &models.PatchPackInput{
-			ID:          packOriginalRelease.ID,
-			Enabled:     false,
-			PackVersion: packOriginalRelease.PackVersion,
-			UserID:      userID,
+			ID:        packOriginalRelease.ID,
+			Enabled:   false,
+			VersionID: packOriginalRelease.PackVersion.ID,
+			UserID:    userID,
 		},
 	}
 	packOriginalRelease.LastModifiedBy = userID
@@ -2831,10 +2828,10 @@ func patchPack(t *testing.T) {
 	// enable pack
 	input = models.LambdaInput{
 		PatchPack: &models.PatchPackInput{
-			ID:          packOriginalRelease.ID,
-			Enabled:     true,
-			PackVersion: packOriginalRelease.PackVersion,
-			UserID:      userID,
+			ID:        packOriginalRelease.ID,
+			Enabled:   true,
+			VersionID: packOriginalRelease.PackVersion.ID,
+			UserID:    userID,
 		},
 	}
 	packOriginalRelease.Enabled = true

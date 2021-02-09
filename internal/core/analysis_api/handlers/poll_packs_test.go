@@ -89,13 +89,13 @@ func TestContainsRelease(t *testing.T) {
 		ID:     1111,
 		SemVer: "v1.1.0",
 	}
-	result := containsRelease(releases, contains)
+	result := containsRelease(releases, contains.ID)
 	assert.True(t, result)
 	doesNotContain := models.Version{
 		ID:     3333,
 		SemVer: "v1.3.0",
 	}
-	result = containsRelease(releases, doesNotContain)
+	result = containsRelease(releases, doesNotContain.ID)
 	assert.False(t, result)
 }
 

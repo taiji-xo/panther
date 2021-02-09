@@ -33,16 +33,18 @@ func (API) PollPacks(input *models.PollPacksInput) *events.APIGatewayProxyRespon
 	var releases []models.Version
 	var err error
 	// determine if polling for a particular release or the latest version
-	if input.ReleaseVersion != (models.Version{}) {
+	if input.VersionID != 0 {
 		// first, validate the version information
-		err := validateGithubVersion(pantherGithubConfig, input.ReleaseVersion)
+		versionName, err := getReleaseName(pantherGithubConfig, input.VersionID)
 		if err != nil {
 			return &events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
 				Body:       err.Error(),
 			}
 		}
-		releases = []models.Version{input.ReleaseVersion}
+		releases = []models.Version{
+			{ID: input.VersionID, SemVer: versionName},
+		}
 	} else {
 		// First, check for a new release in the github repo by listing all releases
 		releases, err = listAvailableGithubReleases(pantherGithubConfig)
@@ -99,7 +101,7 @@ func isNewReleaseAvailable(currentVersion models.Version, currentPacks []*packTa
 	for _, pack := range currentPacks {
 		// if availableReleases doesn't contain the currentVersion, this
 		// is a new release
-		if !containsRelease(pack.AvailableVersions, currentVersion) {
+		if !containsRelease(pack.AvailableVersions, currentVersion.ID) {
 			return true
 		}
 		// Otherwise, check if this release is the newest value in the available releases
@@ -116,9 +118,9 @@ func isNewReleaseAvailable(currentVersion models.Version, currentPacks []*packTa
 	return false
 }
 
-func containsRelease(versions []models.Version, newVersion models.Version) bool {
+func containsRelease(versions []models.Version, newVersion int64) bool {
 	for _, version := range versions {
-		if version.ID == newVersion.ID {
+		if version.ID == newVersion {
 			return true
 		}
 	}

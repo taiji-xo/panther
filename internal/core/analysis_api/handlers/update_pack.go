@@ -46,7 +46,7 @@ func (API) PatchPack(input *models.PatchPackInput) *events.APIGatewayProxyRespon
 			StatusCode: http.StatusNotFound,
 		}
 	}
-	if !input.Enabled && input.PackVersion.ID != oldItem.PackVersion.ID {
+	if !input.Enabled && input.VersionID != oldItem.PackVersion.ID {
 		return &events.APIGatewayProxyResponse{
 			Body:       fmt.Sprintf("Cannot update a disabled pack (%s)", input.ID),
 			StatusCode: http.StatusBadRequest,
@@ -64,11 +64,11 @@ func (API) PatchPack(input *models.PatchPackInput) *events.APIGatewayProxyRespon
 // (3) updating the detections in the pack in the `panther-analysis` ddb
 func updatePackVersion(input *models.PatchPackInput, oldPackItem *packTableItem) *events.APIGatewayProxyResponse {
 	// First, look up the relevant pack and detection data for this release
-	packVersionSet, detectionVersionSet, err := downloadValidatePackData(pantherGithubConfig, input.PackVersion)
+	packVersionSet, detectionVersionSet, err := downloadValidatePackData(pantherGithubConfig, input.VersionID)
 	if err != nil {
 		zap.L().Error("error downloading and validating pack data", zap.Error(err))
 		return &events.APIGatewayProxyResponse{
-			Body:       fmt.Sprintf("Internal error downloading pack version (%s)", input.PackVersion.SemVer),
+			Body:       fmt.Sprintf("Internal error downloading pack version (%d)", input.VersionID),
 			StatusCode: http.StatusInternalServerError,
 		}
 	}
@@ -91,9 +91,9 @@ func updatePackVersion(input *models.PatchPackInput, oldPackItem *packTableItem)
 	}
 	zap.L().Error("Trying to update pack to a version where it does not exist",
 		zap.String("pack", input.ID),
-		zap.String("version", input.PackVersion.SemVer))
+		zap.Int64("version", input.VersionID))
 	return &events.APIGatewayProxyResponse{
-		Body:       fmt.Sprintf("Internal error updating pack version (%s)", input.PackVersion.SemVer),
+		Body:       fmt.Sprintf("Internal error updating pack version (%d)", input.VersionID),
 		StatusCode: http.StatusInternalServerError,
 	}
 }
@@ -106,20 +106,27 @@ func updatePackToVersion(input *models.PatchPackInput, oldPackItem *packTableIte
 	newPackItem *packTableItem, newDetections map[string]*tableItem) (*packTableItem, error) {
 
 	// check that the new version is in the list of available versions
-	if !containsRelease(oldPackItem.AvailableVersions, input.PackVersion) {
-		return nil, fmt.Errorf("attempting to enable a version (%s) that does not exist for pack (%s)", input.PackVersion.SemVer, oldPackItem.ID)
+	if !containsRelease(oldPackItem.AvailableVersions, input.VersionID) {
+		return nil, fmt.Errorf("attempting to enable a version (%d) that does not exist for pack (%s)", input.VersionID, oldPackItem.ID)
 	}
-	newPack := setupUpdatePackToVersion(input, oldPackItem, newPackItem, newDetections)
-	err := updatePack(newPack, input.UserID)
+	versionName, err := getReleaseName(pantherGithubConfig, input.VersionID)
+	if err != nil {
+		return nil, err
+	}
+	version := models.Version{
+		ID:     input.VersionID,
+		SemVer: versionName,
+	}
+	newPack := setupUpdatePackToVersion(input, version, oldPackItem, newPackItem, newDetections)
+	err = updatePack(newPack, input.UserID)
 	return newPack, err
 }
 
 // setupUpdatePackToVersion will return the new `panther-analysis-packs` ddb table item by
 // updating the metadata fields to the new version values
-func setupUpdatePackToVersion(input *models.PatchPackInput, oldPackItem *packTableItem,
+func setupUpdatePackToVersion(input *models.PatchPackInput, version models.Version, oldPackItem *packTableItem,
 	newPackItem *packTableItem, detectionVersionSet map[string]*tableItem) *packTableItem {
 
-	version := input.PackVersion
 	// get the new detections in the pack
 	newPackDetections := detectionSetLookup(detectionVersionSet, newPackItem.PackDefinition)
 	packDetectionTypes := getDetectionTypeSet(newPackDetections)
@@ -202,7 +209,7 @@ func setupUpdateDetectionsToVersion(pack *packTableItem, newDetectionItems map[s
 // `panther-analysis-packs` ddb table
 func updatePackVersions(newVersion models.Version, oldPackItems []*packTableItem) error {
 	// First, look up the relevate pack and detection data for this release
-	packVersionSet, detectionVersionSet, err := downloadValidatePackData(pantherGithubConfig, newVersion)
+	packVersionSet, detectionVersionSet, err := downloadValidatePackData(pantherGithubConfig, newVersion.ID)
 	if err != nil {
 		return err
 	}
@@ -234,7 +241,7 @@ func setupUpdatePacksVersions(newVersion models.Version, oldPackItems []*packTab
 	for id, newPack := range newPackItems {
 		if oldPack, ok := oldPackItemsMap[id]; ok {
 			// Update existing pack metadata fields: AvailableVersions and UpdateAvailable
-			if !containsRelease(oldPack.AvailableVersions, newVersion) {
+			if !containsRelease(oldPack.AvailableVersions, newVersion.ID) {
 				// only add the new version to the availableVersions if it is not already there
 				oldPack.AvailableVersions = append(oldPack.AvailableVersions, newVersion)
 				oldPack.UpdateAvailable = true
