@@ -134,7 +134,7 @@ const DeleteDetectionsModal: React.FC<DeleteDetectionsModalProps> = ({
     },
   });
 
-  const handleConfirm = React.useCallback(() => {
+  const handleConfirm = () => {
     if (!isMultiDelete && location.pathname.includes(detections[0].id)) {
       // if we were on the particular detection's details page or edit page --> redirect on delete
       history.push(urls.detections.list());
@@ -142,7 +142,7 @@ const DeleteDetectionsModal: React.FC<DeleteDetectionsModalProps> = ({
 
     confirmDeletion();
     onSuccess();
-  }, []);
+  };
 
   return (
     <OptimisticConfirmModal
