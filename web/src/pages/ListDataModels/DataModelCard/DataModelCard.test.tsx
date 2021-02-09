@@ -16,8 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { SelectProvider } from 'Components/utils/SelectContext';
 import React from 'react';
+import { SelectProvider } from 'Components/utils/SelectContext';
 import { buildDataModel, render } from 'test-utils';
 import DataModelCard from './DataModelCard';
 

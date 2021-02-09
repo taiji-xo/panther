@@ -17,7 +17,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { Alert, Box, Flex, Text } from 'pouncejs';
+import { Alert, Box, Flex } from 'pouncejs';
 import Panel from 'Components/Panel';
 import ErrorBoundary from 'Components/ErrorBoundary';
 import { SelectAllCheckbox, useSelect, withSelectContext } from 'Components/utils/SelectContext';

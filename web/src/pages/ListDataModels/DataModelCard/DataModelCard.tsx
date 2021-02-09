@@ -34,11 +34,9 @@ interface DataModelCardProps {
 const DataModelCard: React.FC<DataModelCardProps> = ({ dataModel }) => {
   return (
     <GenericItemCard>
-      <Flex align="start" pr={2}>
-        <Box transform="translate3d(0,-8px,0)">
-          <SelectCheckbox selectionItem={dataModel} />
-        </Box>
-      </Flex>
+      <Box transform="translate3d(-12px,-12px,0)">
+        <SelectCheckbox selectionItem={dataModel} />
+      </Box>
       <GenericItemCard.Body>
         <GenericItemCard.Header>
           <GenericItemCard.Heading>

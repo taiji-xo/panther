@@ -37,7 +37,7 @@ const ListDataModelSelection: React.FC = () => {
           aria-label="Delete selected Data Models"
           onClick={() => {
             return showModal({
-              modal: MODALS.DELETE_DATA_MODEL,
+              modal: MODALS.DELETE_DATA_MODELS,
               props: {
                 dataModels: selection,
               },

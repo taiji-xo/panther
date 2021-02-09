@@ -17,7 +17,7 @@
  */
 
 import React from 'react';
-import { Text, ModalProps, useSnackbar } from 'pouncejs';
+import { ModalProps, useSnackbar } from 'pouncejs';
 import { DataModel } from 'Generated/schema';
 import { extractErrorMessage, toPlural } from 'Helpers/utils';
 import { EventEnum, SrcEnum, trackError, TrackErrorEnum, trackEvent } from 'Helpers/analytics';
@@ -66,22 +66,13 @@ const DeleteDataModelModal: React.FC<DeleteDataModelModalProps> = ({ dataModels,
       onConfirm={deleteDataModel}
       title={`Delete ${dataModelToString}`}
       subtitle={[
-        <Text key={0} maxWidth={480}>
-          Are you sure you want to delete{' '}
-          <b>
-            {dataModels.map((dm, i) => {
-              const dataModel = dm.displayName || dm.id;
-              if (i === 0) {
-                return dataModel;
-              }
-              if (i === dataModels.length - 1) {
-                return ` and ${dataModel}`;
-              }
-              return `, ${dataModel}`;
-            })}
-          </b>
-          ?
-        </Text>,
+        `Are you sure you want to delete `,
+        <b key={0}>
+          {dataModels.length === 1
+            ? dataModels[0].displayName || dataModels[0].id
+            : `${dataModels.length} Data Models`}
+        </b>,
+        '?',
       ]}
       {...rest}
     />
