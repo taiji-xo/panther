@@ -49,12 +49,15 @@ const evaluateTracking = (...args) => {
 export enum PageViewEnum {
   LogAnalysisOverview = 'Log Analysis Overview',
   ComplianceOverview = 'Compliance Overview',
-  ListRules = 'List Rules',
   ListAlerts = 'List Alerts',
+  ListDetections = 'List Detections',
   ListLogSources = 'List Log Sources',
+  ListDataModels = 'List Data Models',
+  ListPacks = 'List Packs',
   Home = 'Home',
   Support = 'Support',
   CustomLogDetails = 'Custom Log Details Screen',
+  CustomLogEditing = 'Custom Log Edit Screen',
 }
 
 interface TrackPageViewProps {
@@ -71,7 +74,11 @@ export const trackPageView = ({ page }: TrackPageViewProps) => {
 export enum EventEnum {
   SignedIn = 'Signed in successfully',
   AddedCustomLog = 'Added Custom Log',
+  AddedDataModel = 'Added Data Model',
+  UpdatedDataModel = 'Updated Data Model',
   DeletedCustomLog = 'Deleted Custom Log',
+  DeletedDataModel = 'Deleted Data Model',
+  UpdatedCustomLog = 'Update Custom Log',
   AddedRule = 'Added Rule',
   AddedPolicy = 'Added Policy',
   AddedComplianceSource = 'Added Compliance Source',
@@ -83,6 +90,7 @@ export enum EventEnum {
   UpdatedAlertStatus = 'Updated Alert Status',
   UpdatedComplianceSource = 'Updated Compliance Source',
   UpdatedLogSource = 'Updated Log Source',
+  UpdatedPack = 'Updated Pack',
   BulkUpdatedAlertStatus = 'Bulk Updated Alert Status',
   TestedDestination = 'Tested a destination',
   TestedDestinationSuccessfully = 'Successfully tested Destination',
@@ -99,6 +107,8 @@ export enum SrcEnum {
   ComplianceSources = 'compliance sources',
   LogSources = 'log sources',
   CustomLogs = 'custom logs',
+  DataModels = 'data models',
+  Packs = 'packs',
 }
 
 type LogSources = 'S3' | 'SQS';
@@ -111,6 +121,25 @@ interface SignInEvent {
 interface AddedCustomLogEvent {
   event: EventEnum.AddedCustomLog;
   src: SrcEnum.CustomLogs;
+}
+
+interface AddedDataModelEvent {
+  event: EventEnum.AddedDataModel;
+  src: SrcEnum.DataModels;
+}
+interface UpdatedCustomLogEvent {
+  event: EventEnum.UpdatedCustomLog;
+  src: SrcEnum.CustomLogs;
+}
+
+interface UpdatedDataModelEvent {
+  event: EventEnum.UpdatedDataModel;
+  src: SrcEnum.DataModels;
+}
+
+interface DeleteDataModelEvent {
+  event: EventEnum.DeletedDataModel;
+  src: SrcEnum.DataModels;
 }
 
 interface DeletedCustomLogEvent {
@@ -205,8 +234,16 @@ interface BulkUpdatedAlertStatus extends AlertStatusEvents {
   event: EventEnum.BulkUpdatedAlertStatus;
 }
 
+interface UpdatedPackEvent {
+  event: EventEnum.UpdatedPack;
+  src: SrcEnum.Packs;
+}
+
 type TrackEvent =
   | AddedDestinationEvent
+  | AddedDataModelEvent
+  | UpdatedDataModelEvent
+  | DeleteDataModelEvent
   | SignInEvent
   | AddedRuleEvent
   | AddedPolicyEvent
@@ -220,10 +257,12 @@ type TrackEvent =
   | UpdatedAlertStatus
   | BulkUpdatedAlertStatus
   | AddedCustomLogEvent
+  | UpdatedCustomLogEvent
   | DeletedCustomLogEvent
   | TestedDestination
   | TestedDestinationSuccessfully
-  | TestedDestinationFailure;
+  | TestedDestinationFailure
+  | UpdatedPackEvent;
 
 export const trackEvent = (payload: TrackEvent) => {
   evaluateTracking(payload.event, {
@@ -237,10 +276,16 @@ export const trackEvent = (payload: TrackEvent) => {
 export enum TrackErrorEnum {
   FailedToAddDestination = 'Failed to create Destination',
   FailedToAddRule = 'Failed to create Rule',
+  FailedToAddPolicy = 'Failed to create Policy',
   FailedToAddCustomLog = 'Failed to create a Custom Log',
+  FailedToAddDataModel = 'Failed to create a Data Model',
+  FailedToUpdateDataModel = 'Failed to update a Data Model',
+  FailedToEditCustomLog = 'Failed to edit a Custom Log',
   FailedToDeleteCustomLog = 'Failed to delete a Custom Log',
+  FailedToDeleteDataModel = 'Failed to delete a Data Model',
   FailedToAddLogSource = 'Failed to add log source',
   FailedToUpdateLogSource = 'Failed to update log source',
+  FailedToUpdatePack = 'Failed to update a pack',
   FailedToAddComplianceSource = 'Failed to add compliance source',
   FailedToUpdateComplianceSource = 'Failed to update compliance source',
   FailedMfa = 'Failed MFA',
@@ -272,6 +317,21 @@ interface AddComplianceSourceError {
   src: SrcEnum.ComplianceSources;
 }
 
+interface AddDataModelError {
+  event: TrackErrorEnum.FailedToAddDataModel;
+  src: SrcEnum.DataModels;
+}
+
+interface UpdateDataModelError {
+  event: TrackErrorEnum.FailedToUpdateDataModel;
+  src: SrcEnum.DataModels;
+}
+
+interface DeleteDataModelError {
+  event: TrackErrorEnum.FailedToDeleteDataModel;
+  src: SrcEnum.DataModels;
+}
+
 interface UpdateComplianceSourceError {
   event: TrackErrorEnum.FailedToUpdateComplianceSource;
   src: SrcEnum.ComplianceSources;
@@ -281,6 +341,12 @@ interface AddRuleError {
   event: TrackErrorEnum.FailedToAddRule;
   src: SrcEnum.Rules;
 }
+
+interface AddPolicyError {
+  event: TrackErrorEnum.FailedToAddPolicy;
+  src: SrcEnum.Policies;
+}
+
 interface MfaError {
   event: TrackErrorEnum.FailedMfa;
   src: SrcEnum.Auth;
@@ -293,27 +359,45 @@ interface AddLogSourceError {
 }
 
 interface CustomLogError {
-  event: TrackErrorEnum.FailedToAddCustomLog | TrackErrorEnum.FailedToDeleteCustomLog;
+  event:
+    | TrackErrorEnum.FailedToAddCustomLog
+    | TrackErrorEnum.FailedToDeleteCustomLog
+    | TrackErrorEnum.FailedToUpdateLogSource;
   src: SrcEnum.CustomLogs;
 }
 interface DeleteCustomLogError extends CustomLogError {
   event: TrackErrorEnum.FailedToDeleteCustomLog;
 }
+
+interface UpdateCustomLogError extends CustomLogError {
+  event: TrackErrorEnum.FailedToUpdateLogSource;
+}
 interface AddCustomLogError extends CustomLogError {
   event: TrackErrorEnum.FailedToAddCustomLog;
 }
 
+interface UpdatePackError {
+  event: TrackErrorEnum.FailedToUpdatePack;
+  src: SrcEnum.Packs;
+}
+
 type TrackError =
   | AddDestinationError
+  | AddDataModelError
+  | UpdateDataModelError
+  | DeleteDataModelError
   | TestDestinationError
   | AddRuleError
+  | AddPolicyError
   | MfaError
   | AddCustomLogError
   | DeleteCustomLogError
   | AddLogSourceError
   | UpdateLogSourceError
+  | UpdateCustomLogError
   | AddComplianceSourceError
-  | UpdateComplianceSourceError;
+  | UpdateComplianceSourceError
+  | UpdatePackError;
 
 export const trackError = (payload: TrackError) => {
   evaluateTracking(payload.event, {

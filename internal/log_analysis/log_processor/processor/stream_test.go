@@ -34,8 +34,10 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 
+	"github.com/panther-labs/panther/api/lambda/source/models"
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/common"
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/destinations"
+	"github.com/panther-labs/panther/internal/log_analysis/log_processor/metrics"
 	"github.com/panther-labs/panther/pkg/testutils"
 )
 
@@ -54,6 +56,10 @@ func init() {
 	// set these once at start of test
 	common.Config.AwsLambdaFunctionMemorySize = 1024
 	common.Config.SqsQueueURL = "https://fakesqsurl"
+	getObjectMock := &testutils.CounterMock{}
+	getObjectMock.On("With", mock.Anything).Return(getObjectMock).Maybe()
+	getObjectMock.On("Add", mock.Anything).Maybe()
+	metrics.GetObject = getObjectMock
 }
 
 func TestStreamEvents(t *testing.T) {
@@ -67,7 +73,7 @@ func TestStreamEvents(t *testing.T) {
 	sqsMock.On("DeleteMessageBatch", mock.Anything).
 		Return(&sqs.DeleteMessageBatchOutput{}, nil).Once()
 
-	ctx, cancel := testContext()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	count, err := pollEvents(ctx, sqsMock, noopProcessorFunc, noopGenerateDataStream)
 	require.NoError(t, err)
@@ -97,7 +103,7 @@ func TestStreamEventsReadEventError(t *testing.T) {
 	sqsMock.On("ReceiveMessageWithContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(&sqs.ReceiveMessageOutput{}, nil).Once()
 
-	ctx, cancel := testContext()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	count, err := pollEvents(ctx, sqsMock, noopProcessorFunc, failGenerateDataStream)
 	// Failure in the generateDataStreamsFunc should no cause the function invocation to fail
@@ -116,7 +122,7 @@ func TestStreamEventsProcessError(t *testing.T) {
 	sqsMock.On("ReceiveMessageWithContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(&sqs.ReceiveMessageOutput{}, nil).Once() // this one return 0 messages, which breaks the loop
 
-	ctx, cancel := testContext()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	count, err := pollEvents(ctx, sqsMock, failProcessorFunc, noopGenerateDataStream)
 	require.Error(t, err)
@@ -134,7 +140,7 @@ func TestStreamEventsProcessErrorAndReadEventError(t *testing.T) {
 	sqsMock.On("ReceiveMessageWithContext", mock.Anything, mock.Anything, mock.Anything).
 		Return(&sqs.ReceiveMessageOutput{}, nil).Once() // this one return 0 messages, which breaks the loop
 
-	ctx, cancel := testContext()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	count, err := pollEvents(ctx, sqsMock, failProcessorFunc, failGenerateDataStream)
 	require.Error(t, err)
@@ -158,7 +164,7 @@ func TestStreamEventsReceiveSQSError(t *testing.T) {
 	sqsMock.On("DeleteMessageBatch", mock.Anything).
 		Return(&sqs.DeleteMessageBatchOutput{}, nil).Once()
 
-	ctx, cancel := testContext()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	count, err := pollEvents(ctx, sqsMock, noopProcessorFunc, noopGenerateDataStream)
 	assert.NoError(t, err)
@@ -184,7 +190,7 @@ func TestStreamEventsDeleteSQSError(t *testing.T) {
 		Successful: []*sqs.DeleteMessageBatchResultEntry{},
 	}, fmt.Errorf("deleteError")).Once()
 
-	ctx, cancel := testContext()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	count, err := pollEvents(ctx, sqsMock, noopProcessorFunc, noopGenerateDataStream)
 
@@ -216,11 +222,6 @@ func TestStreamEventsDeleteSQSError(t *testing.T) {
 	sqsMock.AssertExpectations(t)
 }
 
-func testContext() (context.Context, context.CancelFunc) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	return ctx, cancel
-}
-
 func noopProcessorFunc(streamChan <-chan *common.DataStream, _ destinations.Destination) error {
 	// drain channel
 	for range streamChan {
@@ -236,8 +237,12 @@ func failProcessorFunc(streamChan <-chan *common.DataStream, _ destinations.Dest
 }
 
 func noopGenerateDataStream(_ context.Context, _ string) ([]*common.DataStream, error) {
+	src := &models.SourceIntegration{}
+	src.IntegrationID = "id"
 	return []*common.DataStream{
-		{}, // empty is fine
+		{
+			Source: src,
+		},
 	}, nil
 }
 

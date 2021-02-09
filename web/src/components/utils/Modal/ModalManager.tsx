@@ -23,9 +23,11 @@ import { MODALS } from 'Components/utils/Modal';
 import DeletePolicyModal from 'Components/modals/DeletePolicyModal';
 import DeleteUserModal from 'Components/modals/DeleteUserModal';
 import ResetUserPasswordModal from 'Components/modals/ResetUserPasswordModal';
+import ReinviteUserModal from 'Components/modals/ReinviteUserModal';
 import DeleteComplianceSourceModal from 'Components/modals/DeleteComplianceSourceModal';
 import DeleteLogSourceModal from 'Components/modals/DeleteLogSourceModal';
 import DeleteDestinationModal from 'Components/modals/DeleteDestinationModal';
+import GenericModal from 'Components/modals/GenericModal';
 import DeleteRuleModal from 'Components/modals/DeleteRuleModal';
 import NetworkErrorModal from 'Components/modals/NetworkErrorModal';
 import AnalyticsConsentModal from 'Components/modals/AnalyticsConsentModal';
@@ -33,6 +35,7 @@ import DeleteTestModal from 'Components/modals/DeleteTestModal';
 import DeleteGlobalPythonModuleModal from 'Components/modals/DeleteGlobalPythonModuleModal';
 import ProfileSettingsModal from 'Components/modals/ProfileSettingsModal';
 import DeleteCustomLogModal from 'Components/modals/DeleteCustomLogModal';
+import DeleteDataModelModal from 'Components/modals/DeleteDataModelModal';
 
 const ModalManager: React.FC = () => {
   const { state: modalState, hideModal } = useModal();
@@ -48,11 +51,17 @@ const ModalManager: React.FC = () => {
     case MODALS.DELETE_USER:
       Component = DeleteUserModal;
       break;
+    case MODALS.GENERIC_MODAL:
+      Component = GenericModal;
+      break;
     case MODALS.EDIT_PROFILE_SETTINGS:
       Component = ProfileSettingsModal;
       break;
     case MODALS.RESET_USER_PASS:
       Component = ResetUserPasswordModal;
+      break;
+    case MODALS.REINVITE_USER:
+      Component = ReinviteUserModal;
       break;
     case MODALS.DELETE_RULE:
       Component = DeleteRuleModal;
@@ -77,6 +86,9 @@ const ModalManager: React.FC = () => {
       break;
     case MODALS.DELETE_CUSTOM_LOG:
       Component = DeleteCustomLogModal;
+      break;
+    case MODALS.DELETE_DATA_MODEL:
+      Component = DeleteDataModelModal;
       break;
     default:
       Component = null;

@@ -40,9 +40,9 @@ var (
 // UpdateIntegrationSettings makes an update to an integration from the UI.
 //
 // This endpoint updates attributes such as the behavior of the integration, or display information.
-func (api API) UpdateIntegrationSettings(input *models.UpdateIntegrationSettingsInput) (*models.SourceIntegration, error) {
+func (api *API) UpdateIntegrationSettings(input *models.UpdateIntegrationSettingsInput) (*models.SourceIntegration, error) {
 	// First get the current existingItem settings so that we can properly evaluate it
-	existingItem, err := getItem(input.IntegrationID)
+	existingItem, err := api.getItem(input.IntegrationID)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,42 @@ func (api API) UpdateIntegrationSettings(input *models.UpdateIntegrationSettings
 	}
 
 	// Validate the updates
-	reason, passing, err := evaluateIntegrationFunc(api, &models.CheckIntegrationInput{
+	// Validate the new integration (healthcheck).
+	if existingItem.IntegrationType != models.IntegrationTypeAWS3 {
+		// For s3 sources, allow saving regardless of the healthcheck result. This allows
+		// users to manage the log processing role and other infra asynchronously.
+		if err := api.checkSource(existingItem, input); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := api.updateTables(existingItem, input); err != nil {
+		zap.L().Error("failed to update tables", zap.Error(err))
+		return nil, updateIntegrationInternalError
+	}
+
+	updateIntegrationDBItem(existingItem, input)
+
+	if existingItem.IntegrationType == models.IntegrationTypeSqs {
+		err := api.UpdateSourceSqsQueue(
+			existingItem.IntegrationID, existingItem.SqsConfig.AllowedPrincipalArns, existingItem.SqsConfig.AllowedSourceArns)
+		if err != nil {
+			zap.L().Error("failed to update integration", zap.Error(err))
+			return nil, updateIntegrationInternalError
+		}
+	}
+
+	if err := api.DdbClient.PutItem(existingItem); err != nil {
+		zap.L().Error("failed to put item in ddb", zap.Error(err))
+		return nil, updateIntegrationInternalError
+	}
+
+	existingIntegration := itemToIntegration(existingItem)
+	return existingIntegration, nil
+}
+
+func (api *API) checkSource(existingItem *ddb.Integration, input *models.UpdateIntegrationSettingsInput) error {
+	reason, passing, err := api.EvaluateIntegrationFunc(&models.CheckIntegrationInput{
 		// Same as the existing integration item
 		AWSAccountID:    existingItem.AWSAccountID,
 		IntegrationType: existingItem.IntegrationType,
@@ -67,46 +102,22 @@ func (api API) UpdateIntegrationSettings(input *models.UpdateIntegrationSettings
 		SqsConfig:         input.SqsConfig,
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if !passing {
 		zap.L().Warn("UpdateIntegration: resource has a misconfiguration",
 			zap.Error(err),
 			zap.String("reason", reason),
 			zap.Any("input", input))
-		return nil, &genericapi.InvalidInputError{
+		return &genericapi.InvalidInputError{
 			Message: fmt.Sprintf("source %s did not pass configuration check because of %s",
 				existingItem.AWSAccountID, reason),
 		}
 	}
-
-	if err := updateTables(existingItem, input); err != nil {
-		zap.L().Error("failed to update tables", zap.Error(err))
-		return nil, updateIntegrationInternalError
-	}
-
-	updateIntegrationDBItem(existingItem, input)
-
-	if existingItem.IntegrationType == models.IntegrationTypeSqs {
-		err := UpdateSourceSqsQueue(
-			existingItem.IntegrationID, existingItem.SqsConfig.AllowedPrincipalArns, existingItem.SqsConfig.AllowedSourceArns)
-		if err != nil {
-			zap.L().Error("failed to update integration", zap.Error(err))
-			return nil, updateIntegrationInternalError
-		}
-	}
-
-	if err := dynamoClient.PutItem(existingItem); err != nil {
-		zap.L().Error("failed to put item in ddb", zap.Error(err))
-		return nil, updateIntegrationInternalError
-	}
-
-	existingIntegration := itemToIntegration(existingItem)
-
-	return existingIntegration, nil
+	return nil
 }
 
-func (api API) validateUniqueConstraints(existingIntegrationItem *ddb.Integration, input *models.UpdateIntegrationSettingsInput) error {
+func (api *API) validateUniqueConstraints(existingIntegrationItem *ddb.Integration, input *models.UpdateIntegrationSettingsInput) error {
 	// Prefixes in the same S3 source should should be unique (although we allow overlapping for now)
 	if existingIntegrationItem.IntegrationType == models.IntegrationTypeAWS3 {
 		prefixes := input.S3PrefixLogTypes.S3Prefixes()
@@ -169,13 +180,16 @@ func updateIntegrationDBItem(item *ddb.Integration, input *models.UpdateIntegrat
 		item.ScanIntervalMins = input.ScanIntervalMins
 		item.CWEEnabled = input.CWEEnabled
 		item.RemediationEnabled = input.RemediationEnabled
+		item.Enabled = input.Enabled
+		item.RegionIgnoreList = input.RegionIgnoreList
+		item.ResourceTypeIgnoreList = input.ResourceTypeIgnoreList
+		item.ResourceRegexIgnoreList = input.ResourceRegexIgnoreList
 	case models.IntegrationTypeAWS3:
 		if input.IntegrationLabel != "" {
 			item.IntegrationLabel = input.IntegrationLabel
 			item.StackName = getStackName(models.IntegrationTypeAWS3, input.IntegrationLabel)
 			item.LogProcessingRole = generateLogProcessingRoleArn(item.AWSAccountID, input.IntegrationLabel)
 		}
-
 		item.S3Bucket = input.S3Bucket
 		item.KmsKey = input.KmsKey
 		item.S3PrefixLogTypes = input.S3PrefixLogTypes
@@ -191,15 +205,15 @@ func updateIntegrationDBItem(item *ddb.Integration, input *models.UpdateIntegrat
 }
 
 // UpdateIntegrationLastScanStart updates an integration when a new scan is started.
-func (API) UpdateIntegrationLastScanStart(input *models.UpdateIntegrationLastScanStartInput) error {
-	existingIntegration, err := getItem(input.IntegrationID)
+func (api *API) UpdateIntegrationLastScanStart(input *models.UpdateIntegrationLastScanStartInput) error {
+	existingIntegration, err := api.getItem(input.IntegrationID)
 	if err != nil {
 		return err
 	}
 
 	existingIntegration.LastScanStartTime = &input.LastScanStartTime
 	existingIntegration.ScanStatus = input.ScanStatus
-	err = dynamoClient.PutItem(existingIntegration)
+	err = api.DdbClient.PutItem(existingIntegration)
 	if err != nil {
 		return &genericapi.InternalError{Message: "Failed updating the integration last scan start"}
 	}
@@ -207,8 +221,8 @@ func (API) UpdateIntegrationLastScanStart(input *models.UpdateIntegrationLastSca
 }
 
 // UpdateIntegrationLastScanEnd updates an integration when a scan ends.
-func (API) UpdateIntegrationLastScanEnd(input *models.UpdateIntegrationLastScanEndInput) error {
-	existingIntegration, err := getItem(input.IntegrationID)
+func (api *API) UpdateIntegrationLastScanEnd(input *models.UpdateIntegrationLastScanEndInput) error {
+	existingIntegration, err := api.getItem(input.IntegrationID)
 	if err != nil {
 		return err
 	}
@@ -216,30 +230,31 @@ func (API) UpdateIntegrationLastScanEnd(input *models.UpdateIntegrationLastScanE
 	existingIntegration.LastScanEndTime = &input.LastScanEndTime
 	existingIntegration.LastScanErrorMessage = input.LastScanErrorMessage
 	existingIntegration.ScanStatus = input.ScanStatus
-	err = dynamoClient.PutItem(existingIntegration)
+	err = api.DdbClient.PutItem(existingIntegration)
 	if err != nil {
 		return &genericapi.InternalError{Message: "Failed updating the integration last scan end"}
 	}
 	return nil
 }
 
-func getItem(integrationID string) (*ddb.Integration, error) {
-	item, err := dynamoClient.GetItem(integrationID)
+func (api *API) getItem(integrationID string) (*ddb.Integration, error) {
+	item, err := api.DdbClient.GetItem(integrationID)
 	if err != nil {
-		return nil, &genericapi.InternalError{Message: "Encountered issue while updating integration"}
+		return nil, &genericapi.InternalError{Message: "Error fetching the existing integration"}
 	}
 
 	if item == nil {
-		return nil, &genericapi.DoesNotExistError{Message: "existingIntegration does not exist"}
+		return nil, &genericapi.DoesNotExistError{Message: "Integration does not exist"}
 	}
 	return item, nil
 }
 
-func updateTables(item *ddb.Integration, input *models.UpdateIntegrationSettingsInput) error {
+func (api *API) updateTables(item *ddb.Integration, input *models.UpdateIntegrationSettingsInput) error {
 	var existingLogTypes, newLogTypes []string
 	switch item.IntegrationType {
 	case models.IntegrationTypeAWS3:
-		existingLogTypes = item.S3PrefixLogTypes.LogTypes()
+		// Need to include `item.LogTypes` for backwards compatibility reasons
+		existingLogTypes = append(item.S3PrefixLogTypes.LogTypes(), item.LogTypes...)
 		newLogTypes = input.S3PrefixLogTypes.LogTypes()
 	case models.IntegrationTypeSqs:
 		existingLogTypes = item.SqsConfig.LogTypes
@@ -253,8 +268,8 @@ func updateTables(item *ddb.Integration, input *models.UpdateIntegrationSettings
 	}
 
 	client := datacatalog.Client{
-		SQSAPI:   sqsClient,
-		QueueURL: env.DataCatalogUpdaterQueueURL,
+		SQSAPI:   api.SqsClient,
+		QueueURL: api.Config.DataCatalogUpdaterQueueURL,
 	}
 	err := client.SendCreateTablesForLogTypes(context.TODO(), newLogTypes...)
 	if err != nil {

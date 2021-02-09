@@ -63,6 +63,17 @@ var (
 
 	// IndividualARNResourcePollers maps resource types to their corresponding individual polling
 	// functions for resources whose ID is their ARN.
+	//
+	// NOTE! - This hardcoded data set is found in several places in our code base.
+	// Until this data is sourced from a single location you need to check if any additions
+	// or modifications to this data need to coincide with updates in the other places where this data
+	// is hardcoded.
+	//
+	// Locations may not be in this list! right now this data is hardcoded in
+	// • internal/compliance/snapshot_poller/models/aws/ResourceTypes.go
+	// • internal/compliance/snapshot_poller/pollers/aws/clients.go
+	// • web/src/constants.ts
+	//
 	IndividualARNResourcePollers = map[string]func(
 		input *awsmodels.ResourcePollerInput, arn arn.ARN, entry *pollermodels.ScanEntry) (interface{}, error){
 		awsmodels.AcmCertificateSchema:      PollACMCertificate,
@@ -97,7 +108,7 @@ var (
 	IndividualResourcePollers = map[string]func(
 		input *awsmodels.ResourcePollerInput, id *utils.ParsedResourceID, entry *pollermodels.ScanEntry) (interface{}, error){
 		awsmodels.ConfigServiceSchema:  PollConfigService,
-		awsmodels.EksClusterSchema:     PollEKSCluster,
+		awsmodels.EksClusterSchema:     PollEKSCluster, // This function is never entered - lacking event-processor
 		awsmodels.GuardDutySchema:      PollGuardDutyDetector,
 		awsmodels.PasswordPolicySchema: PollPasswordPolicyResource,
 	}
@@ -169,8 +180,32 @@ func Poll(scanRequest *pollermodels.ScanEntry) (
 		// This field may be nil
 		Region: scanRequest.Region,
 		// Note: The resources-api expects a time.Time formatted string.
-		Timestamp:     aws.Time(utils.TimeNowFunc()),
-		NextPageToken: scanRequest.NextPageToken,
+		Timestamp:               aws.Time(utils.TimeNowFunc()),
+		NextPageToken:           scanRequest.NextPageToken,
+		RegionIgnoreList:        scanRequest.RegionIgnoreList,
+		ResourceRegexIgnoreList: scanRequest.ResourceRegexIgnoreList,
+		ResourceTypeIgnoreList:  scanRequest.ResourceTypeIgnoreList,
+	}
+	err = pollerResourceInput.CompileRegex()
+	if err != nil {
+		zap.L().Error("unable to compile passed regex",
+			zap.Any("resource regex ignore list", scanRequest.ResourceRegexIgnoreList))
+		return nil, err
+	}
+
+	// Check if integration is disabled
+	if scanRequest.Enabled != nil && !*scanRequest.Enabled {
+		zap.L().Info("source integration disabled",
+			zap.String("integration id", *scanRequest.IntegrationID))
+		return nil, nil
+	}
+
+	// Check if resource type is filtered
+	for _, resourceType := range pollerResourceInput.ResourceTypeIgnoreList {
+		if resourceType == *scanRequest.ResourceType {
+			zap.L().Info("resource type filtered", zap.String("resource type", resourceType))
+			return nil, nil
+		}
 	}
 
 	// If this is an individual resource scan or the region is provided,
@@ -196,6 +231,14 @@ func Poll(scanRequest *pollermodels.ScanEntry) (
 		zap.L().Info("processing single region service scan",
 			zap.String("region", *scanRequest.Region),
 			zap.String("resourceType", *scanRequest.ResourceType))
+		// Check if provided region is in ignoreList
+		for _, region := range pollerResourceInput.RegionIgnoreList {
+			if region == *scanRequest.Region {
+				zap.L().Info("matched ignoreList region - skipping scan",
+					zap.String("region", region))
+				return nil, nil
+			}
+		}
 		if poller, ok := ServicePollers[*scanRequest.ResourceType]; ok {
 			return serviceScan(
 				poller,
@@ -207,12 +250,20 @@ func Poll(scanRequest *pollermodels.ScanEntry) (
 		}
 	}
 
+	// If no region was specified, we need to re-queue one new scan request for each active region
+	return multiRegionScan(pollerResourceInput, scanRequest)
+}
+
+func multiRegionScan(
+	pollerInput *awsmodels.ResourcePollerInput,
+	scanRequest *pollermodels.ScanEntry,
+) (generatedEvents []resourcesapimodels.AddResourceEntry, err error) {
 	// If a region is not provided, then an 'all regions' scan is being requested. We don't
 	// support scanning multiple regions in one request, so we translate this request into a single
 	// region scan in each region.
 	//
 	// Lookup the regions that are both enabled and supported by this service
-	regions, err := GetRegionsToScan(pollerResourceInput, *scanRequest.ResourceType)
+	regions, err := GetRegionsToScan(pollerInput, *scanRequest.ResourceType)
 	if err != nil {
 		return nil, err
 	}
@@ -222,14 +273,19 @@ func Poll(scanRequest *pollermodels.ScanEntry) (
 		zap.Any("regions", regions),
 		zap.String("resourceType", *scanRequest.ResourceType),
 	)
+	// For simplicity, region ignoreList is not checked here
 	for _, region := range regions {
 		err = utils.Requeue(pollermodels.ScanMsg{
 			Entries: []*pollermodels.ScanEntry{
 				{
-					AWSAccountID:  scanRequest.AWSAccountID,
-					IntegrationID: scanRequest.IntegrationID,
-					Region:        region,
-					ResourceType:  scanRequest.ResourceType,
+					AWSAccountID:            scanRequest.AWSAccountID,
+					IntegrationID:           scanRequest.IntegrationID,
+					Region:                  region,
+					ResourceType:            scanRequest.ResourceType,
+					Enabled:                 scanRequest.Enabled,
+					RegionIgnoreList:        scanRequest.RegionIgnoreList,
+					ResourceRegexIgnoreList: scanRequest.ResourceRegexIgnoreList,
+					ResourceTypeIgnoreList:  scanRequest.ResourceTypeIgnoreList,
 				},
 			},
 		}, int64(pageRequeueDelayer.Intn(30)+1)) // Delay between 1 & 30 seconds to spread out region scans
@@ -237,7 +293,6 @@ func Poll(scanRequest *pollermodels.ScanEntry) (
 			return nil, err
 		}
 	}
-
 	return nil, nil
 }
 
@@ -314,7 +369,11 @@ func singleResourceScan(
 		resourceARN, err = arn.Parse(*scanRequest.ResourceID)
 		if err != nil {
 			zap.L().Error("unable to parse resourceID", zap.Error(err), zap.String("resourceID", *scanRequest.ResourceID))
-			// Don't return an error here because the scan request is not retryable
+			// This error is not retryable
+			return nil, nil
+		}
+		// Check if ResourceID matches the integration's regex filter
+		if pollerInput.ShouldIgnoreResource(*scanRequest.ResourceID) {
 			return nil, nil
 		}
 		resource, err = pollFunction(pollerInput, resourceARN, scanRequest)
@@ -325,6 +384,12 @@ func singleResourceScan(
 	}
 
 	if err != nil {
+		// Check for region ignoreList error
+		var e *RegionIgnoreListError
+		if errors.As(err, &e) {
+			zap.L().Info("Skipping denied region in single resource scan")
+			return nil, nil
+		}
 		// Check for rate limit errors. We don't want to blindly retry rate limit errors as this will
 		// cause more rate limit errors, so we re-schedule one new scan several minutes in the future
 		// and suppress all other scans for this resource until that time.

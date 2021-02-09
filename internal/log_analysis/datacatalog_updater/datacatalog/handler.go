@@ -23,6 +23,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go/service/athena/athenaiface"
 	"github.com/aws/aws-sdk-go/service/glue/glueiface"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
@@ -33,6 +34,7 @@ import (
 
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/logtypes"
 	"github.com/panther-labs/panther/pkg/lambdalogger"
+	"github.com/panther-labs/panther/pkg/oplog"
 )
 
 type LambdaHandler struct {
@@ -46,7 +48,7 @@ type LambdaHandler struct {
 	SQSClient             sqsiface.SQSAPI
 	Logger                *zap.Logger
 
-	// Glue partitions known to have been created. (use map[string]string where key == value for map size)
+	// Glue partitions known to have been created.
 	partitionsCreated map[string]struct{}
 }
 
@@ -58,6 +60,7 @@ type sqsTask struct {
 	CreateTables           *CreateTablesEvent           `json:",omitempty"`
 	SyncDatabasePartitions *SyncDatabasePartitionsEvent `json:",omitempty"`
 	SyncTablePartitions    *SyncTableEvent              `json:",omitempty"`
+	UpdateTable            *UpdateTablesEvent           `json:",omitempty"`
 }
 
 // Invoke implements lambda.Handler interface.
@@ -75,9 +78,19 @@ func (h *LambdaHandler) Invoke(ctx context.Context, payload []byte) ([]byte, err
 	return nil, nil
 }
 
+var opLogManager = oplog.NewManager("log_analysis", "datacatalog_updater")
+
 // HandleSQSEvent handles messages in an SQS event.
-func (h *LambdaHandler) HandleSQSEvent(ctx context.Context, event *events.SQSEvent) error {
-	tasks, err := tasksFromSQSMessages(event.Records...)
+func (h *LambdaHandler) HandleSQSEvent(ctx context.Context, event *events.SQSEvent) (err error) {
+	// NOTE: this logging is needed for alarming and dashboards!
+	lc, _ := lambdacontext.FromContext(ctx)
+	operation := opLogManager.Start(lc.InvokedFunctionArn).WithMemUsed(lambdacontext.MemoryLimitInMB)
+	defer func() {
+		operation.Stop().Log(err)
+	}()
+
+	var tasks []interface{}
+	tasks, err = tasksFromSQSMessages(event.Records...)
 	if err != nil {
 		return err
 	}
@@ -93,6 +106,8 @@ func (h *LambdaHandler) HandleSQSEvent(ctx context.Context, event *events.SQSEve
 			err = h.HandleSyncDatabasePartitionsEvent(ctx, task)
 		case *SyncTableEvent:
 			err = h.HandleSyncTableEvent(ctx, task)
+		case *UpdateTablesEvent:
+			err = h.HandleUpdateTablesEvent(ctx, task)
 		default:
 			err = errors.New("invalid task")
 		}
@@ -130,6 +145,8 @@ func tasksFromSQSMessages(messages ...events.SQSMessage) (tasks []interface{}, e
 			tasks = append(tasks, task.SyncTablePartitions)
 		case task.CreateTables != nil:
 			tasks = append(tasks, task.CreateTables)
+		case task.UpdateTable != nil:
+			tasks = append(tasks, task.UpdateTable)
 		default:
 			err = multierr.Append(err, errors.Errorf("invalid SQS message body %q", msg.MessageId))
 		}

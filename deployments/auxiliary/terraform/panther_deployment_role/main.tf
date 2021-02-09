@@ -200,7 +200,7 @@ resource "aws_iam_policy" "deployment" {
     {
       "Action": "s3:GetObject",
       "Effect": "Allow",
-      "Resource": "arn:aws:s3:::awsserverlessrepo-changesets-*"
+      "Resource": "arn:${var.aws_partition}:s3:::awsserverlessrepo-changesets-*"
     },
     {
       "Action": "dynamodb:*",
@@ -247,7 +247,8 @@ resource "aws_iam_policy" "deployment" {
       "Resource": [
         "arn:${var.aws_partition}:lambda:*:${var.aws_account_id}:event-source-mapping:*",
         "arn:${var.aws_partition}:lambda:*:${var.aws_account_id}:function:panther-*",
-        "arn:${var.aws_partition}:lambda:*:${var.aws_account_id}:layer:panther-*"
+        "arn:${var.aws_partition}:lambda:*:${var.aws_account_id}:layer:panther-*",
+        "arn:${var.aws_partition}:lambda:*:${var.aws_account_id}:function:ddb"
       ]
     },
     {

@@ -20,6 +20,12 @@ package logtypes
 
 import (
 	"context"
+	"sync"
+	"time"
+
+	"golang.org/x/sync/singleflight"
+
+	"github.com/panther-labs/panther/internal/log_analysis/log_processor/pantherlog"
 )
 
 // Resolver resolves a log type name to it's entry.
@@ -28,6 +34,27 @@ import (
 // If an entry could not be resolved but no errors occurred the implementations should return `nil, nil`.
 type Resolver interface {
 	Resolve(ctx context.Context, name string) (Entry, error)
+}
+
+func ParserResolver(r Resolver) pantherlog.ParserResolver {
+	return &parserResolver{
+		r: r,
+	}
+}
+
+type parserResolver struct {
+	r Resolver
+}
+
+func (p *parserResolver) ResolveParser(ctx context.Context, name string) (pantherlog.LogParser, error) {
+	entry, err := p.r.Resolve(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	if entry != nil {
+		return entry.NewParser(nil)
+	}
+	return nil, nil
 }
 
 // LocalResolver returns a log type resolver that looks up entries locally
@@ -69,4 +96,84 @@ func (c chainResolver) Resolve(ctx context.Context, name string) (Entry, error) 
 		}
 	}
 	return nil, nil
+}
+
+// NewCachedResolver creates a new resolver that caches entries for maxAge duration.
+func NewCachedResolver(maxAge time.Duration, r Resolver) *CachedResolver {
+	return &CachedResolver{
+		maxAge:   maxAge,
+		upstream: r,
+		entries:  make(map[string]*cachedEntry),
+	}
+}
+
+type CachedResolver struct {
+	maxAge   time.Duration
+	upstream Resolver
+	group    singleflight.Group
+	mu       sync.RWMutex
+	entries  map[string]*cachedEntry
+}
+
+type cachedEntry struct {
+	Entry
+	resolvedAt time.Time
+}
+
+func (e *cachedEntry) IsValid(maxAge time.Duration) bool {
+	return e != nil && time.Since(e.resolvedAt) < maxAge
+}
+
+func (c *CachedResolver) Forget(name string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.entries, name)
+}
+
+func (c *CachedResolver) Resolve(ctx context.Context, name string) (Entry, error) {
+	if e := c.find(name); e.IsValid(c.maxAge) {
+		return e.Entry, nil
+	}
+	reply, err, _ := c.group.Do(name, func() (interface{}, error) {
+		entry, err := c.upstream.Resolve(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		c.set(name, entry)
+		return entry, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if entry, ok := reply.(Entry); ok {
+		return entry, nil
+	}
+	return nil, nil
+}
+
+func (c *CachedResolver) find(name string) *cachedEntry {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.entries[name]
+}
+
+func (c *CachedResolver) set(name string, e Entry) {
+	now := time.Now()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.entries == nil {
+		c.entries = make(map[string]*cachedEntry)
+	}
+	c.entries[name] = &cachedEntry{
+		Entry:      e,
+		resolvedAt: now,
+	}
+}
+
+type ResolverFunc func(ctx context.Context, name string) (Entry, error)
+
+var _ Resolver = (ResolverFunc)(nil)
+
+func (f ResolverFunc) Resolve(ctx context.Context, name string) (Entry, error) {
+	return f(ctx, name)
 }

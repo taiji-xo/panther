@@ -55,6 +55,10 @@ func integrationToItem(input *models.SourceIntegration) *ddb.Integration {
 		item.ScanIntervalMins = input.ScanIntervalMins
 		item.ScanStatus = input.ScanStatus
 		item.StackName = input.StackName
+		item.Enabled = input.Enabled
+		item.RegionIgnoreList = input.RegionIgnoreList
+		item.ResourceTypeIgnoreList = input.ResourceTypeIgnoreList
+		item.ResourceRegexIgnoreList = input.ResourceRegexIgnoreList
 	case models.IntegrationTypeSqs:
 		item.SqsConfig = &ddb.SqsConfig{
 			QueueURL:             input.SqsConfig.QueueURL,
@@ -77,7 +81,6 @@ func itemToIntegration(item *ddb.Integration) *models.SourceIntegration {
 	integration.CreatedAtTime = item.CreatedAtTime
 	integration.CreatedBy = item.CreatedBy
 	integration.LastEventReceived = item.LastEventReceived
-
 	switch item.IntegrationType {
 	case models.IntegrationTypeAWS3:
 		integration.AWSAccountID = item.AWSAccountID
@@ -104,6 +107,10 @@ func itemToIntegration(item *ddb.Integration) *models.SourceIntegration {
 		integration.LastScanEndTime = item.LastScanEndTime
 		integration.LastScanErrorMessage = item.LastScanErrorMessage
 		integration.StackName = item.StackName
+		integration.Enabled = item.Enabled
+		integration.RegionIgnoreList = item.RegionIgnoreList
+		integration.ResourceTypeIgnoreList = item.ResourceTypeIgnoreList
+		integration.ResourceRegexIgnoreList = item.ResourceRegexIgnoreList
 	case models.IntegrationTypeSqs:
 		integration.SqsConfig = &models.SqsConfig{
 			S3Bucket:             item.SqsConfig.S3Bucket,

@@ -18,13 +18,14 @@
 
 import React from 'react';
 import GenericItemCard from 'Components/GenericItemCard';
-import { Flex, Link, SimpleGrid } from 'pouncejs';
+import { Flex, Link, SimpleGrid, Text } from 'pouncejs';
 import { Link as RRLink } from 'react-router-dom';
 import SeverityBadge from 'Components/badges/SeverityBadge';
 import StatusBadge from 'Components/badges/StatusBadge';
 import BulletedValueList from 'Components/BulletedValueList';
 import urls from 'Source/urls';
-import { RuleSummary, ComplianceStatusEnum } from 'Generated/schema';
+import { ComplianceStatusEnum } from 'Generated/schema';
+import { RuleSummary } from 'Source/graphql/fragments/RuleSummary.generated';
 import { formatDatetime } from 'Helpers/utils';
 import useDetectionDestinations from 'Hooks/useDetectionDestinations';
 import RelatedDestinations from 'Components/RelatedDestinations';
@@ -38,7 +39,7 @@ const RuleCard: React.FC<RuleCardProps> = ({ rule }) => {
   const {
     detectionDestinations,
     loading: loadingDetectionDestinations,
-  } = useDetectionDestinations({ rule });
+  } = useDetectionDestinations({ detection: rule });
   return (
     <GenericItemCard>
       <GenericItemCard.Body>
@@ -55,7 +56,9 @@ const RuleCard: React.FC<RuleCardProps> = ({ rule }) => {
           <GenericItemCard.Date date={formatDatetime(rule.lastModified)} />
           <RuleCardOptions rule={rule} />
         </GenericItemCard.Header>
-
+        <Text fontSize="small" as="span" color="cyan-500">
+          Rule
+        </Text>
         <SimpleGrid gap={2} columns={2}>
           <GenericItemCard.ValuesGroup>
             <GenericItemCard.Value

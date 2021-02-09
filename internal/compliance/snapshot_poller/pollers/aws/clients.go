@@ -37,7 +37,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/guardduty"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kms"
@@ -67,7 +66,7 @@ const (
 )
 
 var (
-	snapshotPollerSession *session.Session
+	SnapshotPollerSession *session.Session
 
 	// These are exported so the top-level unit tests can mock them out.
 	// AssumeRoleFunc is the function to return valid AWS credentials.
@@ -92,21 +91,23 @@ var (
 		awsmodels.Ec2VpcSchema:              ec2.ServiceName,
 		awsmodels.EcsClusterSchema:          ecs.ServiceName,
 		awsmodels.EksClusterSchema:          eks.ServiceName,
-		awsmodels.Elbv2LoadBalancerSchema:   elbv2.ServiceName,
-		awsmodels.GuardDutySchema:           guardduty.ServiceName,
-		awsmodels.IAMGroupSchema:            iam.ServiceName,
-		awsmodels.IAMPolicySchema:           iam.ServiceName,
-		awsmodels.IAMRoleSchema:             iam.ServiceName,
-		awsmodels.IAMRootUserSchema:         iam.ServiceName,
-		awsmodels.IAMUserSchema:             iam.ServiceName,
-		awsmodels.KmsKeySchema:              kms.ServiceName,
-		awsmodels.LambdaFunctionSchema:      lambda.ServiceName,
-		awsmodels.PasswordPolicySchema:      iam.ServiceName,
-		awsmodels.RDSInstanceSchema:         rds.ServiceName,
-		awsmodels.RedshiftClusterSchema:     redshift.ServiceName,
-		awsmodels.S3BucketSchema:            s3.ServiceName,
-		awsmodels.WafRegionalWebAclSchema:   waf.ServiceName,
-		awsmodels.WafWebAclSchema:           wafregional.ServiceName,
+		// For every other service, the service name aligns with how SSM refers to the service. For
+		// just the elb and elbv2 service, this is not the case. AWS just had to do it to 'em.
+		awsmodels.Elbv2LoadBalancerSchema: "elb",
+		awsmodels.GuardDutySchema:         guardduty.ServiceName,
+		awsmodels.IAMGroupSchema:          iam.ServiceName,
+		awsmodels.IAMPolicySchema:         iam.ServiceName,
+		awsmodels.IAMRoleSchema:           iam.ServiceName,
+		awsmodels.IAMRootUserSchema:       iam.ServiceName,
+		awsmodels.IAMUserSchema:           iam.ServiceName,
+		awsmodels.KmsKeySchema:            kms.ServiceName,
+		awsmodels.LambdaFunctionSchema:    lambda.ServiceName,
+		awsmodels.PasswordPolicySchema:    iam.ServiceName,
+		awsmodels.RDSInstanceSchema:       rds.ServiceName,
+		awsmodels.RedshiftClusterSchema:   redshift.ServiceName,
+		awsmodels.S3BucketSchema:          s3.ServiceName,
+		awsmodels.WafRegionalWebAclSchema: waf.ServiceName,
+		awsmodels.WafWebAclSchema:         wafregional.ServiceName,
 	}
 
 	// These services do not support regional scans, either because the resource itself is not
@@ -144,9 +145,17 @@ type cachedClient struct {
 	Credentials *credentials.Credentials
 }
 
+type RegionIgnoreListError struct {
+	Err error
+}
+
+func (r *RegionIgnoreListError) Error() string {
+	return r.Err.Error()
+}
+
 func Setup() {
 	awsSession := session.Must(session.NewSession()) // use default retries for fetching creds, avoids hangs!
-	snapshotPollerSession = awsSession.Copy(request.WithRetryer(aws.NewConfig().WithMaxRetries(maxRetries),
+	SnapshotPollerSession = awsSession.Copy(request.WithRetryer(aws.NewConfig().WithMaxRetries(maxRetries),
 		awsretry.NewConnectionErrRetryer(maxRetries)))
 
 	var err error
@@ -202,7 +211,7 @@ func GetServiceRegions(pollerInput *awsmodels.ResourcePollerInput, resourceType 
 	//		a painful migration
 	//	2. This information is globally the same, it doesn't matter what account you're in when you
 	//		make this particular API call the response is always the same
-	ssmSvc := ssm.New(snapshotPollerSession)
+	ssmSvc := ssm.New(SnapshotPollerSession)
 	var regions []*string
 	err = ssmSvc.GetParametersByPathPages(&ssm.GetParametersByPathInput{
 		Path: aws.String("/aws/service/global-infrastructure/services/" + serviceID + "/regions"),
@@ -226,6 +235,15 @@ func getClient(pollerInput *awsmodels.ResourcePollerInput,
 	clientFunc func(session *session.Session, config *aws.Config) interface{},
 	service string, region string) (interface{}, error) {
 
+	// Check if provided region is in the ignoreList
+	for _, deniedRegion := range pollerInput.RegionIgnoreList {
+		if region == deniedRegion {
+			return nil, &RegionIgnoreListError{
+				Err: errors.New("requested region was in region ignoreList"),
+			}
+		}
+	}
+
 	cacheKey := clientKey{
 		IntegrationID: *pollerInput.IntegrationID,
 		Service:       service,
@@ -242,7 +260,7 @@ func getClient(pollerInput *awsmodels.ResourcePollerInput,
 
 	// First we need to use our existing AWS session (in the Panther account) to create credentials
 	// for the IAM role in the account to be scanned
-	creds := AssumeRoleFunc(pollerInput, snapshotPollerSession)
+	creds := AssumeRoleFunc(pollerInput, SnapshotPollerSession)
 
 	// Second, we need to create a new session in the account to be scanned using the credentials
 	// we just created. This works around a situation where the account being scanned has an opt-in
@@ -250,13 +268,10 @@ func getClient(pollerInput *awsmodels.ResourcePollerInput,
 	//
 	// The region does not matter here, since we are just creating the session. When we create the
 	// client, we will need to specify the region.
-	clientSession, err := session.NewSession(&aws.Config{Credentials: creds})
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get %s client session in %s region", service, region)
-	}
+	clientSession := SnapshotPollerSession.Copy(aws.NewConfig().WithCredentials(creds))
 
 	// Verify that the session is valid
-	if err = VerifyAssumedCredsFunc(clientSession, region); err != nil {
+	if err := VerifyAssumedCredsFunc(clientSession, region); err != nil {
 		return nil, errors.Wrapf(err, "failed to get %s client in %s region", service, region)
 	}
 

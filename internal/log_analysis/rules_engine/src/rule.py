@@ -25,6 +25,7 @@ from typing import Any, Optional, Callable, List
 
 from .logging import get_logger
 from .util import id_to_path, import_file_as_module, store_modules
+from .enriched_event import PantherEvent
 
 _RULE_FOLDER = os.path.join(tempfile.gettempdir(), 'rules')
 
@@ -193,7 +194,7 @@ class Rule:
 
         self._default_dedup_string = 'defaultDedupString:{}'.format(self.rule_id)
 
-    def run(self, event: Mapping, batch_mode: bool = True) -> RuleResult:
+    def run(self, event: PantherEvent, batch_mode: bool = True) -> RuleResult:
         """
         Analyze a log line with this rule and return True, False, or an error.
         :param event: The event to run the rule against
@@ -235,13 +236,6 @@ class Rule:
 
         try:
             rule_result.severity_output = self._get_severity(event, use_default_on_exception=batch_mode)
-            if isinstance(rule_result.severity_output, str):
-                rule_result.severity_output = rule_result.severity_output.upper()
-                if rule_result.severity_output not in SEVERITY_TYPES:
-                    raise AssertionError(
-                        'Expected severity to be any of the following: [%s], got [%s] instead.' %
-                        (str(SEVERITY_TYPES), rule_result.severity_output)
-                    )
         except Exception as err:  # pylint: disable=broad-except
             rule_result.severity_exception = err
 
@@ -267,14 +261,14 @@ class Rule:
 
         return rule_result
 
-    def _get_alert_context(self, event: Mapping, use_default_on_exception: bool = True) -> Optional[str]:
+    def _get_alert_context(self, event: PantherEvent, use_default_on_exception: bool = True) -> Optional[str]:
         if not hasattr(self._module, 'alert_context'):
             return None
 
         try:
             command = getattr(self._module, 'alert_context')
-            alert_context = self._run_command(command, event, dict)
-            serialized_alert_context = json.dumps(alert_context)
+            alert_context = self._run_command(command, event, Mapping)
+            serialized_alert_context = json.dumps(alert_context, default=PantherEvent.json_encoder)
         except Exception as err:  # pylint: disable=broad-except
             if use_default_on_exception:
                 return json.dumps({ALERT_CONTEXT_ERROR_KEY: repr(err)})
@@ -291,7 +285,7 @@ class Rule:
     # Returns the dedup string for this rule match
     # If the rule match had a custom title, use the title as a deduplication string
     # If no title and no dedup function is defined, return the default dedup string.
-    def _get_dedup(self, event: Mapping, title: Optional[str], use_default_on_exception: bool = True) -> str:
+    def _get_dedup(self, event: PantherEvent, title: Optional[str], use_default_on_exception: bool = True) -> str:
         if not hasattr(self._module, 'dedup'):
             if title:
                 # If no dedup function is defined but the rule had a title, use the title as dedup string
@@ -325,7 +319,7 @@ class Rule:
 
         return dedup_string
 
-    def _get_description(self, event: Mapping, use_default_on_exception: bool = True) -> Optional[str]:
+    def _get_description(self, event: PantherEvent, use_default_on_exception: bool = True) -> Optional[str]:
         if not hasattr(self._module, 'description'):
             return None
 
@@ -352,16 +346,16 @@ class Rule:
             return description[:num_characters_to_keep] + TRUNCATED_STRING_SUFFIX
         return description
 
-    def _get_destinations(self, event: Mapping, use_default_on_exception: bool = True) -> Optional[List[str]]:
-        if not hasattr(self._module, 'destination_override'):
+    def _get_destinations(self, event: PantherEvent, use_default_on_exception: bool = True) -> Optional[List[str]]:
+        if not hasattr(self._module, 'destinations'):
             return None
 
         try:
-            command = getattr(self._module, 'destination_override')
+            command = getattr(self._module, 'destinations')
             destinations = self._run_command(command, event, list())
         except Exception as err:  # pylint: disable=broad-except
             if use_default_on_exception:
-                self.logger.warning('_get_destinations method raised exception. Exception: %s', err)
+                self.logger.warning('destinations method raised exception. Exception: %s', err)
                 return []
             raise
 
@@ -374,7 +368,7 @@ class Rule:
             return destinations[:MAX_DESTINATIONS_SIZE]
         return destinations
 
-    def _get_reference(self, event: Mapping, use_default_on_exception: bool = True) -> Optional[str]:
+    def _get_reference(self, event: PantherEvent, use_default_on_exception: bool = True) -> Optional[str]:
         if not hasattr(self._module, 'reference'):
             return None
 
@@ -401,7 +395,7 @@ class Rule:
             return reference[:num_characters_to_keep] + TRUNCATED_STRING_SUFFIX
         return reference
 
-    def _get_runbook(self, event: Mapping, use_default_on_exception: bool = True) -> Optional[str]:
+    def _get_runbook(self, event: PantherEvent, use_default_on_exception: bool = True) -> Optional[str]:
         if not hasattr(self._module, 'runbook'):
             return None
 
@@ -428,38 +422,30 @@ class Rule:
             return runbook[:num_characters_to_keep] + TRUNCATED_STRING_SUFFIX
         return runbook
 
-    def _get_severity(self, event: Mapping, use_default_on_exception: bool = True) -> Optional[str]:
+    def _get_severity(self, event: PantherEvent, use_default_on_exception: bool = True) -> Optional[str]:
         if not hasattr(self._module, 'severity'):
             return None
 
         try:
             command = getattr(self._module, 'severity')
-            severity = self._run_command(command, event, str)
+            severity = self._run_command(command, event, str).upper()
             if severity not in SEVERITY_TYPES:
                 self.logger.warning(
                     'severity method for rule with id [%s] yielded [%s], expected [%s]', self.rule_id, severity, str(SEVERITY_TYPES)
                 )
+                raise AssertionError(
+                    'Expected severity to be any of the following: [%s], got [%s] instead.' % (str(SEVERITY_TYPES), severity)
+                )
         except Exception as err:  # pylint: disable=broad-except
             if use_default_on_exception:
                 self.logger.warning(
-                    'severity method for rule with id [%s] raised exception. Using default. Exception: %s', self.rule_id, err
+                    'severity method for rule with id [%s] raised exception. Using default (INFO). Exception: %s', self.rule_id, err
                 )
                 return 'INFO'
             raise
-
-        if len(severity) > MAX_GENERATED_FIELD_SIZE:
-            # If generated field exceeds max size, truncate it
-            self.logger.warning(
-                'maximum field [severity] length is [%d]. [%d] for rule with ID [%s] . Truncating.',
-                MAX_GENERATED_FIELD_SIZE,
-                len(severity),
-                self.rule_id,
-            )
-            num_characters_to_keep = MAX_GENERATED_FIELD_SIZE - len(TRUNCATED_STRING_SUFFIX)
-            return severity[:num_characters_to_keep] + TRUNCATED_STRING_SUFFIX
         return severity
 
-    def _get_title(self, event: Mapping, use_default_on_exception: bool) -> Optional[str]:
+    def _get_title(self, event: PantherEvent, use_default_on_exception: bool) -> Optional[str]:
         if not hasattr(self._module, 'title'):
             return None
 
@@ -500,7 +486,7 @@ class Rule:
         self.logger.debug('imported module %s from path %s', self.rule_id, path)
         return mod
 
-    def _run_command(self, function: Callable, event: Mapping, expected_type: Any) -> Any:
+    def _run_command(self, function: Callable, event: PantherEvent, expected_type: Any) -> Any:
         result = function(event)
         # Branch in case of list
         if not isinstance(expected_type, list):

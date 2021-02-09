@@ -18,7 +18,7 @@
 
 import React from 'react';
 import { Dropdown, DropdownButton, DropdownItem, DropdownLink, DropdownMenu } from 'pouncejs';
-import { RuleSummary } from 'Generated/schema';
+import { RuleSummary } from 'Source/graphql/fragments/RuleSummary.generated';
 import urls from 'Source/urls';
 import useModal from 'Hooks/useModal';
 import { MODALS } from 'Components/utils/Modal';

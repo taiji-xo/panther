@@ -17,7 +17,7 @@
  */
 
 import React from 'react';
-import { Box, Card, Flex, Link, SimpleGrid } from 'pouncejs';
+import { Box, Card, Flex, Link, SimpleGrid, Text } from 'pouncejs';
 import Linkify from 'Components/Linkify';
 import { Link as RRLink } from 'react-router-dom';
 import urls from 'Source/urls';
@@ -27,11 +27,11 @@ import { AlertDetails } from 'Pages/AlertDetails';
 import AlertDeliverySection from 'Pages/AlertDetails/common/AlertDeliverySection';
 import RelatedDestinations from 'Components/RelatedDestinations';
 import useAlertDestinations from 'Hooks/useAlertDestinations';
-import { RuleTeaser } from '../graphql/ruleTeaser.generated';
+import { GetRuleSummary } from '../graphql/getRuleSummary.generated';
 
 interface AlertDetailsInfoProps {
   alert: AlertDetails['alert'];
-  rule: RuleTeaser['rule'];
+  rule?: GetRuleSummary['rule'];
 }
 
 const AlertDetailsInfo: React.FC<AlertDetailsInfoProps> = ({ alert, rule }) => {
@@ -40,44 +40,43 @@ const AlertDetailsInfo: React.FC<AlertDetailsInfoProps> = ({ alert, rule }) => {
   const detectionData = alert.detection as AlertDetailsRuleInfo;
   return (
     <Flex direction="column" spacing={4}>
-      {rule && (
-        <Card variant="dark" as="section" p={4}>
-          <SimpleGrid columns={2} spacing={5}>
-            <Flex direction="column" spacing={2}>
-              <Box
-                color="navyblue-100"
-                fontSize="small-medium"
-                aria-describedby="runbook-description"
-              >
-                Runbook
+      <Card variant="dark" as="section" p={4}>
+        {alert.description && <Text mb={6}>{alert.description}</Text>}
+        <SimpleGrid columns={2} spacing={5}>
+          <Flex direction="column" spacing={2}>
+            <Box
+              color="navyblue-100"
+              fontSize="small-medium"
+              aria-describedby="runbook-description"
+            >
+              Runbook
+            </Box>
+            {alert.runbook ? (
+              <Linkify id="runbook-description">{alert.runbook}</Linkify>
+            ) : (
+              <Box fontStyle="italic" color="navyblue-100" id="runbook-description">
+                No runbook specified
               </Box>
-              {rule.runbook ? (
-                <Linkify id="runbook-description">{rule.runbook}</Linkify>
-              ) : (
-                <Box fontStyle="italic" color="navyblue-100" id="runbook-description">
-                  No runbook specified
-                </Box>
-              )}
-            </Flex>
-            <Flex direction="column" spacing={2}>
-              <Box
-                color="navyblue-100"
-                fontSize="small-medium"
-                aria-describedby="reference-description"
-              >
-                Reference
+            )}
+          </Flex>
+          <Flex direction="column" spacing={2}>
+            <Box
+              color="navyblue-100"
+              fontSize="small-medium"
+              aria-describedby="reference-description"
+            >
+              Reference
+            </Box>
+            {alert.reference ? (
+              <Linkify id="reference-description">{alert.reference}</Linkify>
+            ) : (
+              <Box fontStyle="italic" color="navyblue-100" id="reference-description">
+                No reference specified
               </Box>
-              {rule.reference ? (
-                <Linkify id="reference-description">{rule.reference}</Linkify>
-              ) : (
-                <Box fontStyle="italic" color="navyblue-100" id="reference-description">
-                  No reference specified
-                </Box>
-              )}
-            </Flex>
-          </SimpleGrid>
-        </Card>
-      )}
+            )}
+          </Flex>
+        </SimpleGrid>
+      </Card>
       <Card variant="dark" as="section" p={4}>
         <SimpleGrid columns={2} spacing={5} fontSize="small-medium">
           <Box>
@@ -141,7 +140,7 @@ const AlertDetailsInfo: React.FC<AlertDetailsInfoProps> = ({ alert, rule }) => {
                         <Link
                           key={tag}
                           as={RRLink}
-                          to={`${urls.logAnalysis.rules.list()}?page=1&tags[]=${tag}`}
+                          to={`${urls.detections.list()}?page=1&tags[]=${tag}`}
                         >
                           {tag}
                           {index !== rule.tags.length - 1 ? ', ' : null}

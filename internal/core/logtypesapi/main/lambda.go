@@ -19,23 +19,35 @@ package main
  */
 
 import (
+	"context"
+	"net/http"
+
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	lambdaclient "github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/google/go-github/github"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"gopkg.in/go-playground/validator.v9"
 
+	"github.com/panther-labs/panther/api/lambda/source/models"
 	"github.com/panther-labs/panther/internal/core/logtypesapi"
-	"github.com/panther-labs/panther/internal/log_analysis/log_processor/logtypes"
-	"github.com/panther-labs/panther/internal/log_analysis/log_processor/registry"
+	"github.com/panther-labs/panther/internal/log_analysis/datacatalog_updater/datacatalog"
+	"github.com/panther-labs/panther/internal/log_analysis/log_processor/logschema"
+	"github.com/panther-labs/panther/internal/log_analysis/managedschemas"
+	"github.com/panther-labs/panther/pkg/genericapi"
 	"github.com/panther-labs/panther/pkg/lambdalogger"
 	"github.com/panther-labs/panther/pkg/x/lambdamux"
 )
 
 var config = struct {
-	Debug             bool
-	LogTypesTableName string `required:"true" split_words:"true"`
+	Debug               bool
+	LogTypesTableName   string `required:"true" split_words:"true"`
+	DataCatalogQueueURL string `required:"true" split_words:"true"`
 }{}
 
 func main() {
@@ -51,17 +63,42 @@ func main() {
 	// defer logger.Sync()
 
 	session := session.Must(session.NewSession())
-	nativeLogTypes := logtypes.CollectNames(registry.NativeLogTypes())
+	lambdaClient := lambdaclient.New(session)
 	api := &logtypesapi.LogTypesAPI{
-		// Use the default registry with all available log types
-		NativeLogTypes: func() []string {
-			return nativeLogTypes
-		},
-		Database: &logtypesapi.DynamoDBLogTypes{
+		Database: &logtypesapi.DynamoDBSchemas{
 			DB:        dynamodb.New(session),
 			TableName: config.LogTypesTableName,
 		},
-		LambdaClient: lambdaclient.New(session),
+		UpdateDataCatalog: func(ctx context.Context, logType string, from, to []logschema.FieldSchema) error {
+			if from == nil || to == nil {
+				return nil
+			}
+			client := datacatalog.Client{
+				QueueURL: config.DataCatalogQueueURL,
+				SQSAPI:   sqs.New(session),
+			}
+			return client.SendUpdateTableForLogType(ctx, logType)
+		},
+		LogTypesInUse: func(ctx context.Context) ([]string, error) {
+			input := &models.LambdaInput{
+				ListIntegrations: &models.ListIntegrationsInput{},
+			}
+			var integrations []*models.SourceIntegration
+			const sourcesAPILambda = "panther-source-api"
+			if err := genericapi.Invoke(lambdaClient, sourcesAPILambda, input, &integrations); err != nil {
+				return nil, errors.Wrap(err, "failed to retrieve existing integrations")
+			}
+			var logTypes []string
+			for _, output := range integrations {
+				logTypes = append(logTypes, output.RequiredLogTypes()...)
+			}
+			return logTypes, nil
+		},
+		ManagedSchemas: &managedschemas.GitHubRepository{
+			Repo:   "panther-analysis",
+			Owner:  "panther-labs",
+			Client: github.NewClient(&http.Client{}),
+		},
 	}
 
 	validate := validator.New()
@@ -70,6 +107,33 @@ func main() {
 		// use case-insensitive route matching
 		RouteName: lambdamux.IgnoreCase,
 		Validate:  validate.Struct,
+		// We want the API to return errors as something to display to the user.
+		// We decorate each route handler so that all errors are properly encapsulated as APIError and logged if needed
+		// Any APIErrors returned by the routes are not logged as these were properly handled by the API
+		// All errors are return as `{"error": {"code": "ERR_CODE", "message": "ERROR_MSG"}}` in the reply.
+		Decorate: func(name string, handler lambdamux.Handler) lambdamux.Handler {
+			// This route is different and should not embed errors
+			if name == lambdamux.IgnoreCase("ListAvailableLogTypes") {
+				return handler
+			}
+			return lambdamux.HandlerFunc(func(ctx context.Context, payload []byte) ([]byte, error) {
+				reply, err := handler.Invoke(ctx, payload)
+				if err != nil {
+					apiErr := logtypesapi.AsAPIError(err)
+					// If the error was not an APIError we log it.
+					if apiErr == nil {
+						// Add the route name as "action" field
+						lambdalogger.FromContext(ctx).Error("action failed", zap.String("action", name), zap.Error(err))
+						// We wrap it as APIError to be serialized
+						apiErr = logtypesapi.WrapAPIError(err)
+					}
+					return jsoniter.Marshal(logtypesapi.ErrorReply{
+						Error: apiErr,
+					})
+				}
+				return reply, nil
+			})
+		},
 	}
 
 	mux.MustHandleMethods(api)

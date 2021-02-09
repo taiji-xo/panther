@@ -28,28 +28,34 @@ import (
 var genericListError = &genericapi.InternalError{Message: "Failed to list integrations"}
 
 // ListIntegrations returns all enabled integrations.
-func (API) ListIntegrations(
+func (api *API) ListIntegrations(
 	input *models.ListIntegrationsInput) ([]*models.SourceIntegration, error) {
 
-	integrationItems, err := dynamoClient.ScanIntegrations(input.IntegrationType)
+	integrationItems, err := api.DdbClient.ScanIntegrations(input.IntegrationType)
 	if err != nil {
 		zap.L().Error("failed to list integrations", zap.Error(err))
 		return nil, genericListError
 	}
 
-	result := make([]*models.SourceIntegration, len(integrationItems))
-	for i, item := range integrationItems {
+	result := make([]*models.SourceIntegration, 0, len(integrationItems))
+	for _, item := range integrationItems {
+		if item.IntegrationType == "" {
+			// Due to a previous bug, a deleted integration could be re-created in the DB without
+			// the IntegrationType field. This would break Panther in many places in addition to
+			// breaking Panther upgrades. Skip these sources.
+			continue
+		}
 		integ := itemToIntegration(item)
 		// This is required for backwards compatibility
 		// Before https://github.com/panther-labs/panther/issues/2031 , the Compliance sources
 		// didn't have the InputDataBucket and InputDataRoleArn populated
 		if integ.IntegrationType == models.IntegrationTypeAWSScan {
 			if integ.S3Bucket == "" {
-				integ.S3Bucket = env.InputDataBucketName
-				integ.LogProcessingRole = env.InputDataRoleArn
+				integ.S3Bucket = api.Config.InputDataBucketName
+				integ.LogProcessingRole = api.Config.InputDataRoleArn
 			}
 		}
-		result[i] = integ
+		result = append(result, integ)
 	}
 	return result, nil
 }

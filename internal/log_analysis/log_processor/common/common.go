@@ -35,13 +35,14 @@ import (
 	"github.com/kelseyhightower/envconfig"
 
 	"github.com/panther-labs/panther/api/lambda/source/models"
+	"github.com/panther-labs/panther/internal/log_analysis/log_processor/metrics"
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/processor/logstream"
 	"github.com/panther-labs/panther/pkg/awsretry"
 )
 
 const (
-	MaxRetries     = 13 // ~7'
-	EventDelimiter = '\n'
+	MaxRetries = 13 // ~7'
+
 )
 
 var (
@@ -80,6 +81,7 @@ func Setup() {
 	if err != nil {
 		panic(err)
 	}
+	metrics.Setup()
 }
 
 // DataStream represents a data stream for an s3 object read by the processor

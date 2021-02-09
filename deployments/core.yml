@@ -68,6 +68,10 @@ Parameters:
     Type: String
     Description: SNS topic ARN for data that is sent as input to Log Analysis
     AllowedPattern: '^arn:(aws|aws-cn|aws-us-gov):sns:[a-z]{2}-[a-z]{4,9}-[1-9]:\d{12}:\S+$'
+  KvTableBillingMode:
+    Type: String
+    Description: Configure billing mode for DynamoDB table panther-kv-store. This table is used by python policies & rules to store state, and provisioned billing may be cheaper if this feature is used heavily.
+    AllowedValues: [PROVISIONED, PAY_PER_REQUEST]
   LayerVersionArns:
     Type: CommaDelimitedList
     Description: List of LayerVersion ARNs to attach to each function
@@ -145,6 +149,7 @@ Mappings:
 
 Conditions:
   AttachLayers: !Not [!Equals [!Join ['', !Ref LayerVersionArns], '']]
+  KvProvisioningEnabled: !Equals [!Ref KvTableBillingMode, PROVISIONED]
   TracingEnabled: !Not [!Equals ['', !Ref TracingMode]]
 
 Resources:
@@ -165,7 +170,7 @@ Resources:
   UsersAPIFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../out/bin/internal/core/users_api/main
+      CodeUri: ../internal/core/users_api/main
       Description: CRUD actions for the cognito api
       Environment:
         Variables:
@@ -265,7 +270,7 @@ Resources:
   OrganizationAPIFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../out/bin/internal/core/organization_api/main
+      CodeUri: ../internal/core/organization_api/main
       Description: CRUD actions for the organization database
       Environment:
         Variables:
@@ -317,7 +322,7 @@ Resources:
   AnalysisApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../out/bin/internal/core/analysis_api/main
+      CodeUri: ../internal/core/analysis_api/main
       Description: Analysis API
       Environment:
         Variables:
@@ -352,6 +357,7 @@ Resources:
               Action: lambda:InvokeFunction
               Resource:
                 - !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:panther-compliance-api
+                - !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:panther-logtypes-api
                 - !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:panther-policy-engine
                 - !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:panther-rules-engine
         - Id: ManageDataStores
@@ -489,7 +495,7 @@ Resources:
   OutputsApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../out/bin/internal/core/outputs_api/main
+      CodeUri: ../internal/core/outputs_api/main
       Description: CRUD actions for alert outputs
       Environment:
         Variables:
@@ -612,7 +618,7 @@ Resources:
   AlertDeliveryFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../out/bin/internal/core/alert_delivery/main
+      CodeUri: ../internal/core/alert_delivery/main
       Description: Dispatch alerts to their specified outputs
       Environment:
         Variables:
@@ -627,7 +633,6 @@ Resources:
           MIN_RETRY_DELAY_SECS: !FindInMap [Alerts, MinRetryDelay, Seconds]
           OUTPUTS_API: panther-outputs-api
           OUTPUTS_REFRESH_INTERVAL: '30s'
-          POLICY_URL_PREFIX: !Sub https://${AppDomainURL}/cloud-security/policies/
           RULE_INDEX_NAME: ruleId-creationTime-index
           TIME_INDEX_NAME: timePartition-creationTime-index
       Events:
@@ -747,7 +752,7 @@ Resources:
   SourceApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../out/bin/internal/core/source_api/main
+      CodeUri: ../internal/core/source_api/main
       Description: Manages database of source integrations
       Environment:
         Variables:
@@ -757,9 +762,9 @@ Resources:
           INPUT_DATA_ROLE_ARN: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/PantherInputDataLogProcessingRole-${AWS::Region}
           INPUT_DATA_BUCKET_NAME: !Ref InputDataBucket
           INPUT_DATA_TOPIC_ARN: !Ref InputDataTopicArn
-          LOG_PROCESSOR_QUEUE_URL: !Sub https://sqs.${AWS::Region}.amazonaws.com/${AWS::AccountId}/panther-input-data-notifications-queue
+          LOG_PROCESSOR_QUEUE_URL: !Sub https://sqs.${AWS::Region}.${AWS::URLSuffix}/${AWS::AccountId}/panther-input-data-notifications-queue
           LOG_PROCESSOR_QUEUE_ARN: !Sub arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:panther-input-data-notifications-queue
-          SNAPSHOT_POLLERS_QUEUE_URL: !Sub https://sqs.${AWS::Region}.amazonaws.com/${AWS::AccountId}/panther-snapshot-queue
+          SNAPSHOT_POLLERS_QUEUE_URL: !Sub https://sqs.${AWS::Region}.${AWS::URLSuffix}/${AWS::AccountId}/panther-snapshot-queue
           TABLE_NAME: !Ref IntegrationsTable
           VERSION: !Ref PantherVersion
       FunctionName: panther-source-api
@@ -824,7 +829,7 @@ Resources:
           Statement:
             - Effect: Allow
               Action: s3:GetObject
-              Resource: arn:aws:s3:::panther-public-cloudformation-templates/*
+              Resource: !Sub arn:${AWS::Partition}:s3:::panther-public-cloudformation-templates/*
         - Id: CreateSqsQueues # Allows Lambda to manage SQS source queues - these are SQS queues users send data to for log analysis
           Version: 2012-10-17
           Statement:
@@ -920,7 +925,7 @@ Resources:
   LayerManagerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../out/bin/internal/core/layer_manager/main
+      CodeUri: ../internal/core/layer_manager/main
       Description: Manage updates to the layers on the panther python engines.
       Environment:
         Variables:
@@ -1015,8 +1020,6 @@ Resources:
       ServiceToken: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:panther-cfn-custom-resources
 
   ##### Key-Value store for Python policies/rules #####
-  # TODO: build conditionally (disabled by default) since you have to pay for provisioned capacity
-  # TODO: make capacity options configurable
   KeyValueStoreTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -1028,7 +1031,7 @@ Resources:
       # * Custom rules / policies which leverage the table may be failing
       # * Panther itself is not affected
       # </cfndoc>
-      BillingMode: PROVISIONED
+      BillingMode: !Ref KvTableBillingMode
       AttributeDefinitions:
         - AttributeName: key
           AttributeType: S
@@ -1037,9 +1040,11 @@ Resources:
           KeyType: HASH
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: True
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      ProvisionedThroughput: !If
+        - KvProvisioningEnabled
+        - ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        - !Ref AWS::NoValue
       SSESpecification:
         SSEEnabled: True
       TimeToLiveSpecification:
@@ -1055,6 +1060,7 @@ Resources:
       TableName: panther-kv-store
 
   ReadCapacityScalableTarget:
+    Condition: KvProvisioningEnabled
     Type: AWS::ApplicationAutoScaling::ScalableTarget
     Properties:
       MaxCapacity: 100
@@ -1065,6 +1071,7 @@ Resources:
       ServiceNamespace: dynamodb
 
   ReadScalingPolicy:
+    Condition: KvProvisioningEnabled
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
       PolicyName: ReadAutoScalingPolicy
@@ -1078,6 +1085,7 @@ Resources:
           PredefinedMetricType: DynamoDBReadCapacityUtilization
 
   WriteCapacityScalableTarget:
+    Condition: KvProvisioningEnabled
     Type: AWS::ApplicationAutoScaling::ScalableTarget
     Properties:
       MaxCapacity: 100
@@ -1088,6 +1096,7 @@ Resources:
       ServiceNamespace: dynamodb
 
   WriteScalingPolicy:
+    Condition: KvProvisioningEnabled
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
       PolicyName: WriteAutoScalingPolicy
@@ -1104,7 +1113,7 @@ Resources:
   MetricsApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../out/bin/internal/core/metrics_api/main
+      CodeUri: ../internal/core/metrics_api/main
       Description: Handles requests for metric data
       Environment:
         Variables:
@@ -1217,12 +1226,13 @@ Resources:
   LogTypesAPIFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../out/bin/internal/core/logtypesapi/main
+      CodeUri: ../internal/core/logtypesapi/main
       Description: Implements logtypes API to manage logtypes.
       Environment:
         Variables:
           DEBUG: !Ref Debug
           LOG_TYPES_TABLE_NAME: !Ref LogTypesTable
+          DATA_CATALOG_QUEUE_URL: !Sub https://sqs.${AWS::Region}.${AWS::URLSuffix}/${AWS::AccountId}/panther-datacatalog-updater-queue
       FunctionName: panther-logtypes-api
       # <cfndoc>
       # This lambda implements logtypes API to manage logtypes.
@@ -1250,3 +1260,16 @@ Resources:
             - Effect: Allow
               Action: lambda:InvokeFunction
               Resource: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:panther-source-api
+        - Id: SendSQSMessages
+          Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource:
+                - !Sub arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:panther-datacatalog-updater-queue
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:GenerateDataKey
+              Resource: !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/${SqsKeyId}

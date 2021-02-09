@@ -19,6 +19,8 @@ package aws
  */
 
 import (
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
@@ -64,12 +66,47 @@ type GenericAWSResource struct {
 
 // ResourcePollerInput contains the metadata to request AWS resource info.
 type ResourcePollerInput struct {
-	AuthSource          *string
-	AuthSourceParsedARN arn.ARN
-	IntegrationID       *string
-	Region              *string
-	Timestamp           *time.Time
-	NextPageToken       *string
+	AuthSource              *string
+	AuthSourceParsedARN     arn.ARN
+	IntegrationID           *string
+	Region                  *string
+	Timestamp               *time.Time
+	NextPageToken           *string
+	RegionIgnoreList        []string
+	ResourceTypeIgnoreList  []string
+	ResourceRegexIgnoreList []string
+	CompiledRegexIgnoreList []*regexp.Regexp
+}
+
+func (r *ResourcePollerInput) CompileRegex() error {
+	r.CompiledRegexIgnoreList = make([]*regexp.Regexp, 0, len(r.ResourceRegexIgnoreList))
+
+	for _, glob := range r.ResourceRegexIgnoreList {
+		if glob == "" {
+			continue
+		}
+		// First,  escape any regex special characters
+		escaped := regexp.QuoteMeta(glob)
+
+		// Wildcards in the original pattern are now escaped literals - convert back
+		// NOTE: currently no way for user to specify a glob that would match a literal '*'
+		regex := "^" + strings.ReplaceAll(escaped, `\*`, `.*`) + "$"
+		compiledGlob, err := regexp.Compile(regex)
+		if err != nil {
+			return err
+		}
+		r.CompiledRegexIgnoreList = append(r.CompiledRegexIgnoreList, compiledGlob)
+	}
+	return nil
+}
+
+func (r *ResourcePollerInput) ShouldIgnoreResource(resourceID string) (ignore bool) {
+	for _, compiledRegex := range r.CompiledRegexIgnoreList {
+		if compiledRegex.MatchString(resourceID) {
+			return true
+		}
+	}
+	return false
 }
 
 // ResourcePoller represents a function to poll a specific AWS resource.

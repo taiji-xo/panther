@@ -35,6 +35,7 @@ import (
 	"go.uber.org/zap/zaptest/observer"
 
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/common"
+	"github.com/panther-labs/panther/internal/log_analysis/log_processor/metrics"
 	"github.com/panther-labs/panther/pkg/testutils"
 )
 
@@ -47,6 +48,12 @@ func mockLogger() *observer.ObservedLogs {
 
 func TestProcessOpLog(t *testing.T) {
 	common.Config.AwsLambdaFunctionMemorySize = 1024
+
+	mockMetricsManager := &testutils.MetricsManagerMock{}
+	metrics.CWManager = mockMetricsManager
+
+	mockMetricsManager.On("Run", mock.Anything, mock.Anything).Once()
+	mockMetricsManager.On("Sync").Return(nil).Once()
 
 	sqsMock := &testutils.SqsMock{}
 	common.SqsClient = sqsMock
@@ -91,4 +98,5 @@ func TestProcessOpLog(t *testing.T) {
 	serviceDim := logs.FilterMessage(message).All()[0].ContextMap()[common.OpLogLambdaServiceDim.Key]
 	assert.Equal(t, common.OpLogLambdaServiceDim.String, serviceDim)
 	sqsMock.AssertExpectations(t)
+	mockMetricsManager.AssertExpectations(t)
 }

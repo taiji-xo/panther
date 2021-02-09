@@ -18,7 +18,6 @@
 
 import React from 'react';
 import { Redirect, Route, Switch } from 'react-router-dom';
-import ListPoliciesPage from 'Pages/ListPolicies';
 import OverviewPage from 'Pages/ComplianceOverview';
 import ListResourcesPage from 'Pages/ListResources';
 import ResourceDetailsPage from 'Pages/ResourceDetails';
@@ -31,12 +30,10 @@ import EditDestinationPage from 'Pages/EditDestination';
 import UsersPage from 'Pages/Users';
 import RuleDetailsPage from 'Pages/RuleDetails';
 import LandingPage from 'Pages/Landing';
-import ListRulesPage from 'Pages/ListRules';
 import EditRulePage from 'Pages/EditRule';
-import CreateRulePage from 'Pages/CreateRule';
+import CreateDetectionPage from 'Pages/CreateDetection';
 import AlertDetailsPage from 'Pages/AlertDetails';
 import EditPolicyPage from 'Pages/EditPolicy';
-import CreatePolicyPage from 'Pages/CreatePolicy';
 import ListAlertsPage from 'Pages/ListAlerts';
 import Layout from 'Components/Layout';
 import CreateComplianceSourcePage from 'Pages/CreateComplianceSource';
@@ -64,6 +61,11 @@ import EditSqsLogSource from 'Pages/EditSqsLogSource';
 import CreateCustomLogPage from 'Pages/CreateCustomLog';
 import ListCustomLogsPage from 'Pages/ListCustomLogs';
 import CustomLogDetailsPage from 'Pages/CustomLogDetails';
+import CreateDataModelPage from 'Pages/CreateDataModel';
+import EditDataModelPage from 'Pages/EditDataModel';
+import ListDataModelsPage from 'Pages/ListDataModels';
+import EditCustomLogPage from 'Pages/EditCustomLog';
+import ListDetectionsPage from 'Pages/ListDetections';
 
 // Main page container for the web application, Navigation bar and Content body goes here
 const PrimaryPageLayout: React.FunctionComponent = () => {
@@ -93,15 +95,16 @@ const PrimaryPageLayout: React.FunctionComponent = () => {
             <APIErrorFallback>
               <Switch>
                 <Route exact path="/" component={LandingPage} />
+                <Route exact path={urls.detections.list()} component={ListDetectionsPage} />
                 {/* ******************* COMPLIANCE ***************************** */}
                 <Redirect exact from={urls.compliance.home()} to={urls.compliance.overview()} />
-                <Route exact path={urls.compliance.overview()} component={OverviewPage} />
-                <Route exact path={urls.compliance.policies.list()} component={ListPoliciesPage} />
-                <Route
+                <Redirect
                   exact
-                  path={urls.compliance.policies.create()}
-                  component={CreatePolicyPage}
+                  from={urls.compliance.policies.list()}
+                  to={`${urls.detections.list()}?analysisTypes[]=POLICY&page=1&sortBy=lastModified&sortDir=descending`}
                 />
+                <Route exact path={urls.compliance.overview()} component={OverviewPage} />
+                <Route exact path={urls.detections.create()} component={CreateDetectionPage} />
                 <Route
                   exact
                   path={urls.compliance.policies.details(':id')}
@@ -139,9 +142,12 @@ const PrimaryPageLayout: React.FunctionComponent = () => {
                 />
                 {/* ******************* LOG ANALYSIS ***************************** */}
                 <Redirect exact from={urls.logAnalysis.home()} to={urls.logAnalysis.overview()} />
+                <Redirect
+                  exact
+                  from={urls.logAnalysis.rules.list()}
+                  to={`${urls.detections.list()}?analysisTypes[]=RULE&page=1&sortBy=lastModified&sortDir=descending`}
+                />
                 <Route exact path={urls.logAnalysis.overview()} component={LogAnalysisOverview} />
-                <Route exact path={urls.logAnalysis.rules.list()} component={ListRulesPage} />
-                <Route exact path={urls.logAnalysis.rules.create()} component={CreateRulePage} />
                 <Route
                   exact
                   path={urls.logAnalysis.rules.details(':id')}
@@ -178,6 +184,26 @@ const PrimaryPageLayout: React.FunctionComponent = () => {
                   exact
                   path={urls.logAnalysis.sources.edit(':id', 'sqs')}
                   component={EditSqsLogSource}
+                />
+                <Route
+                  exact
+                  path={urls.logAnalysis.dataModels.list()}
+                  component={ListDataModelsPage}
+                />
+                <Route
+                  exact
+                  path={urls.logAnalysis.dataModels.create()}
+                  component={CreateDataModelPage}
+                />
+                <Route
+                  exact
+                  path={urls.logAnalysis.dataModels.edit(':id')}
+                  component={EditDataModelPage}
+                />
+                <Redirect
+                  exact
+                  from={urls.logAnalysis.dataModels.details(':id')}
+                  to={urls.logAnalysis.dataModels.edit(':id')}
                 />
                 <Redirect
                   exact
@@ -234,6 +260,11 @@ const PrimaryPageLayout: React.FunctionComponent = () => {
                   exact
                   path={urls.logAnalysis.customLogs.details(':logType')}
                   component={CustomLogDetailsPage}
+                />
+                <Route
+                  exact
+                  path={urls.logAnalysis.customLogs.edit(':logType')}
+                  component={EditCustomLogPage}
                 />
                 <Route
                   exact

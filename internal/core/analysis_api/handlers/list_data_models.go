@@ -65,7 +65,7 @@ func (API) ListDataModels(input *models.ListDataModelsInput) *events.APIGatewayP
 	}
 
 	// Sort and page
-	sortItems(items, "id", input.SortDir, nil)
+	sortItems(items, input.SortBy, input.SortDir, nil)
 	var paging models.Paging
 	paging, items = pageItems(items, input.Page, input.PageSize)
 
@@ -103,5 +103,5 @@ func dataModelScanInput(input *models.ListDataModelsInput) (*dynamodb.ScanInput,
 		filters = append(filters, typeFilter)
 	}
 
-	return buildScanInput(models.TypeDataModel, []string{}, filters...)
+	return buildScanInput([]models.DetectionType{models.TypeDataModel}, []string{}, filters...)
 }

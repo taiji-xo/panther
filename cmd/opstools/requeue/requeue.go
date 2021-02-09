@@ -34,6 +34,16 @@ const (
 	visibilityTimeoutSeconds = 2 * waitTimeSeconds
 )
 
+var (
+	logDataTypeAttributeName = "type"
+	logTypeAttributeName     = "id"
+
+	messageAttributes = []*string{
+		&logDataTypeAttributeName,
+		&logTypeAttributeName,
+	}
+)
+
 func Requeue(sqsClient sqsiface.SQSAPI, region, fromQueueName, toQueueName string) error {
 	fromQueueURL, err := sqsClient.GetQueueUrl(&sqs.GetQueueUrlInput{
 		QueueName: &fromQueueName,
@@ -53,10 +63,11 @@ func Requeue(sqsClient sqsiface.SQSAPI, region, fromQueueName, toQueueName strin
 	totalMessages := 0
 	for {
 		resp, err := sqsClient.ReceiveMessage(&sqs.ReceiveMessageInput{
-			WaitTimeSeconds:     aws.Int64(waitTimeSeconds),
-			MaxNumberOfMessages: aws.Int64(messageBatchSize),
-			VisibilityTimeout:   aws.Int64(visibilityTimeoutSeconds),
-			QueueUrl:            fromQueueURL.QueueUrl,
+			MessageAttributeNames: messageAttributes,
+			WaitTimeSeconds:       aws.Int64(waitTimeSeconds),
+			MaxNumberOfMessages:   aws.Int64(messageBatchSize),
+			VisibilityTimeout:     aws.Int64(visibilityTimeoutSeconds),
+			QueueUrl:              fromQueueURL.QueueUrl,
 		})
 
 		if err != nil {
@@ -76,8 +87,9 @@ func Requeue(sqsClient sqsiface.SQSAPI, region, fromQueueName, toQueueName strin
 		var sendMessageBatchRequestEntries []*sqs.SendMessageBatchRequestEntry
 		for index, element := range messages {
 			sendMessageBatchRequestEntries = append(sendMessageBatchRequestEntries, &sqs.SendMessageBatchRequestEntry{
-				Id:          aws.String(strconv.Itoa(index)),
-				MessageBody: element.Body,
+				Id:                aws.String(strconv.Itoa(index)),
+				MessageBody:       element.Body,
+				MessageAttributes: element.MessageAttributes,
 			})
 		}
 

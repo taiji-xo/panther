@@ -122,7 +122,7 @@ describe('ListAlerts', () => {
       getAllByLabelText,
       getByText,
       findByAriaLabel,
-      getByAriaLabel,
+      getAllByAriaLabel,
       findAllByText,
       queryByAriaLabel,
       queryAllByText,
@@ -136,24 +136,23 @@ describe('ListAlerts', () => {
     alertSummaries.forEach(alertSummary => {
       expect(getByText(alertSummary.title)).toBeInTheDocument();
     });
-    alertSummaries.forEach(alertSummary => {
-      expect(getByAriaLabel(`select ${alertSummary.alertId}`)).toBeInTheDocument();
-    });
 
     // Single select all of 3 Alerts
-    const checkboxForAlert1 = getByAriaLabel(`select ${alertSummaries[0].alertId}`);
+    const [checkboxForAlert1, checkboxForAlert2, checkboxForAlert3] = getAllByAriaLabel(
+      `select item`
+    );
+
     fireClickAndMouseEvents(checkboxForAlert1);
     expect(getByText('1 Selected')).toBeInTheDocument();
-    const checkboxForAlert2 = getByAriaLabel(`select ${alertSummaries[1].alertId}`);
+
     fireClickAndMouseEvents(checkboxForAlert2);
     expect(getByText('2 Selected')).toBeInTheDocument();
-    const checkboxForAlert3 = getByAriaLabel(`select ${alertSummaries[2].alertId}`);
+
     fireClickAndMouseEvents(checkboxForAlert3);
     expect(getByText('3 Selected')).toBeInTheDocument();
 
     // Deselect first alert
-    const checkedCheckboxForAlert1 = getByAriaLabel(`unselect ${alertSummaries[0].alertId}`);
-    fireClickAndMouseEvents(checkedCheckboxForAlert1);
+    fireClickAndMouseEvents(checkboxForAlert1);
     expect(getByText('2 Selected')).toBeInTheDocument();
 
     // Expect status field to have Resolved as default
@@ -170,8 +169,7 @@ describe('ListAlerts', () => {
     // Find the alerts with the updated status
     expect(await findAllByText('INVALID')).toHaveLength(2);
     // And expect that the selection has been reset
-    expect(await queryByAriaLabel(`unselect ${alertSummaries[1].alertId}`)).not.toBeInTheDocument();
-    expect(await queryByAriaLabel(`unselect ${alertSummaries[2].alertId}`)).not.toBeInTheDocument();
+    expect(queryByAriaLabel(`unselect item`)).not.toBeInTheDocument();
   });
 
   it('can select all alerts and update their status', async () => {
@@ -225,7 +223,7 @@ describe('ListAlerts', () => {
       getAllByLabelText,
       getByText,
       findByAriaLabel,
-      getByAriaLabel,
+      getAllByAriaLabel,
       findAllByText,
       queryByAriaLabel,
     } = render(<ListAlerts />, {
@@ -239,9 +237,8 @@ describe('ListAlerts', () => {
     alertSummaries.forEach(alertSummary => {
       expect(getByText(alertSummary.title)).toBeInTheDocument();
     });
-    alertSummaries.forEach(alertSummary => {
-      expect(getByAriaLabel(`select ${alertSummary.alertId}`)).toBeInTheDocument();
-    });
+
+    expect(getAllByAriaLabel(`select item`)).toHaveLength(alertSummaries.length);
 
     fireClickAndMouseEvents(selectAllCheckbox);
     expect(getByText('3 Selected')).toBeInTheDocument();
@@ -259,9 +256,7 @@ describe('ListAlerts', () => {
     // Find the alerts with the updated status
     expect(await findAllByText('OPEN')).toHaveLength(alertSummaries.length);
     // And expect that the selection has been reset
-    alertSummaries.forEach(alertSummary => {
-      expect(queryByAriaLabel(`unselect ${alertSummary.alertId}`)).not.toBeInTheDocument();
-    });
+    expect(queryByAriaLabel(`unselect item`)).not.toBeInTheDocument();
   });
 
   it('can correctly boot from URL params', async () => {
@@ -325,7 +320,7 @@ describe('ListAlerts', () => {
     const withinDropdown = within(await findByTestId('dropdown-alert-listing-filters'));
     expect(withinDropdown.getByText('Rule Matches')).toBeInTheDocument();
     expect(withinDropdown.getByText('Rule Errors')).toBeInTheDocument();
-    expect(withinDropdown.queryByText('Policy Fails')).not.toBeInTheDocument();
+    expect(withinDropdown.queryByText('Policy Failures')).not.toBeInTheDocument();
     expect(withinDropdown.getByText(mockedLogType)).toBeInTheDocument();
     expect(withinDropdown.getByText(mockedLogType)).toBeInTheDocument();
     expect(withinDropdown.getByText(mockedResourceType)).toBeInTheDocument();
@@ -480,7 +475,7 @@ describe('ListAlerts', () => {
     expect(withinDropdown.queryByText('Triaged')).not.toBeInTheDocument();
     expect(withinDropdown.queryByText('Rule Matches')).not.toBeInTheDocument();
     expect(withinDropdown.queryByText('Rule Errors')).not.toBeInTheDocument();
-    expect(withinDropdown.queryByText('Policy Fails')).not.toBeInTheDocument();
+    expect(withinDropdown.queryByText('Policy Failures')).not.toBeInTheDocument();
     expect(withinDropdown.queryByText('Info')).not.toBeInTheDocument();
     expect(withinDropdown.queryByText('Medium')).not.toBeInTheDocument();
     expect(withinDropdown.getByLabelText('Min Events')).toHaveValue(null);
@@ -591,7 +586,7 @@ describe('ListAlerts', () => {
             sortDir: SortDirEnum.Descending,
             logTypes: [mockedLogType],
             createdAtAfter: '2000-01-29T00:00:00.000Z',
-            createdAtBefore: '2000-01-30T00:00:00.000Z',
+            createdAtBefore: '2000-01-30T00:00:59.999Z',
           },
         },
         data: {
@@ -669,7 +664,7 @@ describe('ListAlerts', () => {
     await waitMs(1);
 
     // Expect the URL to be updated
-    const completeParams = `${paramsWithSortingAndTextFilter}&createdAtAfter=2000-01-29T00:00:00.000Z&createdAtBefore=2000-01-30T00:00:00.000Z`;
+    const completeParams = `${paramsWithSortingAndTextFilter}&createdAtAfter=2000-01-29T00:00:00.000Z&createdAtBefore=2000-01-30T00:00:59.999Z`;
     expect(parseParams(history.location.search)).toEqual(parseParams(completeParams));
 
     // Expect the API request to have fired and a new alert to have returned (verifies API execution)

@@ -34,7 +34,9 @@ const (
 	TypeCloudWatchEvents  = "AWS.CloudWatchEvents"
 	TypeGuardDuty         = "AWS.GuardDuty"
 	TypeS3ServerAccess    = "AWS.S3ServerAccess"
+	TypeVPCDns            = "AWS.VPCDns"
 	TypeVPCFlow           = "AWS.VPCFlow"
+	TypeWAFWebACL         = "AWS.WAFWebACL"
 )
 
 // LogTypes exports the available log type entries
@@ -103,11 +105,30 @@ var logTypes = logtypes.Must("AWS",
 		Schema:       S3ServerAccess{},
 		NewParser:    parsers.AdapterFactory(&S3ServerAccessParser{}),
 	},
+	logtypes.ConfigJSON{
+		Name:         TypeVPCDns,
+		Description:  `DNS query logs of the queries that VPC DNS resolvers forward to Route 53.`,
+		ReferenceURL: `https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-query-logs-format.html`,
+		NewEvent: func() interface{} {
+			return &VPCDns{}
+		},
+		ExtraIndicators: pantherlog.FieldSet{ // these are not present in the struct but added by the extractors
+			pantherlog.FieldDomainName,
+		},
+	},
 	logtypes.Config{
 		Name:         TypeVPCFlow,
 		Description:  `VPCFlow is a VPC NetFlow log, which is a layer 3 representation of network traffic in EC2.`,
 		ReferenceURL: `https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs-records-examples.html`,
 		Schema:       VPCFlow{},
 		NewParser:    parsers.AdapterFactory(&VPCFlowParser{}),
+	},
+	logtypes.ConfigJSON{
+		Name:         TypeWAFWebACL,
+		Description:  `WAF Web ACL traffic information logs.`,
+		ReferenceURL: `https://docs.aws.amazon.com/waf/latest/developerguide/logging.html`,
+		NewEvent: func() interface{} {
+			return &WAFWebACL{}
+		},
 	},
 )

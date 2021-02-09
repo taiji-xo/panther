@@ -30,6 +30,7 @@ import (
 	"github.com/panther-labs/panther/pkg/gatewayapi"
 )
 
+// ListRules is being deprecated. Use ListDetections and specify AnalysisType RULE instead
 func (API) ListRules(input *models.ListRulesInput) *events.APIGatewayProxyResponse {
 	stdRuleListInput(input)
 
@@ -92,9 +93,10 @@ func ruleScanInput(input *models.ListRulesInput) (*dynamodb.ScanInput, error) {
 		LastModifiedBy: input.LastModifiedBy,
 		NameContains:   input.NameContains,
 		Severity:       input.Severity,
+		ResourceTypes:  input.LogTypes,
 		Tags:           input.Tags,
 	}
 
 	filters := pythonListFilters(&listFilters)
-	return buildScanInput(models.TypeRule, input.Fields, filters...)
+	return buildScanInput([]models.DetectionType{models.TypeRule}, input.Fields, filters...)
 }

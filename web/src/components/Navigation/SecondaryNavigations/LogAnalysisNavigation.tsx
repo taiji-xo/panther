@@ -39,19 +39,13 @@ const LogAnalysisNavigation: React.FC = () => {
   useListComplianceSourceNames();
 
   return (
-    <Flex direction="column" as="ul">
+    <Flex direction="column" as="ul" spacing={1}>
       <FadeInTrail as="li">
         <NavLink
           isSecondary
           icon="dashboard-alt"
           to={urls.logAnalysis.overview()}
           label="Overview"
-        />
-        <NavLink
-          isSecondary
-          icon="rule"
-          to={`${urls.logAnalysis.rules.list()}?page=1&sortBy=lastModified&sortDir=descending`}
-          label="Rules"
         />
         <NavLink
           isSecondary
@@ -64,6 +58,12 @@ const LogAnalysisNavigation: React.FC = () => {
           icon="source-code"
           to={urls.logAnalysis.customLogs.list()}
           label="Custom Schemas"
+        />
+        <NavLink
+          isSecondary
+          icon="code-semi"
+          to={urls.logAnalysis.dataModels.list()}
+          label="Data Models"
         />
       </FadeInTrail>
     </Flex>

@@ -21,10 +21,10 @@ import { Box, SimpleGrid, Text, Link, Flex, Card } from 'pouncejs';
 import { formatDatetime, minutesToString, formatNumber } from 'Helpers/utils';
 import Linkify from 'Components/Linkify';
 import urls from 'Source/urls';
-import { RuleDetails } from 'Generated/schema';
+import { Rule } from 'Generated/schema';
 
 interface RuleCardDetailsProps {
-  rule?: RuleDetails;
+  rule?: Rule;
 }
 
 const RuleDetailsInfo: React.FC<RuleCardDetailsProps> = ({ rule }) => {
@@ -82,7 +82,7 @@ const RuleDetailsInfo: React.FC<RuleCardDetailsProps> = ({ rule }) => {
                     <Link
                       key={tag}
                       as={RRLink}
-                      to={`${urls.logAnalysis.rules.list()}?page=1&tags[]=${tag}`}
+                      to={`${urls.detections.list()}?page=1&tags[]=${tag}`}
                     >
                       {tag}
                       {index !== rule.tags.length - 1 ? ', ' : null}

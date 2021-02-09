@@ -20,14 +20,17 @@ import React from 'react';
 import { DeletePolicyModalProps } from 'Components/modals/DeletePolicyModal';
 import { DeleteUserModalProps } from 'Components/modals/DeleteUserModal';
 import { ResetUserPasswordProps } from 'Components/modals/ResetUserPasswordModal';
+import { ReinviteUserProps } from 'Components/modals/ReinviteUserModal';
 import { DeleteComplianceSourceModalProps } from 'Components/modals/DeleteComplianceSourceModal';
 import { DeleteLogSourceModalProps } from 'Components/modals/DeleteLogSourceModal';
 import { DeleteDestinationModalProps } from 'Components/modals/DeleteDestinationModal';
+import { GenericModalProps } from 'Components/modals/GenericModal';
 import { DeleteRuleModalProps } from 'Components/modals/DeleteRuleModal';
 import { DeleteTestModalProps } from 'Components/modals/DeleteTestModal';
 import { DeleteGlobalPythonModuleModalProps } from 'Components/modals/DeleteGlobalPythonModuleModal';
 import { AnalyticsConsentModalProps } from 'Components/modals/AnalyticsConsentModal';
 import { DeleteCustomLogModalProps } from 'Components/modals/DeleteCustomLogModal';
+import { DeleteDataModelModalProps } from 'Components/modals/DeleteDataModelModal';
 
 const SHOW_MODAL = 'SHOW_MODAL';
 const HIDE_MODAL = 'HIDE_MODAL';
@@ -36,12 +39,15 @@ const HIDE_MODAL = 'HIDE_MODAL';
 export enum MODALS {
   DELETE_POLICY = 'DELETE_POLICY',
   DELETE_CUSTOM_LOG = 'DELETE_CUSTOM_LOG',
+  DELETE_DATA_MODEL = 'DELETE_DATA_MODEL',
   DELETE_RULE = 'DELETE_RULE',
   DELETE_GLOBAL_PYTHON_MODULE = 'DELETE_GLOBAL_PYTHON_MODULE',
   DELETE_USER = 'DELETE_USER',
   DELETE_TEST = 'DELETE_TEST',
+  GENERIC_MODAL = 'GENERIC_MODAL',
   EDIT_PROFILE_SETTINGS = 'EDIT_PROFILE_SETTINGS',
   RESET_USER_PASS = 'RESET_USER_PASS',
+  REINVITE_USER = 'REINVITE_USER',
   DELETE_COMPLIANCE_SOURCE = 'DELETE_COMPLIANCE_SOURCE',
   DELETE_LOG_SOURCE = 'DELETE_LOG_SOURCE',
   DELETE_DESTINATION = 'DELETE_DESTINATION',
@@ -71,6 +77,14 @@ interface ShowCustomLogModalAction {
   payload: {
     modal: MODALS.DELETE_CUSTOM_LOG;
     props: OmitControlledProps<DeleteCustomLogModalProps>;
+  };
+}
+
+interface ShowGenericModal {
+  type: typeof SHOW_MODAL;
+  payload: {
+    modal: MODALS.GENERIC_MODAL;
+    props: OmitControlledProps<GenericModalProps>;
   };
 }
 
@@ -105,11 +119,27 @@ interface ShowResetUserPasswordModalAction {
 }
 
 /* Reset user password */
+interface ShowReinviteUserModalAction {
+  type: typeof SHOW_MODAL;
+  payload: {
+    modal: MODALS.REINVITE_USER;
+    props: OmitControlledProps<ReinviteUserProps>;
+  };
+}
+
 interface ShowDeleteTestModalAction {
   type: typeof SHOW_MODAL;
   payload: {
     modal: MODALS.DELETE_TEST;
     props: OmitControlledProps<DeleteTestModalProps>;
+  };
+}
+
+interface ShowDeleteDataModelModalAction {
+  type: typeof SHOW_MODAL;
+  payload: {
+    modal: MODALS.DELETE_DATA_MODEL;
+    props: OmitControlledProps<DeleteDataModelModalProps>;
   };
 }
 
@@ -176,14 +206,17 @@ interface ShowAnalyticsConsentModalAction {
 
 /* The available actions that can be dispatched */
 type ModalStateAction =
+  | ShowGenericModal
   | ShowDeleteComplianceSourceModalAction
   | ShowCustomLogModalAction
   | ShowDeleteLogSourceModalAction
+  | ShowDeleteDataModelModalAction
   | ShowGlobalPythonModuleModalAction
   | ShowDeleteUserModalAction
   | ShowDeleteTestModalAction
   | ShowProfileSettingsModalAction
   | ShowResetUserPasswordModalAction
+  | ShowReinviteUserModalAction
   | ShowPolicyModalAction
   | ShowDeleteRuleModalAction
   | ShowDeleteDestinationModalAction

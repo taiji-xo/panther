@@ -28,11 +28,11 @@ import AlertDeliverySection from 'Pages/AlertDetails/common/AlertDeliverySection
 import RelatedDestinations from 'Components/RelatedDestinations';
 import useAlertDestinations from 'Hooks/useAlertDestinations';
 import { useListComplianceSourceNames } from 'Source/graphql/queries';
-import { PolicyTeaser } from '../graphql/policyTeaser.generated';
+import { GetPolicySummary } from '../graphql/getPolicySummary.generated';
 
 interface AlertDetailsInfoProps {
   alert: AlertDetails['alert'];
-  policy: PolicyTeaser['policy'];
+  policy?: GetPolicySummary['policy'];
 }
 
 const AlertDetailsInfo: React.FC<AlertDetailsInfoProps> = ({ alert, policy }) => {
@@ -123,7 +123,7 @@ const AlertDetailsInfo: React.FC<AlertDetailsInfoProps> = ({ alert, policy }) =>
                         <Link
                           key={tag}
                           as={RRLink}
-                          to={`${urls.compliance.policies.list()}?page=1&tags[]=${tag}`}
+                          to={`${urls.detections.list()}?page=1&tags[]=${tag}`}
                         >
                           {tag}
                           {index !== policy.tags.length - 1 ? ', ' : null}

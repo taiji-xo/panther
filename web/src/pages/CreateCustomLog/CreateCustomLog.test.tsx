@@ -18,7 +18,7 @@
 
 import React from 'react';
 import {
-  buildAddCustomLogOutput,
+  buildCustomLogOutput,
   buildCustomLogRecord,
   fireEvent,
   render,
@@ -28,6 +28,8 @@ import {
 import urls from 'Source/urls';
 import CreateCustomLog from './CreateCustomLog';
 import { mockCreateCustomLog } from './graphql/createCustomLog.generated';
+
+jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 
 const customLog = buildCustomLogRecord({
   logType: 'Custom.Test',
@@ -52,7 +54,7 @@ describe('CreateCustomLog', () => {
             referenceURL: '',
           },
         },
-        data: { addCustomLog: buildAddCustomLogOutput({ error: null, record: customLog }) },
+        data: { addCustomLog: buildCustomLogOutput({ error: null, record: customLog }) },
       }),
     ];
 
@@ -65,7 +67,7 @@ describe('CreateCustomLog', () => {
     fireEvent.change(getByPlaceholderText('# Write your schema in YAML here...'), {
       target: { value: customLog.logSpec },
     });
-    await waitMs(210); // wait for debounce to apply the value to <Formik> + perform validation
+    await waitMs(1);
 
     fireEvent.click(getByText('Save log'));
     await waitFor(() =>
@@ -87,7 +89,7 @@ describe('CreateCustomLog', () => {
           },
         },
         data: {
-          addCustomLog: buildAddCustomLogOutput({ error: { message: 'Test Error' }, record: null }),
+          addCustomLog: buildCustomLogOutput({ error: { message: 'Test Error' }, record: null }),
         },
       }),
     ];
@@ -103,7 +105,7 @@ describe('CreateCustomLog', () => {
     fireEvent.change(getByPlaceholderText('# Write your schema in YAML here...'), {
       target: { value: customLog.logSpec },
     });
-    await waitMs(210); // wait for debounce to apply the value to <Formik> + perform validation
+    await waitMs(1);
 
     fireEvent.click(getByText('Save log'));
     expect(await findByText(`Test Error`));

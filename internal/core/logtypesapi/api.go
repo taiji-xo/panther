@@ -22,7 +22,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
+	"github.com/pkg/errors"
+
+	"github.com/panther-labs/panther/internal/log_analysis/log_processor/logschema"
+	"github.com/panther-labs/panther/internal/log_analysis/managedschemas"
 )
 
 const LambdaName = "panther-logtypes-api"
@@ -36,27 +39,34 @@ const LambdaName = "panther-logtypes-api"
 
 // LogTypesAPI handles the business logic of log types LogTypesAPI
 type LogTypesAPI struct {
-	NativeLogTypes func() []string
-	Database       LogTypesDatabase
-	LambdaClient   lambdaiface.LambdaAPI
+	Database          SchemaDatabase
+	UpdateDataCatalog func(ctx context.Context, logType string, from, to []logschema.FieldSchema) error
+	LogTypesInUse     func(ctx context.Context) ([]string, error)
+	ManagedSchemas    managedschemas.ReleaseFeeder
 }
 
-// LogTypesDatabase handles the external actions required for LogTypesAPI to be implemented
-type LogTypesDatabase interface {
-	// Return an index of available log types
-	IndexLogTypes(ctx context.Context) ([]string, error)
+// SchemaDatabase handles the external actions required for LogTypesAPI to be implemented
+type SchemaDatabase interface {
+	// Create a new user schema record
+	CreateUserSchema(ctx context.Context, id string, upd SchemaUpdate) (*SchemaRecord, error)
 
-	// Create a new custom log record
-	CreateCustomLog(ctx context.Context, id string, params *CustomLog) (*CustomLogRecord, error)
-	// Get a single custom log record
-	GetCustomLog(ctx context.Context, id string, revision int64) (*CustomLogRecord, error)
-	// Update a custom log record
-	UpdateCustomLog(ctx context.Context, id string, currentRevision int64, params *CustomLog) (*CustomLogRecord, error)
-	// Delete a custom log record
-	DeleteCustomLog(ctx context.Context, id string, currentRevision int64) error
-	// Get multiple custom log records at their latest revision
-	BatchGetCustomLogs(ctx context.Context, ids ...string) ([]*CustomLogRecord, error)
+	// GetSchema gets a single schema record
+	GetSchema(ctx context.Context, id string, revision int64) (*SchemaRecord, error)
+
+	// UpdateSchema updates a managed schema to the release version provided
+	UpdateUserSchema(ctx context.Context, id string, rev int64, upd SchemaUpdate) (*SchemaRecord, error)
+
+	// UpdateManagedSchema updates a managed schema to the release version provided
+	UpdateManagedSchema(ctx context.Context, id string, rev int64, release string, upd SchemaUpdate) (*SchemaRecord, error)
+
+	// ToggleSchema enables/disables a schema record
+	ToggleSchema(ctx context.Context, id string, enabled bool) error
+
+	// ScanSchemas iterates through all schema records as long as scan returns true
+	ScanSchemas(ctx context.Context, scan ScanSchemaFunc) error
 }
+
+type ScanSchemaFunc func(r *SchemaRecord) bool
 
 const (
 	// ErrRevisionConflict is the error code to use when there is a revision conflict
@@ -64,12 +74,22 @@ const (
 	ErrAlreadyExists    = "AlreadyExists"
 	ErrNotFound         = "NotFound"
 	ErrInUse            = "InUse"
+	ErrInvalidUpdate    = "InvalidUpdate"
+	ErrInvalidMetadata  = "InvalidMetadata"
+	ErrInvalidSyntax    = "InvalidSyntax"
+	ErrInvalidLogSchema = "InvalidLogSchema"
+	ErrServerError      = "ServerError"
 )
 
 // APIError is an error that has a code and a message and is returned as part of the API response
 type APIError struct {
 	Code    string `json:"code" validate:"required"`
 	Message string `json:"message" validate:"required"`
+	reason  error
+}
+
+func (e *APIError) Unwrap() error {
+	return e.reason
 }
 
 // Error implements error interface
@@ -85,24 +105,41 @@ func NewAPIError(code, message string) *APIError {
 	}
 }
 
-// WrapAPIError wraps an error to be an API error keeping code and message if available
+type ErrorReply struct {
+	Error *APIError `json:"error"`
+}
+
 func WrapAPIError(err error) *APIError {
-	if apiErr, ok := err.(*APIError); ok {
+	if err == nil {
+		return nil
+	}
+	if apiErr := AsAPIError(err); apiErr != nil {
 		return apiErr
 	}
-	type errWithCode interface {
-		error
+	// AWS errors implement this interface
+	// We use their code to help with identifying the error but we keep the input error message.
+	var errWithCode interface {
 		Code() string
-		Message() string
 	}
-	if e, ok := err.(errWithCode); ok {
+	if errors.As(err, &errWithCode) {
 		return &APIError{
-			Code:    e.Code(),
-			Message: e.Message(),
+			Code:    errWithCode.Code(),
+			Message: err.Error(),
+			reason:  err,
 		}
 	}
+	// Return all unknown errors as 'ServerError'
 	return &APIError{
-		Code:    "UnknownError",
+		Code:    ErrServerError,
 		Message: err.Error(),
+		reason:  err,
 	}
+}
+
+func AsAPIError(err error) *APIError {
+	apiErr := &APIError{}
+	if errors.As(err, &apiErr) {
+		return apiErr
+	}
+	return nil
 }

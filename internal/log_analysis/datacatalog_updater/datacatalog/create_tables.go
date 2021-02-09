@@ -23,8 +23,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/panther-labs/panther/internal/log_analysis/athenaviews"
 	"github.com/panther-labs/panther/internal/log_analysis/awsglue"
+	"github.com/panther-labs/panther/internal/log_analysis/datalake/athena/athenaviews"
 	"github.com/panther-labs/panther/internal/log_analysis/gluetables"
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/logtypes"
 	"github.com/panther-labs/panther/internal/log_analysis/pantherdb"
@@ -35,54 +35,78 @@ type CreateTablesEvent struct {
 }
 
 func (h *LambdaHandler) HandleCreateTablesEvent(ctx context.Context, event *CreateTablesEvent) error {
-	if err := h.createOrUpdateTablesForLogTypes(ctx, event.LogTypes); err != nil {
+	// This event is only coming from an update to sources API.
+	// We only need to try creating the tables once.
+	logTypes := event.LogTypes
+	if len(logTypes) == 0 {
+		return nil
+	}
+	if err := h.createTablesForLogTypes(ctx, logTypes); err != nil {
 		return err
 	}
-	if err := h.createOrReplaceViewsForAllDeployedLogTables(ctx); err != nil {
-		return errors.Wrap(err, "failed to update views")
-	}
-	return nil
+	return h.createOrReplaceViewsForAllDeployedLogTables(ctx)
 }
 
-func (h *LambdaHandler) createOrUpdateTablesForLogTypes(ctx context.Context, logTypes []string) error {
+func (h *LambdaHandler) createTablesForLogTypes(ctx context.Context, logTypes []string) error {
 	// We map the log types to their 'base' log tables.
 	tables, err := resolveTables(ctx, h.Resolver, logTypes...)
 	if err != nil {
 		return err
 	}
 	for i, table := range tables {
-		// CreateOrUpdateGlueTables creates or updates *all* glue tables based on log tables.
-		// FIXME: this is confusing, the gluetables package should not be expanding table metadata based on hard-wired logic
+		logType := logTypes[i]
+		// FIXME: this is confusing, the gluetables package should NOT be expanding table metadata based on hard-wired logic
+		// This logic should be left to a 'central' module such as `pantherdb` and use 'abstract' Database/Table/Partition structs
+		// The glue-relevant actions can be abstracted to:
+		// - CreateDatabaseIfNotExists
+		// - CreateTableIfNotExists
+		// - CreateOrReplaceTable
+		// - CreatePartitionIfNotExists
+		// - CreateOrReplacePartition
+		// - ScanDatabases
+		// - ScanDatabaseTables
+		// - ScanTablePartitions
+		// These actions should be part of an interface that manages the data lake backend.
+		// We need methods that use abstract Database/Table/Partition structs that can contain info for all backends.
+		if _, err := gluetables.CreateTablesIfNotExist(ctx, h.GlueClient, h.ProcessedDataBucket, table); err != nil {
+			return errors.Wrapf(err, "failed to create or update tables for log type %q", logType)
+		}
+	}
+	return nil
+}
+
+func (h *LambdaHandler) createOrUpdateTablesForLogTypes(ctx context.Context, logTypes []string) error {
+	// We map the log types to their 'base' log tables, errors are collected and not fatal
+	tables, err := resolveTables(ctx, h.Resolver, logTypes...)
+	if err != nil {
+		return err
+	}
+
+	for i, table := range tables {
+		logType := logTypes[i]
+		// FIXME: this is confusing, the gluetables package should NOT be expanding table metadata based on hard-wired logic
+		// This logic should be left to a 'central' module such as `pantherdb` and use 'abstract' Database/Table/Partition structs
+		// The glue-relevant actions can be abstracted to:
+		// - CreateDatabaseIfNotExists
+		// - CreateTableIfNotExists
+		// - CreateOrReplaceTable
+		// - CreatePartitionIfNotExists
+		// - CreateOrReplacePartition
+		// - ScanDatabases
+		// - ScanDatabaseTables
+		// - ScanTablePartitions
+		// These actions should be part of an interface that manages the data lake backend.
+		// We need methods that use abstract Database/Table/Partition structs that can contain info for all backends.
 		if _, err := gluetables.CreateOrUpdateGlueTables(h.GlueClient, h.ProcessedDataBucket, table); err != nil {
-			return errors.Wrapf(err, "failed to update tables for log type %q", logTypes[i])
+			return errors.Wrapf(err, "failed to create or update tables for log type %q", logType)
 		}
 	}
 	return nil
 }
 
 func (h *LambdaHandler) createOrReplaceViewsForAllDeployedLogTables(ctx context.Context) error {
-	// We fetch the tables again to avoid any possible race condition
-	deployedLogTypes, err := h.fetchAllDeployedLogTypes(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to fetch deployed log types")
-	}
-	// We map the deployed log types to their 'base' log tables.
-	deployedLogTables, err := resolveTables(ctx, h.Resolver, deployedLogTypes...)
-	if err != nil {
-		return errors.Wrap(err, "failed to resolve tables for logtypes")
-	}
-
-	var tablesInView []*awsglue.GlueTableMetadata
-	for _, table := range deployedLogTables {
-		if table.DatabaseName() == pantherdb.CloudSecurityDatabase {
-			// Don't create views for the Cloud Security tables
-			continue
-		}
-		tablesInView = append(tablesInView, table)
-	}
-	// update the views for *all* tables based on the log tables.
-	// FIXME: this is confusing, the athenaviews package should not be creating views by expanding table metadata based on hard-wired logic
-	if err := athenaviews.CreateOrReplaceLogViews(h.AthenaClient, h.AthenaWorkgroup, tablesInView); err != nil {
+	// update the views for *all* tables
+	if err := athenaviews.NewViewMaker(h.AthenaClient, h.AthenaWorkgroup).CreateOrReplaceLogViews(ctx); err != nil {
 		return errors.Wrap(err, "failed to update athena views")
 	}
 	return nil
@@ -97,24 +121,27 @@ func (h *LambdaHandler) fetchAllDeployedLogTypes(ctx context.Context) ([]string,
 }
 
 // Resolves the tables for the provided log types.
-// Note that this will return only the BASE tables (tables in for panther_logs, panther_cloudsecurity datbases) but not any
+// Note that this will return only the BASE tables (tables in for panther_logs and panther_cloudsecurity databases) but not any
 // downstream tables e.g. panther_rule_matches, panther_rule_errors
 func resolveTables(ctx context.Context, r logtypes.Resolver, names ...string) ([]*awsglue.GlueTableMetadata, error) {
 	var out []*awsglue.GlueTableMetadata
 	for _, name := range names {
 		entry, err := r.Resolve(ctx, name)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "cannot resolve logType: %s", name)
 		}
-		if entry == nil {
-			return nil, errors.Errorf("unresolved log type %q", name)
+		if entry == nil { // don't fail whole operation if missing data...
+			continue
 		}
-		eventSchema := entry.Schema()
-		desc := entry.Describe()
-		tableName := pantherdb.TableName(desc.Name)
-		db := pantherdb.DatabaseName(pantherdb.GetDataType(name))
-		meta := awsglue.NewGlueTableMetadata(db, tableName, desc.Description, awsglue.GlueTableHourly, eventSchema)
-		out = append(out, meta)
+		out = append(out, tableForEntry(entry))
 	}
 	return out, nil
+}
+
+func tableForEntry(entry logtypes.Entry) *awsglue.GlueTableMetadata {
+	eventSchema := entry.Schema()
+	desc := entry.Describe()
+	tableName := pantherdb.TableName(desc.Name)
+	db := pantherdb.DatabaseName(pantherdb.GetDataType(desc.Name))
+	return awsglue.NewGlueTableMetadata(db, tableName, desc.Description, awsglue.GlueTableHourly, eventSchema)
 }

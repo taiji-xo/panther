@@ -22,7 +22,7 @@ import {
   buildAlertSummary,
   buildAlertSummaryRuleInfo,
   buildListAlertsResponse,
-  buildRuleDetails,
+  buildRule,
   fireClickAndMouseEvents,
   fireEvent,
   render,
@@ -42,7 +42,7 @@ import { Route } from 'react-router-dom';
 import urls from 'Source/urls';
 import { mockUpdateAlertStatus } from 'Source/graphql/queries';
 import RuleDetails from './RuleDetails';
-import { mockRuleDetails } from './graphql/ruleDetails.generated';
+import { mockGetRuleDetails } from './graphql/getRuleDetails.generated';
 import { mockListAlertsForRule } from './graphql/listAlertsForRule.generated';
 
 const queryStringOptions = {
@@ -68,14 +68,14 @@ beforeEach(() => {
 
 describe('RuleDetails', () => {
   it('renders the rule details page', async () => {
-    const rule = buildRuleDetails({
+    const rule = buildRule({
       id: '123',
       displayName: 'This is an amazing rule',
       description: 'This is an amazing description',
       runbook: 'Panther labs runbook',
     });
     const mocks = [
-      mockRuleDetails({
+      mockGetRuleDetails({
         data: { rule },
         variables: {
           input: {
@@ -102,7 +102,7 @@ describe('RuleDetails', () => {
     // Rule info
     expect(getByText('This is an amazing rule')).toBeTruthy();
     expect(getByText('DISABLED')).toBeTruthy();
-    expect(getByText('LOW')).toBeTruthy();
+    expect(getByText('HIGH')).toBeTruthy();
     expect(getByText('This is an amazing description')).toBeTruthy();
     expect(getByText('Panther labs runbook')).toBeTruthy();
     // Tabs
@@ -112,14 +112,14 @@ describe('RuleDetails', () => {
   });
 
   it('shows the tabs as disabled when no alerts are in place', async () => {
-    const rule = buildRuleDetails({
+    const rule = buildRule({
       id: '123',
       displayName: 'This is an amazing rule',
       description: 'This is an amazing description',
       runbook: 'Panther labs runbook',
     });
     const mocks = [
-      mockRuleDetails({
+      mockGetRuleDetails({
         data: { rule },
         variables: {
           input: {
@@ -181,7 +181,7 @@ describe('RuleDetails', () => {
     expect(loadingInterfaceElement).toBeTruthy();
 
     await waitForElementToBeRemoved(loadingInterfaceElement);
-    await waitMs(50);
+    await waitMs(1);
     const matchesTab = getAllByTestId('rule-matches');
     const errorsTab = getAllByTestId('rule-errors');
 
@@ -193,14 +193,14 @@ describe('RuleDetails', () => {
   });
 
   it('allows URL matching of tab navigation', async () => {
-    const rule = buildRuleDetails({
+    const rule = buildRule({
       id: '123',
       displayName: 'This is an amazing rule',
       description: 'This is an amazing description',
       runbook: 'Panther labs runbook',
     });
     const mocks = [
-      mockRuleDetails({
+      mockGetRuleDetails({
         data: { rule },
         variables: {
           input: {
@@ -232,14 +232,14 @@ describe('RuleDetails', () => {
   });
 
   it('fetches the alerts matching the rule', async () => {
-    const rule = buildRuleDetails({
+    const rule = buildRule({
       id: '123',
       displayName: 'This is an amazing rule',
       description: 'This is an amazing description',
       runbook: 'Panther labs runbook',
     });
     const mocks = [
-      mockRuleDetails({
+      mockGetRuleDetails({
         data: { rule },
         variables: {
           input: {
@@ -300,14 +300,14 @@ describe('RuleDetails', () => {
   });
 
   it('fetches the alerts matching the rule errors', async () => {
-    const rule = buildRuleDetails({
+    const rule = buildRule({
       id: '123',
       displayName: 'This is an amazing rule',
       description: 'This is an amazing description',
       runbook: 'Panther labs runbook',
     });
     const mocks = [
-      mockRuleDetails({
+      mockGetRuleDetails({
         data: { rule },
         variables: {
           input: {
@@ -367,14 +367,14 @@ describe('RuleDetails', () => {
   });
 
   it('fetches the alerts matching the rule & shows an empty fallback if no alerts exist', async () => {
-    const rule = buildRuleDetails({
+    const rule = buildRule({
       id: '123',
       displayName: 'This is an amazing rule',
       description: 'This is an amazing description',
       runbook: 'Panther labs runbook',
     });
     const mocks = [
-      mockRuleDetails({
+      mockGetRuleDetails({
         data: { rule },
         variables: {
           input: {
@@ -423,11 +423,11 @@ describe('RuleDetails', () => {
   });
 
   it('shows an empty illustration if filtering returns no results', async () => {
-    const rule = buildRuleDetails();
+    const rule = buildRule();
     const alert = buildAlertSummary();
 
     const mocks = [
-      mockRuleDetails({
+      mockGetRuleDetails({
         data: { rule },
         variables: {
           input: {
@@ -487,7 +487,7 @@ describe('RuleDetails', () => {
   });
 
   it('allows conditionally filtering the alerts matching the rule rule', async () => {
-    const rule = buildRuleDetails({
+    const rule = buildRule({
       id: '123',
     });
 
@@ -522,7 +522,7 @@ describe('RuleDetails', () => {
     };
 
     const mocks = [
-      mockRuleDetails({
+      mockGetRuleDetails({
         data: { rule },
         variables: {
           input: {
@@ -592,7 +592,7 @@ describe('RuleDetails', () => {
   });
 
   it('can select and bulk update status for rule matches', async () => {
-    const rule = buildRuleDetails({
+    const rule = buildRule({
       id: '123',
       displayName: 'This is an amazing rule',
       description: 'This is an amazing description',
@@ -617,7 +617,7 @@ describe('RuleDetails', () => {
       }),
     ];
     const mocks = [
-      mockRuleDetails({
+      mockGetRuleDetails({
         data: { rule },
         variables: {
           input: {
@@ -677,6 +677,7 @@ describe('RuleDetails', () => {
       getByText,
       getByTestId,
       getByAriaLabel,
+      getAllByAriaLabel,
       findAllByText,
       queryByAriaLabel,
       getAllByLabelText,
@@ -702,20 +703,18 @@ describe('RuleDetails', () => {
     alertSummaries.forEach(alertSummary => {
       expect(getByText(alertSummary.title)).toBeInTheDocument();
     });
-    alertSummaries.forEach(alertSummary => {
-      expect(getByAriaLabel(`select ${alertSummary.alertId}`)).toBeInTheDocument();
-    });
+
     // Single select all of 2 Alerts
-    const checkboxForAlert1 = getByAriaLabel(`select ${alertSummaries[0].alertId}`);
+    const [checkboxForAlert1, checkboxForAlert2] = getAllByAriaLabel(`select item`);
+
     fireClickAndMouseEvents(checkboxForAlert1);
     expect(getByText('1 Selected')).toBeInTheDocument();
-    const checkboxForAlert2 = getByAriaLabel(`select ${alertSummaries[1].alertId}`);
+
     fireClickAndMouseEvents(checkboxForAlert2);
     expect(getByText('2 Selected')).toBeInTheDocument();
 
     // Deselect first alert
-    const checkedCheckboxForAlert1 = getByAriaLabel(`unselect ${alertSummaries[0].alertId}`);
-    fireClickAndMouseEvents(checkedCheckboxForAlert1);
+    fireClickAndMouseEvents(checkboxForAlert1);
     expect(getByText('1 Selected')).toBeInTheDocument();
 
     // Expect status field to have Resolved as default
@@ -732,16 +731,13 @@ describe('RuleDetails', () => {
     // Find the alerts with the updated status
     expect(await findAllByText('INVALID')).toHaveLength(1);
     // And expect that the selection has been reset
-    expect(await queryByAriaLabel(`unselect ${alertSummaries[0].alertId}`)).not.toBeInTheDocument();
-    expect(await queryByAriaLabel(`unselect ${alertSummaries[1].alertId}`)).not.toBeInTheDocument();
+    expect(await queryByAriaLabel(`unselect item`)).not.toBeInTheDocument();
 
     // Now select all Rule Matches and updated to Open
     const selectAllCheckbox = getByAriaLabel('select all');
     fireClickAndMouseEvents(selectAllCheckbox);
 
-    alertSummaries.forEach(alertSummary => {
-      expect(getByAriaLabel(`unselect ${alertSummary.alertId}`)).toBeInTheDocument();
-    });
+    expect(getAllByAriaLabel(`unselect item`)).toHaveLength(alertSummaries.length);
     // Expect status field to have Resolved as default
 
     fireClickAndMouseEvents(getAllByLabelText('Status')[0]);
@@ -752,7 +748,7 @@ describe('RuleDetails', () => {
   });
 
   it('can select and bulk update status for rule errors', async () => {
-    const rule = buildRuleDetails({
+    const rule = buildRule({
       id: '123',
       displayName: 'This is an amazing rule',
       description: 'This is an amazing description',
@@ -777,7 +773,7 @@ describe('RuleDetails', () => {
       }),
     ];
     const mocks = [
-      mockRuleDetails({
+      mockGetRuleDetails({
         data: { rule },
         variables: {
           input: {
@@ -837,6 +833,7 @@ describe('RuleDetails', () => {
       getByText,
       getByTestId,
       getByAriaLabel,
+      getAllByAriaLabel,
       findAllByText,
       queryByAriaLabel,
       getAllByLabelText,
@@ -859,23 +856,22 @@ describe('RuleDetails', () => {
     const loadingListingInterfaceElement = getByTestId('rule-alerts-listing-loading');
     expect(loadingListingInterfaceElement).toBeTruthy();
     await waitForElementToBeRemoved(loadingListingInterfaceElement);
+
     alertSummaries.forEach(alertSummary => {
       expect(getByText(alertSummary.title)).toBeInTheDocument();
     });
-    alertSummaries.forEach(alertSummary => {
-      expect(getByAriaLabel(`select ${alertSummary.alertId}`)).toBeInTheDocument();
-    });
+
     // Single select all of 2 Alerts
-    const checkboxForAlert1 = getByAriaLabel(`select ${alertSummaries[0].alertId}`);
+    const [checkboxForAlert1, checkboxForAlert2] = getAllByAriaLabel(`select item`);
+
     fireClickAndMouseEvents(checkboxForAlert1);
     expect(getByText('1 Selected')).toBeInTheDocument();
-    const checkboxForAlert2 = getByAriaLabel(`select ${alertSummaries[1].alertId}`);
+
     fireClickAndMouseEvents(checkboxForAlert2);
     expect(getByText('2 Selected')).toBeInTheDocument();
 
     // Deselect first alert
-    const checkedCheckboxForAlert1 = getByAriaLabel(`unselect ${alertSummaries[0].alertId}`);
-    fireClickAndMouseEvents(checkedCheckboxForAlert1);
+    fireClickAndMouseEvents(checkboxForAlert1);
     expect(getByText('1 Selected')).toBeInTheDocument();
 
     // Expect status field to have Resolved as default
@@ -892,16 +888,14 @@ describe('RuleDetails', () => {
     // Find the alerts with the updated status
     expect(await findAllByText('INVALID')).toHaveLength(1);
     // And expect that the selection has been reset
-    expect(await queryByAriaLabel(`unselect ${alertSummaries[0].alertId}`)).not.toBeInTheDocument();
-    expect(await queryByAriaLabel(`unselect ${alertSummaries[1].alertId}`)).not.toBeInTheDocument();
+    expect(await queryByAriaLabel(`unselect item`)).not.toBeInTheDocument();
 
     // Now select all Rule Matches and updated to Open
     const selectAllCheckbox = getByAriaLabel('select all');
     fireClickAndMouseEvents(selectAllCheckbox);
 
-    alertSummaries.forEach(alertSummary => {
-      expect(getByAriaLabel(`unselect ${alertSummary.alertId}`)).toBeInTheDocument();
-    });
+    expect(getAllByAriaLabel(`unselect item`)).toHaveLength(alertSummaries.length);
+
     // Expect status field to have Resolved as default
 
     fireClickAndMouseEvents(getAllByLabelText('Status')[0]);

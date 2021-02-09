@@ -1,3 +1,4 @@
+deployments/root_config.yml
 out/
 .setup/
 venv/
@@ -6,6 +7,9 @@ __pycache__/
 *.zip
 .vscode
 .history/
+
+# Temporary files
+tmp/
 
 # Dependencies
 node_modules/
@@ -21,7 +25,7 @@ keys/
 .DS_Store
 
 # Terraform
-.terraform
+.terraform*
 terraform.tfstate*
 
 # Omit mage temporary file that can be left at root path if mage does not exit gracefully.

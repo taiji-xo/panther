@@ -27,7 +27,7 @@ import {
 } from 'test-utils';
 import urls from 'Source/urls';
 import { Route } from 'react-router';
-import { CLOUD_SECURITY_REAL_TIME_DOC_URL } from 'Source/constants';
+import { AWS_REGIONS, CLOUD_SECURITY_REAL_TIME_DOC_URL } from 'Source/constants';
 import { EventEnum, SrcEnum, trackEvent } from 'Helpers/analytics';
 import EditComplianceSource from './EditComplianceSource';
 import { mockGetComplianceSource } from './graphql/getComplianceSource.generated';
@@ -40,6 +40,8 @@ describe('EditComplianceSource', () => {
     const complianceSource = buildComplianceIntegration({
       awsAccountId: '123123123123',
       cweEnabled: false,
+      regionIgnoreList: [AWS_REGIONS[0]],
+      resourceTypeIgnoreList: [],
     });
 
     const updatedComplianceSource = buildComplianceIntegration({
@@ -63,6 +65,8 @@ describe('EditComplianceSource', () => {
             integrationLabel: updatedComplianceSource.integrationLabel,
             cweEnabled: complianceSource.cweEnabled,
             remediationEnabled: complianceSource.remediationEnabled,
+            regionIgnoreList: complianceSource.regionIgnoreList,
+            resourceTypeIgnoreList: complianceSource.resourceTypeIgnoreList,
           }),
         },
         data: {
@@ -87,7 +91,7 @@ describe('EditComplianceSource', () => {
     fireEvent.change(nameField, { target: { value: updatedComplianceSource.integrationLabel } });
 
     // Wait for form validation to kick in and move on to the next screen
-    await waitMs(50);
+    await waitMs(1);
     fireEvent.click(getByText('Continue Setup'));
 
     // Initially we expect a disabled button while the template is being fetched ...
@@ -117,6 +121,8 @@ describe('EditComplianceSource', () => {
     const complianceSource = buildComplianceIntegration({
       awsAccountId: '123123123123',
       cweEnabled: false,
+      regionIgnoreList: [AWS_REGIONS[0]],
+      resourceTypeIgnoreList: [],
     });
 
     const updatedComplianceSource = buildComplianceIntegration({
@@ -140,6 +146,8 @@ describe('EditComplianceSource', () => {
             integrationLabel: updatedComplianceSource.integrationLabel,
             cweEnabled: updatedComplianceSource.cweEnabled,
             remediationEnabled: updatedComplianceSource.remediationEnabled,
+            regionIgnoreList: updatedComplianceSource.regionIgnoreList,
+            resourceTypeIgnoreList: updatedComplianceSource.resourceTypeIgnoreList,
           }),
         },
         data: {
@@ -147,7 +155,14 @@ describe('EditComplianceSource', () => {
         },
       }),
     ];
-    const { getByText, getByLabelText, getByAltText, findByText, queryByText } = render(
+    const {
+      getByText,
+      getByLabelText,
+      getByAriaLabel,
+      getByAltText,
+      findByText,
+      queryByText,
+    } = render(
       <Route path={urls.compliance.sources.edit(':id')}>
         <EditComplianceSource />
       </Route>,
@@ -159,10 +174,10 @@ describe('EditComplianceSource', () => {
     //  Wait for GET api request to populate the form
     await waitFor(() => expect(nameField).toHaveValue(complianceSource.integrationLabel));
 
-    fireEvent.click(getByLabelText('Real-Time AWS Resource Scans'));
+    fireEvent.click(getByAriaLabel('Real-Time AWS Resource Scans'));
 
     // Wait for form validation to kick in and move on to the next screen
-    await waitMs(50);
+    await waitMs(1);
     fireEvent.click(getByText('Continue Setup'));
 
     // We move on to the final screen

@@ -340,6 +340,12 @@ func (m *GlueMock) CreateTable(input *glue.CreateTableInput) (*glue.CreateTableO
 	args := m.Called(input)
 	return args.Get(0).(*glue.CreateTableOutput), args.Error(1)
 }
+func (m *GlueMock) CreateTableWithContext(ctx context.Context,
+	input *glue.CreateTableInput, _ ...request.Option) (*glue.CreateTableOutput, error) {
+
+	args := m.Called(ctx, input)
+	return args.Get(0).(*glue.CreateTableOutput), args.Error(1)
+}
 
 func (m *GlueMock) GetTable(input *glue.GetTableInput) (*glue.GetTableOutput, error) {
 	args := m.Called(input)
@@ -404,6 +410,13 @@ func (m *AthenaMock) GetQueryExecution(input *athena.GetQueryExecutionInput) (*a
 func (m *AthenaMock) GetQueryResults(input *athena.GetQueryResultsInput) (*athena.GetQueryResultsOutput, error) {
 	args := m.Called(input)
 	return args.Get(0).(*athena.GetQueryResultsOutput), args.Error(1)
+}
+
+func (m *AthenaMock) ListTableMetadataPagesWithContext(ctx aws.Context, input *athena.ListTableMetadataInput,
+	f func(*athena.ListTableMetadataOutput, bool) bool, option ...request.Option) error {
+
+	args := m.Called(ctx, input, f)
+	return args.Error(0)
 }
 
 type SnsMock struct {

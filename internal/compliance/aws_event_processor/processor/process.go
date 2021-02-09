@@ -141,9 +141,11 @@ var (
 		"BatchWriteItem":     {},
 
 		// ec2
-		"DeleteNetworkInterface": {}, // we handle "DetachNetworkInterface"
-		"CreateInternetGateway":  {}, // Currently we don't have an EC2 InternetGateway resource,
-		"DeleteInternetGateway":  {}, // when we do we will need to handle these
+		"DeleteNetworkInterface":      {}, // we handle "DetachNetworkInterface"
+		"CreateInternetGateway":       {}, // Currently we don't have an EC2 InternetGateway resource,
+		"DeleteInternetGateway":       {}, // when we do we will need to handle these
+		"SharedSnapshotCopyInitiated": {},
+		"SharedSnapshotVolumeCreated": {},
 
 		// ecs
 		"DeleteAccountSetting":     {},
@@ -160,6 +162,13 @@ var (
 		"ModifyTargetGroupAttributes": {},
 		"RegisterTargets":             {},
 		"DeregisterTargets":           {},
+
+		// These are elb classic events that we don't support but can't differentiate from elbv2
+		// events
+		"RegisterInstancesWithLoadBalancer": {},
+		"ConfigureHealthCheck":              {},
+		"SetLoadBalancerPoliciesOfListener": {},
+		"CreateLoadBalancerPolicy":          {},
 
 		// guardduty
 		"ArchiveFindings":             {},
@@ -202,6 +211,7 @@ var (
 		"Invoke":                    {},
 		"InvokeAsync":               {},
 		"InvokeFunction":            {},
+		"InvokeExecution":           {},
 
 		// rds
 		// TODO get suffixes
@@ -381,7 +391,7 @@ func processCloudTrailLog(detail gjson.Result, metadata *CloudTrailMetadata, cha
 	if len(newChanges) > 0 {
 		readOnly := detail.Get("readOnly")
 		if readOnly.Exists() && readOnly.Bool() {
-			zap.L().Warn(
+			zap.L().Debug(
 				"processing newChanges from event marked readOnly",
 				zap.String("eventSource", metadata.eventSource),
 				zap.String("eventName", metadata.eventName),

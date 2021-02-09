@@ -103,6 +103,10 @@ func PollPasswordPolicy(pollerInput *awsmodels.ResourcePollerInput) ([]apimodels
 		awsmodels.PasswordPolicySchema,
 	)
 
+	// Check if ResourceID matches the integration's regex filter
+	if pollerInput.ShouldIgnoreResource(resourceID) {
+		return nil, nil, nil
+	}
 	genericFields := awsmodels.GenericResource{
 		ResourceID:   aws.String(resourceID),
 		ResourceType: aws.String(awsmodels.PasswordPolicySchema),

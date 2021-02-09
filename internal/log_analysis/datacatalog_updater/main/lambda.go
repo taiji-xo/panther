@@ -39,6 +39,7 @@ import (
 	"github.com/panther-labs/panther/internal/log_analysis/log_processor/registry"
 	"github.com/panther-labs/panther/pkg/awsretry"
 	"github.com/panther-labs/panther/pkg/lambdalogger"
+	"github.com/panther-labs/panther/pkg/stringset"
 )
 
 // The panther-datacatalog-updater lambda is responsible for managing Glue partitions as data is created.
@@ -82,13 +83,27 @@ func main() {
 		LambdaAPI:  lambdaClient,
 	}
 
-	resolver := logtypes.ChainResolvers(
-		registry.NativeLogTypesResolver(),
-		snapshotlogs.Resolver(),
-		&logtypesapi.Resolver{
-			LogTypesAPI: logtypesAPI,
-		},
-	)
+	apiResolver := &logtypesapi.Resolver{
+		LogTypesAPI:    logtypesAPI,
+		NativeLogTypes: logtypes.MustMerge("native", registry.NativeLogTypes(), snapshotlogs.LogTypes()),
+	}
+
+	// Also include the cloud-security logs since they are not yet exported as managed schemas.
+	chainResolver := logtypes.ChainResolvers(apiResolver, snapshotlogs.Resolver())
+
+	// Log cases where a log type failed to resolve. Almost certainly something is amiss in the DDB.
+	resolver := logtypes.ResolverFunc(func(ctx context.Context, name string) (logtypes.Entry, error) {
+		entry, err := chainResolver.Resolve(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		if entry == nil {
+			// if a logType is not found, this indicates bad data ... log/alarm
+			lambdalogger.FromContext(ctx).Error("cannot resolve logType", zap.String("logType", name))
+			return nil, nil
+		}
+		return entry, nil
+	})
 
 	handler := datacatalog.LambdaHandler{
 		ProcessedDataBucket: config.ProcessedDataBucket,
@@ -99,7 +114,8 @@ func main() {
 			if err != nil {
 				return nil, err
 			}
-			return reply.LogTypes, nil
+			// append in snapshot logs which are always onboarded
+			return stringset.Append(reply.LogTypes, logtypes.CollectNames(snapshotlogs.LogTypes())...), nil
 		},
 		GlueClient:   glue.New(clientsSession),
 		Resolver:     resolver,
