@@ -23,7 +23,7 @@ fragment S3LogIntegrationDetails on S3LogIntegration {
     kmsKeyStatus {
       ...IntegrationItemHealthDetails
     }
-    s3GetObjectStatus {
+    getObjectStatus {
       ...IntegrationItemHealthDetails
     }
   }

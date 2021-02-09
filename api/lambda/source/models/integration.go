@@ -76,6 +76,9 @@ type SourceIntegrationMetadata struct {
 	StackName string `json:"stackName,omitempty"`
 
 	SqsConfig *SqsConfig `json:"sqsConfig,omitempty"`
+
+	// PantherVersion is the version of Panther that the source was created with.
+	PantherVersion string `json:"pantherVersion,omitempty"`
 }
 
 // S3PrefixLogtypesMapping contains the logtypes Panther should parse for this s3 prefix.
@@ -170,7 +173,8 @@ type SourceIntegrationHealth struct {
 	ProcessingRoleStatus SourceIntegrationItemStatus `json:"processingRoleStatus,omitempty"`
 	S3BucketStatus       SourceIntegrationItemStatus `json:"s3BucketStatus,omitempty"`
 	KMSKeyStatus         SourceIntegrationItemStatus `json:"kmsKeyStatus,omitempty"`
-	S3GetObject          SourceIntegrationItemStatus `json:"s3GetObjectStatus,omitempty"`
+	// GetObject check is not available to sources created in Panther<1.16
+	GetObjectStatus *SourceIntegrationItemStatus `json:"getObjectStatus,omitempty"`
 
 	// Checks for Sqs integrations
 	SqsStatus SourceIntegrationItemStatus `json:"sqsStatus"`

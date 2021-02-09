@@ -60,6 +60,9 @@ type Integration struct {
 	LogProcessingRole string   `json:"logProcessingRole,omitempty"`
 
 	SqsConfig *SqsConfig `json:"sqsConfig,omitempty"`
+
+	// The Panther version in which this source was created.
+	PantherVersion string `json:"pantherVersion,omitempty"`
 }
 
 type IntegrationStatus struct {
