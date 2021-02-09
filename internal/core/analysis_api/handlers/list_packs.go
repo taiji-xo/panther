@@ -83,8 +83,9 @@ func getListOptions(input *models.EnumeratePack) *models.ListDetectionsInput {
 	listInput := models.ListDetectionsInput{
 		IDs: input.PackDefinition.IDs,
 	}
-	// then populate the other standard fields
+	// Packs can contain any "detection" types
 	listInput.AnalysisTypes = []models.DetectionType{models.TypeDataModel, models.TypeGlobal, models.TypePolicy, models.TypeRule}
+	// then populate the other standard fields
 	listInput.Fields = input.Fields
 	listInput.SortBy = input.SortBy
 	listInput.SortDir = input.SortDir
