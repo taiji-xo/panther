@@ -63,7 +63,7 @@ const ListDataModels = () => {
           title={
             <Flex align="center" spacing={2} ml={4}>
               {dataModels.length > 0 && <SelectAllCheckbox selectionItems={dataModels} />}
-              <Text>Data Models</Text>
+              <Box as="span">Data Models</Box>
             </Flex>
           }
           actions={<ListDataModelActions />}
