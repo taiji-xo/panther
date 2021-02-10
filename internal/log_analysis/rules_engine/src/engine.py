@@ -58,7 +58,7 @@ class Engine:
         #  via the `udm` method
         event = PantherEvent(event, self.log_type_to_data_models.get(log_type))
 
-        rule_result = rule.run(event, event_mocks, batch_mode=False)
+        rule_result = rule.run(event, batch_mode=False, event_mocks=event_mocks)
         format_exception = lambda exc: '{}: {}'.format(type(exc).__name__, exc) if exc else exc
         # for tests against rules using the `udm` method, you must specify `p_log_type`
         # field in each test definition

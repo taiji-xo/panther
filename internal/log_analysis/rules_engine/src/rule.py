@@ -195,14 +195,14 @@ class Rule:
 
         self._default_dedup_string = 'defaultDedupString:{}'.format(self.rule_id)
 
-    def run(self, event: PantherEvent, event_mocks: Mapping = None, batch_mode: bool = True) -> RuleResult:
+    def run(self, event: PantherEvent, batch_mode: bool = True, event_mocks: Mapping = None) -> RuleResult:
         """
         Analyze a log line with this rule and return True, False, or an error.
         :param event: The event to run the rule against
-        :param event_mocks: The functions to mock the rule execution against
         :param batch_mode: Whether the rule runs as part of the log analysis or as part of a simple rule test.
         In batch mode, title/dedup functions are not checked if the rule won't trigger an alert and also title()/dedup()
         won't raise exceptions, so that an alert won't be missed.
+        :param event_mocks: The functions to mock the rule execution against
         """
         rule_result = RuleResult()
         # If there was an error setting up the rule
