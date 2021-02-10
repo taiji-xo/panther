@@ -59,6 +59,7 @@ func (db *InMemDB) PutSchema(_ context.Context, name string, r *SchemaRecord) (*
 	}
 	current, ok := db.records[id]
 	if !ok {
+		r.Revision = 1
 		db.records[id] = r
 		return r, nil
 	}
