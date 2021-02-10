@@ -81,7 +81,7 @@ describe('ListDetectionsFilters', () => {
     await waitFor(() => expect(history.location.search).toContain('nameContains'));
 
     const dropdown = getByTestId('dropdown-detections-listing-filters');
-    const withinDropdown = within(dropdown);
+    let withinDropdown = within(dropdown);
 
     fireClickAndMouseEvents(withinDropdown.getAllByLabelText('State')[0]);
     fireClickAndMouseEvents(withinDropdown.getByText('Enabled'));
@@ -106,8 +106,20 @@ describe('ListDetectionsFilters', () => {
     await waitFor(() => expect(dropdown).not.toBeInTheDocument());
 
     fireClickAndMouseEvents(dropdownTrigger);
-    fireClickAndMouseEvents(getByText('Clear Filters'));
+
+    withinDropdown = within(getByTestId('dropdown-detections-listing-filters'));
+
+    fireClickAndMouseEvents(withinDropdown.getByText('Clear Filters'));
     fireClickAndMouseEvents(withinDropdown.getByText('Apply Filters'));
-    await waitFor(() => expect(parseParams(history.location.search)).toEqual('/'));
+
+    // expect to find the ONLY the filters that are not part of the dropdown
+    await waitFor(() =>
+      expect(parseParams(history.location.search)).toEqual({
+        nameContains: 'AWS',
+        page: 1,
+        sortBy: 'severity',
+        sortDir: 'ascending',
+      })
+    );
   });
 });

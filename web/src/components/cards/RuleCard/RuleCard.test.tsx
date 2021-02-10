@@ -45,9 +45,8 @@ describe('RuleCard', () => {
   });
 
   it('renders a checkbox when selection is enabled', () => {
-    const rule = buildRule();
-    const { getByAriaLabel } = render(<RuleCard rule={rule} />);
+    const { getByAriaLabel } = render(<RuleCard rule={buildRule()} selectionEnabled />);
 
-    expect(getByAriaLabel(`select ${rule.id}`)).toBeInTheDocument();
+    expect(getByAriaLabel(`select item`)).toBeInTheDocument();
   });
 });
