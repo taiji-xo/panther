@@ -21,7 +21,7 @@ import queryString from 'query-string';
 import { queryStringOptions } from 'Hooks/useUrlParams';
 import { fireClickAndMouseEvents, fireEvent, render, within, waitFor } from 'test-utils';
 import { ListDetectionsSortFieldsEnum, SortDirEnum } from 'Generated/schema';
-import ListDetectionsFilters from './index';
+import ListDetectionsFilters from './ListDetectionsFilters';
 
 // Mock debounce so it just executes the callback instantly
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
