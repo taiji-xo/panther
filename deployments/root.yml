@@ -438,7 +438,9 @@ Resources:
         LogProcessorLambdaSQSReadBatchSize: !Ref LogProcessorLambdaSQSReadBatchSize
         ProcessedDataBucket: !GetAtt Bootstrap.Outputs.ProcessedDataBucket
         ProcessedDataTopicArn: !GetAtt Bootstrap.Outputs.ProcessedDataTopicArn
+        PythonAssumableRoleArns: !Ref PythonAssumableRoleArns
         PythonLayerVersionArn: !GetAtt BootstrapGateway.Outputs.PythonLayerVersionArn
+        PythonManagedPolicyArn: !Ref PythonManagedPolicyArn
         SqsKeyId: !GetAtt Bootstrap.Outputs.QueueEncryptionKeyId
         TracingMode: !Ref TracingMode
       Tags:
