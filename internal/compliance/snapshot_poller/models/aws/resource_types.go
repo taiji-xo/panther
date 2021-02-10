@@ -51,7 +51,7 @@ var ResourceTypes = map[string]struct{}{
 	EksClusterSchema:          {},
 	Elbv2LoadBalancerSchema:   {},
 	GuardDutySchema:           {},
-	GuardDutyMetaSchema:			 {},
+	GuardDutyMetaSchema:       {},
 	IAMGroupSchema:            {},
 	IAMPolicySchema:           {},
 	IAMRoleSchema:             {},
