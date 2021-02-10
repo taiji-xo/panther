@@ -317,6 +317,7 @@ func TestIntegrationAPI(t *testing.T) {
 		t.Run("ListDetectionsAnalysisTypeFilter", listDetectionsAnalysisTypeFilter)
 		t.Run("ListDetectionsComplianceFilter", listDetectionsComplianceFilter)
 		t.Run("ListPacks", listPacks)
+		t.Run("EnumeratePack", enumeratePack)
 	})
 
 	t.Run("Modify", func(t *testing.T) {
@@ -2803,6 +2804,30 @@ func listPacks(t *testing.T) {
 	// success: with updateAvailable
 
 	// success: with enabled
+}
+
+func enumeratePack(t *testing.T) {
+	// success
+	input := models.LambdaInput{
+		EnumeratePack: &models.EnumeratePackInput{
+			ID: packOriginalRelease.ID,
+		},
+	}
+	var result models.EnumeratePackOutput
+	statusCode, err := apiClient.Invoke(&input, &result)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, statusCode)
+	assert.Equal(t, 3, len(result.Detections))
+	assert.Equal(t, 0, len(result.Models))
+	assert.Equal(t, 0, len(result.Globals))
+	// no such pack
+	input = models.LambdaInput{
+		EnumeratePack: &models.EnumeratePackInput{
+			ID: "no.such.pack",
+		},
+	}
+	statusCode, err = apiClient.Invoke(&input, &result)
+	assert.Error(t, err)
 }
 
 func patchPack(t *testing.T) {
