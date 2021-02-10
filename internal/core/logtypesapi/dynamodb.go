@@ -115,6 +115,8 @@ func (d *DynamoDBSchemas) GetSchema(ctx context.Context, id string) (*SchemaReco
 
 // nolint:lll
 func (d *DynamoDBSchemas) PutSchema(ctx context.Context, id string, record *SchemaRecord) (*SchemaRecord, error) {
+	// We still need a transaction to be able to return values on condition check failure.
+	// Otherwise we cannot have fine-grained error messages.
 	tx := buildPutSchemaTx(d.TableName, id, *record)
 	input, err := tx.Build()
 	if err != nil {
@@ -127,7 +129,6 @@ func (d *DynamoDBSchemas) PutSchema(ctx context.Context, id string, record *Sche
 }
 
 func buildPutSchemaTx(tableName string, id string, record SchemaRecord) transact.Transaction {
-	currentRevision := record.Revision - 1
 	return transact.Transaction{
 		&transact.Update{
 			TableName: tableName,
@@ -154,7 +155,7 @@ func buildPutSchemaTx(tableName string, id string, record SchemaRecord) transact
 					Disabled     bool      `dynamodbav:"IsDeleted"`
 				}{
 					UpdatedAt:    record.UpdatedAt,
-					Revision:     record.Revision,
+					Revision:     record.Revision + 1,
 					Release:      record.Release,
 					Description:  record.Description,
 					ReferenceURL: record.ReferenceURL,
@@ -170,7 +171,7 @@ func buildPutSchemaTx(tableName string, id string, record SchemaRecord) transact
 					// Check that the record is managed or user-defined based on input
 					expression.Name(attrManaged).Equal(expression.Value(record.Managed)),
 					// Check that the record has not incremented its revision
-					expression.Name(attrRevision).Equal(expression.Value(currentRevision)),
+					expression.Name(attrRevision).Equal(expression.Value(record.Revision)),
 				),
 			),
 			// Possible failures of the condition are
@@ -188,7 +189,7 @@ func buildPutSchemaTx(tableName string, id string, record SchemaRecord) transact
 					if rec.Managed != record.Managed {
 						return NewAPIError(ErrAlreadyExists, fmt.Sprintf("schema record %q is not managed", rec.RecordID))
 					}
-					if rec.Revision != currentRevision {
+					if rec.Revision != record.Revision {
 						return NewAPIError(ErrRevisionConflict, fmt.Sprintf("schema record %q is at revision %d", rec.RecordID, rec.Revision))
 					}
 				}

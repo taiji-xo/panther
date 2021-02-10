@@ -201,6 +201,7 @@ func (u *Update) BuildItem() (*dynamodb.TransactWriteItem, error) {
 		Update: &update,
 	}, nil
 }
+
 func (u *Update) BuildExpression() (*expression.Expression, error) {
 	upd := expression.UpdateBuilder{}
 	if ifNot, ok := u.Set[SetIfNotExists]; ok {
@@ -222,7 +223,8 @@ func (u *Update) BuildExpression() (*expression.Expression, error) {
 		}
 	}
 	for name, value := range u.Set {
-		if name == SetAll {
+		switch name {
+		case SetAll, SetIfNotExists:
 			continue
 		}
 		if op, ok := value.(expression.OperandBuilder); ok {

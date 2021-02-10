@@ -124,7 +124,7 @@ func (api *LogTypesAPI) updateManagedSchema(ctx context.Context, entry managedsc
 	now := time.Now()
 	record := SchemaRecord{
 		Name:         entry.Name,
-		Revision:     1,
+		Revision:     0,
 		Release:      entry.Release,
 		Managed:      true,
 		UpdatedAt:    now,

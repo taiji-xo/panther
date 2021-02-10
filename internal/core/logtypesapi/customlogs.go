@@ -72,7 +72,7 @@ func (api *LogTypesAPI) PutCustomLog(ctx context.Context, input *PutCustomLogInp
 	case 0:
 		result, err := api.Database.PutSchema(ctx, id, &SchemaRecord{
 			Name:         id,
-			Revision:     1,
+			Revision:     0,
 			UpdatedAt:    now,
 			CreatedAt:    now,
 			Managed:      false,
