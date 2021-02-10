@@ -267,7 +267,6 @@ func setupUpdatePacksVersions(newVersion models.Version, oldPackItems []*packTab
 			newPack.Type = models.TypePack
 			newPacks = append(newPacks, newPack)
 		}
-
 	}
 	return newPacks
 }

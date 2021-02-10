@@ -2826,7 +2826,7 @@ func enumeratePack(t *testing.T) {
 			ID: "no.such.pack",
 		},
 	}
-	statusCode, err = apiClient.Invoke(&input, &result)
+	_, err = apiClient.Invoke(&input, &result)
 	assert.Error(t, err)
 }
 
