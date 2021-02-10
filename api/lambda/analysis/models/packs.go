@@ -32,7 +32,7 @@ type GetPackInput struct {
 type EnumeratePack struct {
 
 	// Take in the pack definition
-	PackDefinition PackDefinition `json:"packDefinition"`
+	ID string `json:"id"`
 
 	// ----- Projection -----
 

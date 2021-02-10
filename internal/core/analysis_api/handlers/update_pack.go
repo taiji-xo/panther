@@ -324,7 +324,7 @@ func detectionSetLookup(newDetections map[string]*tableItem, input models.PackDe
 			if detection, ok := newDetections[id]; ok {
 				items[detection.ID] = detection
 			} else {
-				zap.L().Warn("attempted to add detection that does not exist",
+				zap.L().Error("pack definition includes a detection that does not exist",
 					zap.String("detectionId", id))
 			}
 		}
