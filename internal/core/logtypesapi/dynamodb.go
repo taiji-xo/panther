@@ -71,11 +71,15 @@ func (d *DynamoDBSchemas) ScanSchemas(ctx context.Context, scan ScanSchemaFunc) 
 		TableName:                 aws.String(d.TableName),
 	}, func(page *dynamodb.ScanOutput, isLast bool) bool {
 		for _, item := range page.Items {
-			record := SchemaRecord{}
+			record := ddbSchemaRecord{}
 			if itemErr = dynamodbattribute.UnmarshalMap(item, &record); itemErr != nil {
 				return false
 			}
-			if !scan(&record) {
+			// Skip revision history records
+			if record.RecordID != schemaRecordID(record.Name) {
+				continue
+			}
+			if !scan(&record.SchemaRecord) {
 				return false
 			}
 		}
