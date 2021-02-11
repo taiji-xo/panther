@@ -57,9 +57,11 @@ func (e *RuleEngine) TestRule(rule *models.TestRuleInput) (*models.TestRuleOutpu
 		}
 
 		var mocks map[string]string
-		if err := jsoniter.UnmarshalFromString(test.Mocks, &mocks); err != nil {
-			//nolint // Error is capitalized because will be returned to the UI
-			return nil, &TestInputError{fmt.Errorf(`Mocks for test "%s" event "%d" is not valid json: %w`, test.Name, i, err)}
+		if test.Mocks != "" {
+			if err := jsoniter.UnmarshalFromString(test.Mocks, &mocks); err != nil {
+				//nolint // Error is capitalized because will be returned to the UI
+				return nil, &TestInputError{fmt.Errorf(`Mocks for test "%s" event "%d" is not valid json: %w`, test.Name, i, err)}
+			}
 		}
 
 		inputEvents[i] = enginemodels.Event{
