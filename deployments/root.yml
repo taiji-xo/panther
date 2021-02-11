@@ -178,7 +178,7 @@ Parameters:
   PythonManagedPolicyArn:
     Type: String
     Description: Managed IAM policy which will be attached to the Python rules-engine and policy-engine
-    AllowedPattern: '^(arn:(aws|aws-cn|aws-us-gov):iam::\d{12}:policy/\S+)?$'
+    AllowedPattern: '^(arn:(aws|aws-cn|aws-us-gov):iam::(\d{12}|aws):policy\/\S+)?$'
   SecurityGroupID:
     Type: String
     Description: An existing SecurityGroup to deploy Panther into. Only takes affect if VpcID is specified.

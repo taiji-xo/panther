@@ -90,7 +90,7 @@ Parameters:
   PythonManagedPolicyArn:
     Type: String
     Description: Managed IAM policy which will be attached to the Python policy-engine
-    AllowedPattern: '^(arn:(aws|aws-cn|aws-us-gov):iam::\d{12}:policy/\S+)?$'
+    AllowedPattern: '^(arn:(aws|aws-cn|aws-us-gov):iam::(\d{12}|aws):policy\/\S+)?$'
   SqsKeyId:
     Type: String
     Description: KMS key ID for SQS encryption
