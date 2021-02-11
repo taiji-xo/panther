@@ -366,34 +366,29 @@ class TestRule(TestCase):  # pylint: disable=too-many-public-methods
         self.assertEqual(expected_result, result)
 
     def test_rule_with_mocking(self) -> None:
-        rule_body = 'import boto3\n' \
-                    'from boto3 import client\n' \
-                    'from unittest.mock import MagicMock\n' \
-                    'def rule(event):\n\t' \
-                    'assert isinstance(boto3, MagicMock)\n\t' \
-                    'assert isinstance(client, MagicMock)\n\t' \
-                    'assert isinstance(boto3.client, MagicMock)\n\t' \
-                    's3_client = boto3.client("s3")\n\t' \
-                    'assert isinstance(s3_client, MagicMock)\n\t' \
-                    'boto3.client.assert_called_once_with("s3")\n\t' \
-                    's3_client = client("s3")\n\t' \
-                    'assert s3_client == "client_return_value"\n\t' \
-                    'client.assert_called_once_with("s3")\n\t' \
-                    'return True\n' \
-                    'def alert_context(event):\n\treturn {}\n' \
-                    'def title(event):\n\treturn "test_rule_with_mocking"\n'
-        rule = Rule({'id': 'test_rule_with_mocking', 'body': rule_body, 'versionId': 'versionId'})
+        """ Tests a rule with defined mocking functions in rule and title -- covers both ways of importing a module. """
+        rule_body = [
+            'import boto3', 'from datetime import date', 'from unittest.mock import MagicMock',
+            'def rule(event):', '\tassert isinstance(boto3, MagicMock)', '\tassert isinstance(date, MagicMock)',
+            '\tassert isinstance(boto3.client, MagicMock)', '\ts3_client = boto3.client("s3")',
+            '\tassert isinstance(s3_client, MagicMock)', '\tboto3.client.assert_called_once_with("s3")',
+            '\tdt = date(2000, 1, 1)', '\tassert dt == "date_return_value"',
+            '\tdate.assert_called_once_with(2000, 1, 1)', '\treturn True',
+            'def alert_context(event):', '\treturn {}',
+            'def title(event):', '\treturn f"test_rule_with_mocking_{str(isinstance(boto3, MagicMock))}"'
+        ]
+        rule = Rule({'id': 'test_rule_with_mocking', 'body': '\n'.join(x for x in rule_body), 'versionId': 'versionId'})
 
         mocks = {
             'boto3': 'boto3_return_value',
-            'client': 'client_return_value',
+            'date': 'date_return_value',
         }
 
         expected_result = RuleResult(
             matched=True,
             alert_context='{}',
-            title_output='test_rule_with_mocking',
-            dedup_output='test_rule_with_mocking',
+            title_output='test_rule_with_mocking_True',
+            dedup_output='test_rule_with_mocking_True',
         )
         result = rule.run(PantherEvent({}, None), event_mocks=mocks, batch_mode=False)
         self.assertEqual(expected_result, result)
