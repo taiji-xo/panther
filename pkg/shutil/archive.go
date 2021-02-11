@@ -49,7 +49,7 @@ func ZipDirectory(root, savefile string, preserveModTime bool) (err error) {
 		zipErr := zipWriter.Close()
 
 		// Don't replace an existing error
-		if err != nil {
+		if err == nil {
 			err = zipErr
 		}
 	}()
