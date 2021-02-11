@@ -118,85 +118,73 @@ func (d *DynamoDBSchemas) GetSchema(ctx context.Context, id string) (*SchemaReco
 
 // nolint:lll
 func (d *DynamoDBSchemas) PutSchema(ctx context.Context, id string, record *SchemaRecord) (*SchemaRecord, error) {
-	// We still need a transaction to be able to return values on condition check failure.
-	// Otherwise we cannot have fine-grained error messages.
-	tx := buildPutSchemaTx(d.TableName, id, *record)
-	input, err := tx.Build()
+	upd, err := buildPutSchemaExpression(record)
 	if err != nil {
-		return nil, errors.WithMessage(err, "failed to build update managed schema transaction")
+		return nil, errors.WithMessage(err, "failed to build update schema expression")
 	}
-	if _, err := d.DB.TransactWriteItemsWithContext(ctx, input); err != nil {
-		return nil, errors.Wrap(tx.ExplainTransactionError(err), "update schema transaction failed")
+	reply, err := d.DB.UpdateItemWithContext(ctx, &dynamodb.UpdateItemInput{
+		TableName:                 aws.String(d.TableName),
+		Key:                       mustMarshalMap(schemaRecordKey(id)),
+		ConditionExpression:       upd.Condition(),
+		UpdateExpression:          upd.Update(),
+		ExpressionAttributeNames:  upd.Names(),
+		ExpressionAttributeValues: upd.Values(),
+		ReturnValues:              aws.String(dynamodb.ReturnValueAllNew),
+	})
+	if err != nil {
+		if errors.As(err, &dynamodb.ConditionalCheckFailedException{}) {
+			return nil, NewAPIError(ErrRevisionConflict, fmt.Sprintf("schema record %q is not at revision %d", id, record.Revision))
+		}
+		return nil, err
 	}
-	return record, nil
+	result := SchemaRecord{}
+	if err := dynamodbattribute.UnmarshalMap(reply.Attributes, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
-func buildPutSchemaTx(tableName string, id string, record SchemaRecord) transact.Transaction {
-	return transact.Transaction{
-		&transact.Update{
-			TableName: tableName,
-			Key:       schemaRecordKey(id),
-			Set: map[string]interface{}{
-				// Set if the record is being put for the first time
-				transact.SetIfNotExists: struct {
-					CreatedAt time.Time `dynamodbav:"createdAt"`
-					Name      string    `dynamodbav:"logType"`
-					Managed   bool      `dynamodbav:"managed"`
-				}{
-					CreatedAt: record.CreatedAt,
-					Name:      record.Name,
-					Managed:   record.Managed,
-				},
-				// Update fields of the schema record
-				transact.SetAll: struct {
-					UpdatedAt    time.Time `dynamodbav:"updatedAt"`
-					Release      string    `dynamodbav:"release"`
-					Revision     int64     `dynamodbav:"revision"`
-					Description  string    `dynamodbav:"description"`
-					ReferenceURL string    `dynamodbav:"referenceURL"`
-					Spec         string    `dynamodbav:"logSpec"`
-					Disabled     bool      `dynamodbav:"IsDeleted"`
-				}{
-					UpdatedAt:    record.UpdatedAt,
-					Revision:     record.Revision + 1,
-					Release:      record.Release,
-					Description:  record.Description,
-					ReferenceURL: record.ReferenceURL,
-					Spec:         record.Spec,
-					Disabled:     record.Disabled,
-				},
+func buildPutSchemaExpression(record *SchemaRecord) (expression.Expression, error) {
+	return transact.BuildExpression(&transact.Update{
+		Set: map[string]interface{}{
+			// Set if the record is being put for the first time
+			transact.SetIfNotExists: struct {
+				CreatedAt time.Time `dynamodbav:"createdAt"`
+				Name      string    `dynamodbav:"logType"`
+				Managed   bool      `dynamodbav:"managed"`
+			}{
+				CreatedAt: record.CreatedAt,
+				Name:      record.Name,
+				Managed:   record.Managed,
 			},
-			// Managed/Custom check is done at API level *BEFORE* the Put
-			Condition: expression.Or(
-				// Check that the record does not exist
-				expression.Name(attrRecordKind).AttributeNotExists(),
-				// OR
-				// Check that the record has not incremented its revision
-				expression.Name(attrRevision).Equal(expression.Value(record.Revision)),
-			),
-			// Possible failures of the condition are
-			// - The record is not managed
-			// - The record is already at a newer release
-			// To distinguish between the two we need to get the record values and check its revision and deleted attrs
-			ReturnValuesOnConditionCheckFailure: dynamodb.ReturnValueAllOld,
-			// We convert these failures to APIErrors here
-			Cancel: func(r *dynamodb.CancellationReason) error {
-				if transact.IsConditionalCheckFailed(r) {
-					rec := ddbSchemaRecord{}
-					if e := dynamodbattribute.UnmarshalMap(r.Item, &rec); e != nil {
-						return e
-					}
-					if rec.Managed != record.Managed {
-						return NewAPIError(ErrAlreadyExists, fmt.Sprintf("schema record %q is not managed", rec.RecordID))
-					}
-					if rec.Revision != record.Revision {
-						return NewAPIError(ErrRevisionConflict, fmt.Sprintf("schema record %q is at revision %d", rec.RecordID, rec.Revision))
-					}
-				}
-				return nil
+			// Update fields of the schema record
+			transact.SetAll: struct {
+				UpdatedAt    time.Time `dynamodbav:"updatedAt"`
+				Release      string    `dynamodbav:"release"`
+				Revision     int64     `dynamodbav:"revision"`
+				Description  string    `dynamodbav:"description"`
+				ReferenceURL string    `dynamodbav:"referenceURL"`
+				Spec         string    `dynamodbav:"logSpec"`
+				Disabled     bool      `dynamodbav:"IsDeleted"`
+			}{
+				UpdatedAt:    record.UpdatedAt,
+				Revision:     record.Revision + 1,
+				Release:      record.Release,
+				Description:  record.Description,
+				ReferenceURL: record.ReferenceURL,
+				Spec:         record.Spec,
+				Disabled:     record.Disabled,
 			},
 		},
-	}
+		// Managed/Custom check is done at API level *BEFORE* the Put
+		Condition: expression.Or(
+			// Check that the record does not exist
+			expression.Name(attrRecordKind).AttributeNotExists(),
+			// OR
+			// Check that the record has not incremented its revision
+			expression.Name(attrRevision).Equal(expression.Value(record.Revision)),
+		),
+	})
 }
 
 type recordKey struct {
