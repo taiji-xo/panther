@@ -45,7 +45,6 @@ const (
 
 	attrRecordKind = "RecordKind"
 	attrRevision   = "revision"
-	attrManaged    = "managed"
 )
 
 var _ SchemaDatabase = (*DynamoDBSchemas)(nil)
