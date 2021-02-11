@@ -26,9 +26,14 @@ import { useDeleteDataModel } from './graphql/deleteDataModel.generated';
 
 export interface DeleteDataModelModalProps extends ModalProps {
   dataModels: DataModel[];
+  onDelete?: () => void;
 }
 
-const DeleteDataModelModal: React.FC<DeleteDataModelModalProps> = ({ dataModels, ...rest }) => {
+const DeleteDataModelModal: React.FC<DeleteDataModelModalProps> = ({
+  dataModels,
+  onDelete,
+  ...rest
+}) => {
   const dataModelToString = toPlural('Data Model', dataModels.length);
   const { pushSnackbar } = useSnackbar();
   const [deleteDataModel] = useDeleteDataModel({
@@ -61,9 +66,16 @@ const DeleteDataModelModal: React.FC<DeleteDataModelModalProps> = ({ dataModels,
     },
   });
 
+  const handleConfirm = () => {
+    deleteDataModel();
+    if (onDelete) {
+      onDelete();
+    }
+  };
+
   return (
     <OptimisticConfirmModal
-      onConfirm={deleteDataModel}
+      onConfirm={handleConfirm}
       title={`Delete ${dataModelToString}`}
       subtitle={[
         `Are you sure you want to delete `,

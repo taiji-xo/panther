@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Alert, Box, Flex } from 'pouncejs';
 import Panel from 'Components/Panel';
 import ErrorBoundary from 'Components/ErrorBoundary';
-import { SelectAllCheckbox, useSelect, withSelectContext } from 'Components/utils/SelectContext';
+import { SelectAllCheckbox, withSelectContext } from 'Components/utils/SelectContext';
 import { extractErrorMessage } from 'Helpers/utils';
 import withSEO from 'Hoc/withSEO';
 import useTrackPageView from 'Hooks/useTrackPageView';
@@ -38,7 +38,6 @@ const ListDataModels = () => {
   useTrackPageView(PageViewEnum.ListDataModels);
 
   const { requestParams } = useRequestParamsWithoutPagination<ListDataModelsInput>();
-  const { resetSelection } = useSelect<DataModel>();
 
   const { loading, error, data } = useListDataModels({
     fetchPolicy: 'cache-and-network',
@@ -47,10 +46,6 @@ const ListDataModels = () => {
     },
   });
   const dataModels = data?.listDataModels?.models || [];
-
-  useEffect(() => {
-    resetSelection();
-  }, [dataModels.length]);
 
   if (loading && !data) {
     return <ListDataModelsSkeleton />;

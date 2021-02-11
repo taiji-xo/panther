@@ -24,7 +24,7 @@ import { MODALS } from 'Components/utils/Modal';
 import { DataModel } from 'Generated/schema';
 
 const ListDataModelSelection: React.FC = () => {
-  const { selection } = useSelect<DataModel>();
+  const { selection, resetSelection } = useSelect<DataModel>();
   const { showModal } = useModal();
 
   return (
@@ -40,6 +40,7 @@ const ListDataModelSelection: React.FC = () => {
               modal: MODALS.DELETE_DATA_MODELS,
               props: {
                 dataModels: selection,
+                onDelete: resetSelection,
               },
             });
           }}
