@@ -167,16 +167,13 @@ func buildPutSchemaTx(tableName string, id string, record SchemaRecord) transact
 					Disabled:     record.Disabled,
 				},
 			},
+			// Managed/Custom check is done at API level *BEFORE* the Put
 			Condition: expression.Or(
 				// Check that the record does not exist
 				expression.Name(attrRecordKind).AttributeNotExists(),
 				// OR
-				expression.And(
-					// Check that the record is managed or user-defined based on input
-					expression.Name(attrManaged).Equal(expression.Value(record.Managed)),
-					// Check that the record has not incremented its revision
-					expression.Name(attrRevision).Equal(expression.Value(record.Revision)),
-				),
+				// Check that the record has not incremented its revision
+				expression.Name(attrRevision).Equal(expression.Value(record.Revision)),
 			),
 			// Possible failures of the condition are
 			// - The record is not managed
