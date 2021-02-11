@@ -87,7 +87,7 @@ func (api *API) checkAwsS3Integration(input *models.CheckIntegrationInput) *mode
 		IntegrationType: input.IntegrationType,
 	}
 	var roleCreds *credentials.Credentials
-	logProcessingRole := generateLogProcessingRoleArn(input.AWSAccountID, input.IntegrationLabel)
+	logProcessingRole := input.LogProcessingRoleARN
 	roleCreds, out.ProcessingRoleStatus = api.getCredentialsWithStatus(logProcessingRole)
 	if out.ProcessingRoleStatus.Healthy {
 		out.S3BucketStatus = api.checkBucket(roleCreds, input.S3Bucket)

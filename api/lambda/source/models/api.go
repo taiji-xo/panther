@@ -18,7 +18,9 @@ package models
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import "time"
+import (
+	"time"
+)
 
 // LambdaInput is the collection of all possible args to the Lambda function.
 type LambdaInput struct {
@@ -55,9 +57,10 @@ type CheckIntegrationInput struct {
 	EnableRemediation *bool `json:"enableRemediation"`
 
 	// Checks for log analysis integrations
-	S3Bucket         string           `json:"s3Bucket"`
-	S3PrefixLogTypes S3PrefixLogtypes `json:"s3PrefixLogTypes,omitempty"`
-	KmsKey           string           `json:"kmsKey"`
+	S3Bucket string `json:"s3Bucket"`
+	S3PrefixLogTypes     S3PrefixLogtypes `json:"s3PrefixLogTypes,omitempty"`
+	KmsKey               string           `json:"kmsKey"`
+	LogProcessingRoleARN string           `json:"roleARN" validate:"omitempty"`
 
 	// Checks for Sqs configuration
 	SqsConfig *SqsConfig `json:"sqsConfig,omitempty"`
@@ -74,21 +77,23 @@ type PutIntegrationInput struct {
 
 // PutIntegrationSettings are all the settings for the new integration.
 type PutIntegrationSettings struct {
-	IntegrationLabel           string           `json:"integrationLabel" validate:"required,integrationLabel,excludesall='<>&\""`
-	IntegrationType            string           `json:"integrationType" validate:"oneof=aws-scan aws-s3 aws-sqs"`
-	UserID                     string           `json:"userId" validate:"required,uuid4"`
-	AWSAccountID               string           `genericapi:"redact" json:"awsAccountId" validate:"omitempty,len=12,numeric"`
-	CWEEnabled                 *bool            `json:"cweEnabled"`
-	RemediationEnabled         *bool            `json:"remediationEnabled"`
-	ScanIntervalMins           int              `json:"scanIntervalMins" validate:"omitempty,oneof=60 180 360 720 1440"`
-	Enabled                    *bool            `json:"enabled"`
-	RegionIgnoreList           []string         `json:"regionIgnoreList"`
-	ResourceTypeIgnoreList     []string         `json:"resourceTypeIgnoreList"`
-	ResourceRegexIgnoreList    []string         `json:"resourceRegexIgnoreList"`
-	S3Bucket                   string           `json:"s3Bucket"`
-	S3PrefixLogTypes           S3PrefixLogtypes `json:"s3PrefixLogTypes,omitempty" validate:"omitempty,min=1"`
-	KmsKey                     string           `json:"kmsKey" validate:"omitempty,kmsKeyArn"`
+	IntegrationLabel        string           `json:"integrationLabel" validate:"required,integrationLabel,excludesall='<>&\""`
+	IntegrationType         string           `json:"integrationType" validate:"oneof=aws-scan aws-s3 aws-sqs"`
+	UserID                  string           `json:"userId" validate:"required,uuid4"`
+	AWSAccountID            string           `genericapi:"redact" json:"awsAccountId" validate:"omitempty,len=12,numeric"`
+	CWEEnabled              *bool            `json:"cweEnabled"`
+	RemediationEnabled      *bool            `json:"remediationEnabled"`
+	ScanIntervalMins        int              `json:"scanIntervalMins" validate:"omitempty,oneof=60 180 360 720 1440"`
+	Enabled                 *bool            `json:"enabled"`
+	RegionIgnoreList        []string         `json:"regionIgnoreList"`
+	ResourceTypeIgnoreList  []string         `json:"resourceTypeIgnoreList"`
+	ResourceRegexIgnoreList []string         `json:"resourceRegexIgnoreList"`
+	S3Bucket                string           `json:"s3Bucket"`
+	S3PrefixLogTypes        S3PrefixLogtypes `json:"s3PrefixLogTypes,omitempty" validate:"omitempty,min=1"`
+	KmsKey                  string           `json:"kmsKey" validate:"omitempty,kmsKeyArn"`
 	ManagedBucketNotifications bool             `json:"managedBucketNotifications"`
+	// The AWS IAM role Panther can use to read objects from the user's S3 bucket.
+	LogProcessingRoleARN string `json:"roleARN" validate:"omitempty,iamARN"`
 
 	SqsConfig *SqsConfig `json:"sqsConfig,omitempty"`
 }
@@ -116,8 +121,9 @@ type UpdateIntegrationSettingsInput struct {
 	S3Bucket                string           `json:"s3Bucket" validate:"omitempty,min=1"`
 	S3PrefixLogTypes        S3PrefixLogtypes `json:"s3PrefixLogTypes,omitempty" validate:"omitempty,min=1"`
 	KmsKey                  string           `json:"kmsKey" validate:"omitempty,kmsKeyArn"`
+	LogProcessingRoleARN    string           `json:"roleARN" validate:"omitempty,iamARN"`
 
-	SqsConfig *SqsConfig `json:"sqsConfig,omitempty"`
+	SqsConfig         *SqsConfig `json:"sqsConfig,omitempty"`
 }
 
 // DeleteIntegrationInput is used to delete a specific item from the database.
